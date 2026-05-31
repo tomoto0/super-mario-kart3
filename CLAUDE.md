@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A 3D Mario Kart-style racing game built on **Three.js r128**, served as a **zero-build, classic-script** web app. There is no bundler, no `node_modules` used at runtime, and no TypeScript/React despite what the README's "stack" section claims — the actual playable game is plain ES5/ES6 scripts in `client/public/`.
 
+## Repository
+
+- **GitHub (public):** https://github.com/tomoto0/super-mario-kart2 — remote `origin`, default branch `main`.
+- The README's clone example points at `tomoto0/3d-super-mario-kart`; that is a *separate, earlier* repo. This codebase lives in `super-mario-kart2`.
+- **Gitignored (do not commit):** `.claude/settings.local.json` (machine-local Claude Code permissions), `.DS_Store`, `node_modules/`, lockfiles. See `.gitignore`.
+- No CI/CD, no GitHub Actions, no release process is configured — pushing to `main` is the whole workflow. There are no dependencies to install for the game itself (`package.json` has no `dependencies`/`devDependencies`).
+
 ## Commands
 
 ```bash
