@@ -1,0 +1,14 @@
+{
+  "name": "3d-super-mario-kart",
+  "version": "1.0.0",
+  "description": "3D Super Mario Kart-style browser racing game built with Three.js",
+  "private": true,
+  "scripts": {
+    "dev": "node server/index.js",
+    "start": "node server/index.js",
+    "serve": "node server/index.js",
+    "build": "node -e \"console.log('No build step required — static Three.js game. Run: npm start')\""
+  },
+  "keywords": ["three.js", "mario-kart", "racing", "game", "webgl"],
+  "license": "MIT"
+}
