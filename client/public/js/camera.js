@@ -9,9 +9,10 @@ window.MK = window.MK || {};
   const C = MK.CONFIG;
 
   const PRESETS = {
-    chase: { back: 9.5, height: 4.6, lookAhead: 7, lookUp: 1.6, rate: 6 },
-    far: { back: 15, height: 7.5, lookAhead: 9, lookUp: 2.2, rate: 5 },
-    bumper: { back: -1.4, height: 1.7, lookAhead: 14, lookUp: 1.2, rate: 14 },
+    // 既定：カート背後ぎりぎりの低い接近カメラ（臨場感重視）
+    chase: { back: 5.7, height: 2.85, lookAhead: 9.5, lookUp: 1.35, rate: 8.5 },
+    far: { back: 13, height: 6.4, lookAhead: 9, lookUp: 2.2, rate: 5.5 },
+    bumper: { back: -1.6, height: 1.55, lookAhead: 15, lookUp: 1.15, rate: 15 },
   };
 
   class CameraController {
@@ -71,10 +72,10 @@ window.MK = window.MK || {};
       }
 
       const p = PRESETS[this.mode] || PRESETS.chase;
-      // 速度で少し引く
+      // 速度で少しだけ引く（接近感を保ちつつスピード感を出す）
       const speedK = U.clamp(Math.abs(k.speed) / k.derived.maxSpeed, 0, 1.3);
-      const back = p.back + speedK * 1.8;
-      const height = p.height + speedK * 0.6;
+      const back = p.back + speedK * 1.15;
+      const height = p.height + speedK * 0.4;
 
       desiredPos.set(
         gp.x - fwd.x * back,

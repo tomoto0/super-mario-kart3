@@ -7,7 +7,7 @@ window.MK = window.MK || {};
   'use strict';
   const U = MK.U;
 
-  const ROULETTE = ['🍄', '🟢', '🔴', '🍌', '💣', '⭐', '⚡'];
+  const ROULETTE = ['mushroom', 'tripleGreen', 'greenShell', 'redShell', 'banana', 'bomb', 'star', 'lightning'];
   const ORD = ['', '1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH', '9TH', '10TH', '11TH', '12TH'];
 
   class HUD {
@@ -35,7 +35,7 @@ window.MK = window.MK || {};
         <div id="hud-coins">🪙 <span id="hud-coin-n">0</span></div>
         <div id="hud-speed"><span id="hud-speed-n">0</span><span class="unit">km/h</span></div>
         <div id="hud-center-msg"></div>
-        <div id="hud-wrongway">⚠ 逆走 / WRONG WAY</div>
+        <div id="hud-wrongway">⚠ WRONG WAY</div>
         <div id="hud-flash"></div>
       `;
       container.appendChild(root);
@@ -75,16 +75,21 @@ window.MK = window.MK || {};
       if (rolling) { this.el.item.classList.add('rolling'); return; }
       this.el.item.classList.remove('rolling');
       if (!itemId) {
-        this.el.itemIcon.textContent = '　';
+        this._setIcon(null);
         this.el.itemCount.textContent = '';
         this.el.item.classList.remove('filled');
         return;
       }
-      const it = MK.ITEMS[itemId];
-      this.el.itemIcon.textContent = it ? it.emoji : '？';
+      this._setIcon(itemId);
       this.el.itemCount.textContent = count > 1 ? '×' + count : '';
       this.el.item.classList.add('filled');
       this.el.item.classList.remove('pop'); void this.el.item.offsetWidth; this.el.item.classList.add('pop');
+    }
+    // 描画アイテムアイコンを枠にセット（絵文字ではなく画像）
+    _setIcon(id) {
+      const el = this.el.itemIcon;
+      el.textContent = '';
+      el.style.backgroundImage = id ? 'url(' + MK.U.itemIcon(id) + ')' : '';
     }
     setLap(lap, total) { this.el.lap.textContent = `LAP ${Math.min(lap, total)}/${total}`; }
     setPosition(place, total) {
@@ -191,7 +196,7 @@ window.MK = window.MK || {};
         if (this._rouletteT > 0.07) {
           this._rouletteT = 0;
           this._rouletteI = (this._rouletteI + 1) % ROULETTE.length;
-          this.el.itemIcon.textContent = ROULETTE[this._rouletteI];
+          this._setIcon(ROULETTE[this._rouletteI]);
         }
       }
       // 速度

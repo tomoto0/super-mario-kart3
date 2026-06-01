@@ -1,52 +1,69 @@
 /* ============================================================================
- *  audio.js — Web Audio による効果音 / エンジン音 / オリジナルBGM
- *  すべて手続き生成（外部アセット不要）。著作権配慮でメロディは独自。
+ *  audio.js — Web Audio による効果音 / エンジン音 + シーン別BGM(MP3)
+ *  効果音・エンジン音は手続き生成。BGM は client/public/music/ の MP3 を
+ *  画面/コースごとに切り替えて再生する（MK.MUSIC + course.music を参照）。
  * ==========================================================================*/
 window.MK = window.MK || {};
 
 (function (MK) {
   'use strict';
 
+  // ---- 画面/状況に割り当てる BGM（パスは game.html からの相対）----
+  //  コースの BGM は courses.js の course.music で指定する。
+  const MUSIC = {
+    title:   'music/01_Opening_Theme.mp3',        // タイトル / オープニング
+    select:  'music/05_Setup_and_Kart_Select.mp3', // キャラ選択・コース選択
+    results: 'music/01_Opening_Theme.mp3',         // レース終了後（リザルト）
+    star:    'music/11_Star_Power.mp3',            // スター無敵中（レース上書き）
+  };
+  MK.MUSIC = MUSIC;
+
   class AudioEngine {
     constructor() {
       this.ctx = null;
       this.master = null;
       this.sfxGain = null;
-      this.musicGain = null;
       this.engineNodes = null;
       this.muted = false;
       this.musicOn = true;
-      this._musicTimer = null;
       this._noiseBuffer = null;
+      // ---- BGM(MP3) 状態 ----
+      this._tracks = {};          // url -> HTMLAudioElement（キャッシュ）
+      this._curMusic = null;      // 再生中の要素
+      this._curUrl = null;        // 再生中の url
+      this._wantUrl = null;       // 現在のシーンが鳴らしたい url（mute/トグルをまたいで保持）
+      this._musicVol = 0.55;      // BGM の基準音量
+      this._starReturnUrl = null; // スター終了後に戻す url
+      this._fades = new Map();    // 要素 -> フェード用 interval id
     }
 
     /* 初回ユーザー操作で起動 */
     init() {
-      if (this.ctx) { this.resume(); return; }
+      if (this.ctx) { this.resume(); this._kickPending(); return; }
       try {
         const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        this.ctx = new AC();
-        this.master = this.ctx.createGain();
-        this.master.gain.value = this.muted ? 0 : 0.9;
-        this.master.connect(this.ctx.destination);
+        if (AC) {
+          this.ctx = new AC();
+          this.master = this.ctx.createGain();
+          this.master.gain.value = this.muted ? 0 : 0.9;
+          this.master.connect(this.ctx.destination);
 
-        this.sfxGain = this.ctx.createGain();
-        this.sfxGain.gain.value = 0.9;
-        this.sfxGain.connect(this.master);
+          this.sfxGain = this.ctx.createGain();
+          this.sfxGain.gain.value = 0.9;
+          this.sfxGain.connect(this.master);
 
-        this.musicGain = this.ctx.createGain();
-        this.musicGain.gain.value = 0.32;
-        this.musicGain.connect(this.master);
-
-        this._buildNoise();
+          this._buildNoise();
+        }
       } catch (e) {
         console.warn('AudioEngine init failed', e);
       }
+      // BGM(MP3) は AudioContext と独立。最初のジェスチャで保留中の曲を鳴らす。
+      this._kickPending();
     }
 
     resume() {
       if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      this._kickPending();
     }
 
     _buildNoise() {
@@ -62,6 +79,7 @@ window.MK = window.MK || {};
     setMuted(m) {
       this.muted = m;
       if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.9, this.now, 0.05);
+      if (this._curMusic) this._fade(this._curMusic, m ? 0 : this._musicVol, 0.2);
     }
     toggleMute() { this.setMuted(!this.muted); return this.muted; }
 
@@ -160,6 +178,16 @@ window.MK = window.MK || {};
       const t = this.now;
       [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.12, 'square', 0.2, t + i * 0.05));
     }
+    thunder() {
+      const t = this.now;
+      this.noise(0.6, 0.6, 'lowpass', 320, t);
+      this.noise(0.22, 0.5, 'highpass', 2200, t);     // 落雷のクラック
+      this.tone(70, 0.7, 'sawtooth', 0.32, t, 28);    // 低い轟き
+    }
+    shield() {
+      const t = this.now;
+      [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.18, t + i * 0.05));
+    }
 
     /* ---- エンジン音（速度連動の連続音） ---- */
     startEngine() {
@@ -196,73 +224,136 @@ window.MK = window.MK || {};
       this.engineNodes = null;
     }
 
-    /* ---- BGM（オリジナルの陽気なループ） ---- */
-    startMusic() {
-      if (!this.ctx || this._musicTimer || !this.musicOn) return;
-      // C メジャー系の軽快なループ。[半音番号]（A4=440 基準で算出）
-      const N = (semi) => 440 * Math.pow(2, (semi - 9) / 12); // semi: 0=C4
-      // メロディ（16ステップ×4小節）
-      const mel = [
-        12, null, 16, 12, 19, null, 16, 12, 17, null, 19, 21, 19, 16, 12, null,
-        14, null, 17, 14, 21, null, 19, 17, 16, null, 12, 16, 19, 16, 12, null,
-        12, 14, 16, 17, 19, 21, 23, 24, 23, 21, 19, 17, 16, 14, 12, null,
-        7, null, 12, null, 16, null, 19, null, 24, 23, 21, 19, 16, 12, 7, null,
-      ];
-      const bass = [0, 7, 0, 7, 5, 0, 7, 0, -3, 4, -3, 4, 5, 7, 5, 7];
-      this._melIdx = 0; this._barStep = 0;
-      const stepDur = 0.16; // 約 BPM 156 の 8 分
-      let nextTime = this.now + 0.1;
-      const lookahead = 0.2;
-      const schedule = () => {
-        if (!this.ctx) return;
-        while (nextTime < this.now + lookahead) {
-          const i = this._melIdx % mel.length;
-          const note = mel[i];
-          if (note != null) {
-            this._musicTone(N(note), stepDur * 0.95, 'square', 0.18, nextTime);
-            this._musicTone(N(note) * 2, stepDur * 0.5, 'triangle', 0.05, nextTime);
-          }
-          const bnote = bass[this._barStep % bass.length];
-          this._musicTone(N(bnote) / 2, stepDur * 0.9, 'triangle', 0.16, nextTime);
-          // ハイハット
-          if (this._barStep % 2 === 0) this._musicNoise(0.04, 0.05, nextTime);
-          this._melIdx++; this._barStep++;
-          nextTime += stepDur;
-        }
-        this._musicTimer = setTimeout(schedule, 60);
-      };
-      schedule();
+    /* ====================================================================
+     *  BGM（シーン別の MP3 をクロスフェード再生）
+     * ==================================================================*/
+
+    /* ---- 公開 API：シーン別の再生 ---- */
+    // 画面用 BGM（'title' | 'select' | 'results' …）
+    playMenuMusic(key) { this.playMusic(MUSIC[key] || MUSIC.title); }
+    // コース用 BGM（course.music を使用）
+    playCourseMusic(course) { this.playMusic((course && course.music) || MUSIC.title); }
+
+    // 任意 url へ切り替え（通常のシーン遷移。スター文脈は破棄）
+    playMusic(url) { this._starReturnUrl = null; this._request(url); }
+
+    // スター無敵：今のコース曲を覚えてスター曲へ。endStarMusic で戻す。
+    playStarMusic() {
+      const url = MUSIC.star;
+      if (this._curUrl === url) return;
+      if (this._starReturnUrl == null) this._starReturnUrl = this._wantUrl || this._curUrl;
+      this._request(url);
     }
-    _musicTone(freq, dur, type, gain, when) {
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.type = type;
-      o.frequency.value = freq;
-      g.gain.setValueAtTime(0.0001, when);
-      g.gain.exponentialRampToValueAtTime(gain, when + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-      o.connect(g); g.connect(this.musicGain);
-      o.start(when); o.stop(when + dur + 0.02);
+    endStarMusic() {
+      if (this._starReturnUrl == null) return;
+      const back = this._starReturnUrl;
+      this._starReturnUrl = null;
+      this._request(back);
     }
-    _musicNoise(dur, gain, when) {
-      if (!this._noiseBuffer) return;
-      const src = this.ctx.createBufferSource();
-      src.buffer = this._noiseBuffer;
-      const f = this.ctx.createBiquadFilter();
-      f.type = 'highpass'; f.frequency.value = 7000;
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(gain, when);
-      g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-      src.connect(f); f.connect(g); g.connect(this.musicGain);
-      src.start(when); src.stop(when + dur);
+
+    // 一時停止（ポーズ）：位置を保ったまま止める / 再開する
+    pauseMusic() { const el = this._curMusic; if (el) { try { el.pause(); } catch (e) {} } }
+    resumeMusic() {
+      if (!this.musicOn) return;
+      const el = this._curMusic;
+      if (el) { this._attemptPlay(el); this._fade(el, this.muted ? 0 : this._musicVol, 0.3); }
+      else if (this._wantUrl) this._switchTo(this._wantUrl);
     }
+
+    // 完全停止（フェードアウト）。_wantUrl は残すのでトグルで復帰できる。
     stopMusic() {
-      if (this._musicTimer) { clearTimeout(this._musicTimer); this._musicTimer = null; }
+      const el = this._curMusic;
+      if (el) this._fade(el, 0, 0.4, () => { try { el.pause(); } catch (e) {} });
+      this._curMusic = null; this._curUrl = null;
     }
+
+    // B キー：BGM オン/オフ
     toggleMusic() {
       this.musicOn = !this.musicOn;
-      if (this.musicOn) this.startMusic(); else this.stopMusic();
+      if (this.musicOn) { if (this._wantUrl) this._switchTo(this._wantUrl); }
+      else { this.stopMusic(); }
       return this.musicOn;
+    }
+
+    /* ---- 内部実装 ---- */
+    _request(url) {
+      this._wantUrl = url;
+      if (!this.musicOn || !url || typeof Audio === 'undefined') return;
+      if (this._curUrl === url && this._curMusic && !this._curMusic.paused) return; // 既に再生中
+      this._switchTo(url);
+    }
+
+    _trackEl(url) {
+      if (typeof Audio === 'undefined') return null;
+      let el = this._tracks[url];
+      if (el) return el;
+      try {
+        el = new Audio();
+        el.src = url; el.loop = true; el.preload = 'auto'; el.volume = 0;
+        this._tracks[url] = el;
+      } catch (e) { return null; }
+      return el;
+    }
+
+    _switchTo(url) {
+      const next = this._trackEl(url);
+      if (!next) return;
+      const old = this._curMusic;
+      if (old && old !== next) this._fade(old, 0, 0.5, () => { try { old.pause(); } catch (e) {} });
+      this._curMusic = next; this._curUrl = url; next.loop = true;
+      this._attemptPlay(next);
+      this._fade(next, this.muted ? 0 : this._musicVol, 0.5);
+    }
+
+    // 自動再生がブロックされたら、次のユーザー操作で再試行
+    _attemptPlay(el) {
+      if (!el) return;
+      let p;
+      try { p = el.play(); } catch (e) { p = null; }
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => {
+          if (typeof window === 'undefined' || !window.addEventListener) return;
+          const retry = () => {
+            window.removeEventListener('pointerdown', retry);
+            window.removeEventListener('keydown', retry);
+            window.removeEventListener('touchstart', retry);
+            if (this._curMusic === el && this.musicOn) { try { el.play().catch(() => {}); } catch (e) {} }
+          };
+          window.addEventListener('pointerdown', retry, { once: true });
+          window.addEventListener('keydown', retry, { once: true });
+          window.addEventListener('touchstart', retry, { once: true });
+        });
+      }
+    }
+
+    // 最初のジェスチャ等で、保留中の曲があれば鳴らす
+    _kickPending() {
+      if (!this.musicOn || !this._wantUrl || typeof Audio === 'undefined') return;
+      if (!this._curMusic || this._curMusic.paused || this._curUrl !== this._wantUrl) this._switchTo(this._wantUrl);
+    }
+
+    // 要素の音量フェード（HTMLAudioElement には組み込みフェードが無いので自前）
+    _fade(el, target, dur, onDone) {
+      if (!el) return;
+      const prev = this._fades.get(el);
+      if (prev) { clearInterval(prev); this._fades.delete(el); }
+      const now = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+      const start = (typeof el.volume === 'number') ? el.volume : 0;
+      const t0 = now();
+      const step = () => {
+        let k = dur > 0 ? (now() - t0) / (dur * 1000) : 1;
+        if (k > 1) k = 1;
+        const v = start + (target - start) * k;
+        try { el.volume = v < 0 ? 0 : v > 1 ? 1 : v; } catch (e) {}
+        if (k >= 1) {
+          const id = this._fades.get(el); if (id) clearInterval(id);
+          this._fades.delete(el);
+          if (onDone) onDone();
+        }
+      };
+      const id = setInterval(step, 40);
+      this._fades.set(el, id);
+      step();
     }
   }
 

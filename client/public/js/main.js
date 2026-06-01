@@ -8,7 +8,7 @@
   function boot() {
     if (typeof THREE === 'undefined') {
       document.body.innerHTML = '<div style="color:#fff;font-family:sans-serif;padding:40px;text-align:center">' +
-        '<h2>Three.js の読み込みに失敗しました</h2><p>インターネット接続を確認するか、ローカルサーバー経由で開いてください。</p></div>';
+        '<h2>Failed to load Three.js</h2><p>Check your internet connection, or open the game through a local server.</p></div>';
       return;
     }
 

@@ -165,6 +165,158 @@ window.MK = window.MK || {};
     });
   };
 
+  /* ---- アイテムアイコン（絵文字ではなく描画したもの）------------------- */
+  function _mushroom(ctx, s, OUT) {
+    const cx = s / 2, lw = s * 0.05;
+    ctx.lineWidth = lw; ctx.strokeStyle = OUT;
+    // 軸
+    ctx.fillStyle = '#ffe9c8';
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.20, s * 0.50);
+    ctx.lineTo(cx - s * 0.18, s * 0.80);
+    ctx.quadraticCurveTo(cx, s * 0.90, cx + s * 0.18, s * 0.80);
+    ctx.lineTo(cx + s * 0.20, s * 0.50);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 目
+    ctx.fillStyle = '#5a3a2a';
+    ctx.beginPath(); ctx.ellipse(cx - s * 0.08, s * 0.66, s * 0.028, s * 0.05, 0, 0, U.TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + s * 0.08, s * 0.66, s * 0.028, s * 0.05, 0, 0, U.TAU); ctx.fill();
+    // 赤い傘
+    ctx.fillStyle = '#e8352b';
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.36, s * 0.50);
+    ctx.quadraticCurveTo(cx - s * 0.40, s * 0.14, cx, s * 0.14);
+    ctx.quadraticCurveTo(cx + s * 0.40, s * 0.14, cx + s * 0.36, s * 0.50);
+    ctx.quadraticCurveTo(cx, s * 0.58, cx - s * 0.36, s * 0.50);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 白斑
+    ctx.fillStyle = '#fff';
+    [[cx, s * 0.29, s * 0.11], [cx - s * 0.24, s * 0.40, s * 0.06], [cx + s * 0.24, s * 0.40, s * 0.06]].forEach((p) => {
+      ctx.beginPath(); ctx.arc(p[0], p[1], p[2], 0, U.TAU); ctx.fill(); ctx.stroke();
+    });
+  }
+  function _shell(ctx, s, col, colDark, OUT) {
+    const cx = s / 2, cy = s * 0.5, r = s * 0.36, lw = s * 0.05;
+    ctx.lineWidth = lw; ctx.strokeStyle = OUT;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.94, 0, 0, U.TAU); ctx.fill();
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, cy + r * 0.28, s, s); ctx.clip();
+    ctx.fillStyle = '#fff1d2';
+    ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.94, 0, 0, U.TAU); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = colDark; ctx.lineWidth = lw * 0.8;
+    ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.08, r * 0.48, r * 0.42, 0, 0, U.TAU); ctx.stroke();
+    for (const dx of [-0.62, 0, 0.62]) {
+      ctx.beginPath(); ctx.moveTo(cx + dx * r * 0.46, cy - r * 0.20); ctx.lineTo(cx + dx * r, cy - r * 0.82); ctx.stroke();
+    }
+    ctx.strokeStyle = OUT; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.95, cy + r * 0.28); ctx.lineTo(cx + r * 0.95, cy + r * 0.28); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.94, 0, 0, U.TAU); ctx.stroke();
+  }
+  function _tripleShell(ctx, s, OUT) {
+    const draw = (ox, oy, sc) => {
+      ctx.save(); ctx.translate(ox, oy); ctx.scale(sc, sc); ctx.translate(-s / 2, -s / 2);
+      _shell(ctx, s, '#2fae4a', '#1c7b32', OUT); ctx.restore();
+    };
+    draw(s * 0.30, s * 0.64, 0.52);
+    draw(s * 0.70, s * 0.64, 0.52);
+    draw(s * 0.50, s * 0.36, 0.56);
+  }
+  function _banana(ctx, s, OUT) {
+    const ccx = s / 2, ccy = s * 0.62, R = s * 0.34, a1 = Math.PI * 1.12, a2 = Math.PI * 1.98;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = OUT; ctx.lineWidth = s * 0.27;
+    ctx.beginPath(); ctx.arc(ccx, ccy, R, a1, a2); ctx.stroke();
+    ctx.strokeStyle = '#ffd633'; ctx.lineWidth = s * 0.18;
+    ctx.beginPath(); ctx.arc(ccx, ccy, R, a1, a2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = s * 0.04;
+    ctx.beginPath(); ctx.arc(ccx, ccy, R - s * 0.05, a1 + 0.12, a2 - 0.22); ctx.stroke();
+    ctx.fillStyle = '#5e4015';
+    [a1, a2].forEach((a) => { const x = ccx + Math.cos(a) * R, y = ccy + Math.sin(a) * R; ctx.beginPath(); ctx.arc(x, y, s * 0.055, 0, U.TAU); ctx.fill(); });
+  }
+  function _bomb(ctx, s, OUT) {
+    const cx = s / 2, cy = s * 0.58, r = s * 0.29, lw = s * 0.05;
+    ctx.lineWidth = lw; ctx.strokeStyle = OUT;
+    ctx.fillStyle = '#e8a02a';
+    [-1, 1].forEach((d) => { ctx.beginPath(); ctx.ellipse(cx + d * r * 0.55, cy + r * 0.95, s * 0.09, s * 0.05, 0, 0, U.TAU); ctx.fill(); ctx.stroke(); });
+    ctx.fillStyle = '#23262e';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, U.TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.beginPath(); ctx.arc(cx - r * 0.34, cy - r * 0.34, r * 0.28, 0, U.TAU); ctx.fill();
+    ctx.strokeStyle = '#cbb27c'; ctx.lineWidth = s * 0.045;
+    ctx.beginPath(); ctx.arc(cx, cy - r - s * 0.05, s * 0.05, 0, U.TAU); ctx.stroke();
+    ctx.strokeStyle = '#a98a55'; ctx.lineWidth = s * 0.04;
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.55, cy - r * 0.78); ctx.quadraticCurveTo(cx + r * 1.2, cy - r * 1.2, cx + r * 0.95, cy - r * 1.7); ctx.stroke();
+    ctx.fillStyle = '#ffd24a'; ctx.beginPath(); ctx.arc(cx + r * 0.92, cy - r * 1.78, s * 0.05, 0, U.TAU); ctx.fill();
+    ctx.fillStyle = '#fff3b0'; ctx.beginPath(); ctx.arc(cx + r * 0.92, cy - r * 1.78, s * 0.022, 0, U.TAU); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(cx - r * 0.32, cy - r * 0.05, s * 0.06, s * 0.085, 0, 0, U.TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + r * 0.32, cy - r * 0.05, s * 0.06, s * 0.085, 0, 0, U.TAU); ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath(); ctx.arc(cx - r * 0.30, cy - r * 0.02, s * 0.026, 0, U.TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r * 0.34, cy - r * 0.02, s * 0.026, 0, U.TAU); ctx.fill();
+  }
+  function _starIcon(ctx, s) {
+    ctx.save(); ctx.translate(s / 2, s * 0.52);
+    ctx.beginPath();
+    const spikes = 5, outer = s * 0.42, inner = s * 0.18;
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = i % 2 === 0 ? outer : inner;
+      const a = (i / (spikes * 2)) * U.TAU - Math.PI / 2;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#ffe14d'; ctx.fill();
+    ctx.lineWidth = s * 0.055; ctx.strokeStyle = '#caa400'; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.fillStyle = '#2a2a2a';
+    ctx.beginPath(); ctx.ellipse(-s * 0.10, 0, s * 0.045, s * 0.075, 0, 0, U.TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(s * 0.10, 0, s * 0.045, s * 0.075, 0, 0, U.TAU); ctx.fill();
+    ctx.restore();
+  }
+  function _lightning(ctx, s) {
+    const cx = s / 2;
+    ctx.fillStyle = '#ffe14d'; ctx.strokeStyle = '#c79b00'; ctx.lineWidth = s * 0.05; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx + s * 0.12, s * 0.08);
+    ctx.lineTo(cx - s * 0.22, s * 0.48);
+    ctx.lineTo(cx - s * 0.02, s * 0.48);
+    ctx.lineTo(cx - s * 0.16, s * 0.92);
+    ctx.lineTo(cx + s * 0.24, s * 0.42);
+    ctx.lineTo(cx + s * 0.03, s * 0.42);
+    ctx.lineTo(cx + s * 0.22, s * 0.08);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  const _ICON_CACHE = {};
+  // アイテムIDから描画アイコンの dataURL を返す（キャッシュ）
+  U.itemIcon = function (id) {
+    if (_ICON_CACHE[id] != null) return _ICON_CACHE[id];
+    let url = '';
+    try {
+      const s = 96;
+      const c = document.createElement('canvas'); c.width = c.height = s;
+      const ctx = c.getContext('2d');
+      if (ctx && ctx.beginPath) {
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        const OUT = '#241a12';
+        switch (id) {
+          case 'greenShell': _shell(ctx, s, '#2fae4a', '#1c7b32', OUT); break;
+          case 'redShell': _shell(ctx, s, '#e83b2e', '#a31f17', OUT); break;
+          case 'tripleGreen': _tripleShell(ctx, s, OUT); break;
+          case 'banana': _banana(ctx, s, OUT); break;
+          case 'bomb': _bomb(ctx, s, OUT); break;
+          case 'star': _starIcon(ctx, s); break;
+          case 'lightning': _lightning(ctx, s); break;
+          case 'mushroom': case 'triple': default: _mushroom(ctx, s, OUT);
+        }
+        if (c.toDataURL) url = c.toDataURL();
+      }
+    } catch (e) { url = ''; }
+    _ICON_CACHE[id] = url;
+    return url;
+  };
+
   // チェッカー（スタート/フィニッシュ）テクスチャ
   U.checkerTexture = function (cells, c1, c2) {
     cells = cells || 8; c1 = c1 || '#ffffff'; c2 = c2 || '#1a1a1a';

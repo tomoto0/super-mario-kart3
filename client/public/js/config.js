@@ -15,7 +15,7 @@ window.MK = window.MK || {};
     // コース寸法（ワールド単位）
     roadHalfWidth: 11,       // 路面の半幅
     shoulderWidth: 6,        // 路肩（オフロード）の幅
-    wallBounce: 0.35,        // 壁衝突時の反発係数
+    wallBounce: 0.02,        // 壁接触時の減速（小さいほど失速しない＝高弾力）
 
     // 速度（units/sec）— stat=3(標準)基準。★1あたり ±speedPerStar
     baseMaxSpeed: 33,
@@ -85,70 +85,71 @@ window.MK = window.MK || {};
       cls: 'MEDIUM',
       stats: { speed: 3, accel: 3, handling: 3, weight: 3 },
       colors: { primary: 0xe52521, secondary: 0x2b50c8, kart: 0xe23b2e, skin: 0xffc9a0 },
-      blurb: 'バランス型のヒーロー',
+      blurb: 'All-around balanced hero',
     },
     {
       id: 'luigi', name: 'LUIGI', jp: 'ルイージ',
       cls: 'MEDIUM',
       stats: { speed: 3, accel: 3, handling: 4, weight: 3 },
       colors: { primary: 0x1fa12f, secondary: 0x2b50c8, kart: 0x33b04a, skin: 0xffc9a0 },
-      blurb: 'やや曲がりやすい弟',
+      blurb: 'The brother with sharper handling',
     },
     {
       id: 'peach', name: 'PEACH', jp: 'ピーチ',
       cls: 'LIGHT',
       stats: { speed: 3, accel: 4, handling: 4, weight: 2 },
       colors: { primary: 0xf45ba5, secondary: 0xf6a5c0, kart: 0xff8ec4, skin: 0xffdcb6 },
-      blurb: '軽量で扱いやすい姫',
+      blurb: 'Light and easy to handle',
     },
     {
       id: 'yoshi', name: 'YOSHI', jp: 'ヨッシー',
       cls: 'LIGHT',
       stats: { speed: 3, accel: 4, handling: 4, weight: 2 },
       colors: { primary: 0x49c63a, secondary: 0xffffff, kart: 0x4fd33d, skin: 0x49c63a },
-      blurb: '加速とコーナーが得意',
+      blurb: 'Great acceleration and cornering',
     },
     {
       id: 'toad', name: 'TOAD', jp: 'キノピオ',
       cls: 'LIGHT',
       stats: { speed: 2, accel: 5, handling: 4, weight: 1 },
       colors: { primary: 0xffffff, secondary: 0xe52521, kart: 0xf1f1f1, skin: 0xffe0c0 },
-      blurb: '最速の加速・最軽量',
+      blurb: 'Fastest acceleration, lightest weight',
     },
     {
       id: 'dk', name: 'D.K.', jp: 'ドンキー',
       cls: 'HEAVY',
       stats: { speed: 4, accel: 2, handling: 3, weight: 4 },
       colors: { primary: 0x7a4a23, secondary: 0xc8102e, kart: 0x8a5a2b, skin: 0x6b3f1d },
-      blurb: 'パワフルな重量級',
+      blurb: 'Powerful heavyweight',
     },
     {
       id: 'wario', name: 'WARIO', jp: 'ワリオ',
       cls: 'HEAVY',
       stats: { speed: 4, accel: 2, handling: 2, weight: 5 },
       colors: { primary: 0xf3c800, secondary: 0x7a3b9a, kart: 0xf4cf1f, skin: 0xffcf9e },
-      blurb: '最重量でぶつかりに強い',
+      blurb: 'Heaviest — wins every bump',
     },
     {
       id: 'bowser', name: 'BOWSER', jp: 'クッパ',
       cls: 'HEAVY',
       stats: { speed: 5, accel: 1, handling: 2, weight: 5 },
       colors: { primary: 0x2fae4a, secondary: 0xf3c800, kart: 0x2c9d44, skin: 0xd7e34a },
-      blurb: '最高速トップの大魔王',
+      blurb: 'Top-speed king of the Koopas',
     },
   ];
 
   /* ---- アイテム定義 ------------------------------------------------------ */
   // type:  boost / shellGreen / shellRed / banana / bomb / star / lightning / triple
   const ITEMS = {
-    mushroom:   { id: 'mushroom',   name: 'キノコ',       emoji: '🍄', type: 'boost',      color: 0xff4438 },
-    triple:     { id: 'triple',     name: '3つのキノコ',  emoji: '🍄', type: 'triple',     color: 0xff4438, count: 3 },
-    greenShell: { id: 'greenShell', name: 'ミドリこうら', emoji: '🟢', type: 'shellGreen', color: 0x2fae4a },
-    redShell:   { id: 'redShell',   name: 'アカこうら',   emoji: '🔴', type: 'shellRed',   color: 0xe23b2e },
-    banana:     { id: 'banana',     name: 'バナナ',       emoji: '🍌', type: 'banana',     color: 0xffe14d },
-    bomb:       { id: 'bomb',       name: 'ボムへい',     emoji: '💣', type: 'bomb',        color: 0x222831 },
-    star:       { id: 'star',       name: 'スター',       emoji: '⭐', type: 'star',        color: 0xffe14d },
-    lightning:  { id: 'lightning',  name: 'サンダー',     emoji: '⚡', type: 'lightning',   color: 0xfff04d },
+    mushroom:    { id: 'mushroom',    name: 'Mushroom',           emoji: '🍄', type: 'boost',      color: 0xff4438 },
+    triple:      { id: 'triple',      name: 'Triple Mushrooms',   emoji: '🍄', type: 'triple',     color: 0xff4438, count: 3 },
+    tripleGreen: { id: 'tripleGreen', name: 'Triple Green Shells', emoji: '🐢', type: 'tripleShell', color: 0x2fae4a, count: 3 },
+    greenShell:  { id: 'greenShell',  name: 'Green Shell',        emoji: '🟢', type: 'shellGreen', color: 0x2fae4a },
+    redShell:   { id: 'redShell',   name: 'Red Shell',        emoji: '🔴', type: 'shellRed',   color: 0xe23b2e },
+    banana:     { id: 'banana',     name: 'Banana',           emoji: '🍌', type: 'banana',     color: 0xffe14d },
+    bomb:       { id: 'bomb',       name: 'Bob-omb',          emoji: '💣', type: 'bomb',        color: 0x222831 },
+    star:       { id: 'star',       name: 'Star',             emoji: '⭐', type: 'star',        color: 0xffe14d },
+    lightning:  { id: 'lightning',  name: 'Lightning',        emoji: '⚡', type: 'lightning',   color: 0xfff04d },
   };
 
   // 順位に応じた抽選テーブル（前方ほど弱い／後方ほど強いアイテム = ラバーバンド）
@@ -158,22 +159,22 @@ window.MK = window.MK || {};
     const r = racerCount <= 1 ? 0 : pos / last; // 0(先頭)〜1(最後尾)
     if (r < 0.18) {        // トップ集団
       return [
-        ['banana', 26], ['greenShell', 26], ['mushroom', 16],
-        ['redShell', 14], ['bomb', 10], ['triple', 8],
+        ['banana', 24], ['greenShell', 24], ['mushroom', 14],
+        ['redShell', 12], ['bomb', 10], ['triple', 8], ['tripleGreen', 8],
       ];
     } else if (r < 0.5) {  // 中団前
       return [
-        ['mushroom', 24], ['greenShell', 18], ['redShell', 18],
-        ['banana', 12], ['triple', 12], ['bomb', 10], ['star', 6],
+        ['mushroom', 22], ['greenShell', 16], ['redShell', 16],
+        ['banana', 12], ['triple', 12], ['tripleGreen', 12], ['bomb', 10], ['star', 6],
       ];
     } else if (r < 0.8) {  // 中団後
       return [
-        ['mushroom', 22], ['redShell', 18], ['triple', 16],
+        ['mushroom', 20], ['redShell', 16], ['triple', 14], ['tripleGreen', 12],
         ['star', 14], ['bomb', 12], ['greenShell', 10], ['lightning', 8],
       ];
     } else {               // 後方
       return [
-        ['triple', 22], ['star', 22], ['mushroom', 18],
+        ['triple', 20], ['star', 22], ['mushroom', 16], ['tripleGreen', 10],
         ['lightning', 16], ['redShell', 12], ['bomb', 10],
       ];
     }

@@ -1,6 +1,7 @@
 /* ============================================================================
  *  courses.js — コース定義（中心線の制御点 + テーマ + ルール）
  *  points: [x, z] もしくは [x, y, z]（閉ループ。Catmull-Rom で補間）
+ *  y を与えると起伏（坂・うねり）になる。
  * ==========================================================================*/
 window.MK = window.MK || {};
 
@@ -12,7 +13,8 @@ window.MK = window.MK || {};
       id: 'mario-circuit',
       name: 'MARIO CIRCUIT',
       jp: 'マリオサーキット',
-      blurb: 'ゆるやかなカーブの初心者向け',
+      blurb: 'Gentle rolling hills — perfect for beginners',
+      music: 'music/02_Moo_Moo_Farm.mp3',
       difficulty: 1,
       emoji: '🌱',
       uiColor: '#5fbf3f',
@@ -21,10 +23,11 @@ window.MK = window.MK || {};
       voidRespawn: false,
       boxesPerRow: 5,
       itemBoxFractions: [0.16, 0.4, 0.62, 0.85],
+      // 緩やかに上り下りする草原サーキット（y で起伏）
       points: [
-        [0, -130], [60, -120], [98, -82], [82, -32], [112, 12],
-        [122, 64], [82, 112], [10, 128], [-66, 116], [-112, 70],
-        [-122, 0], [-100, -70], [-50, -116],
+        [0, 0, -130], [60, 2, -120], [98, 7, -82], [82, 11, -32], [112, 8, 12],
+        [122, 3, 64], [82, 1, 112], [10, 5, 128], [-66, 10, 116], [-112, 6, 70],
+        [-122, 2, 0], [-100, 0, -70], [-50, -1, -116],
       ],
       theme: {
         sky: ['#5fb0ff', '#cdeeff'], ground: 0x69bf3e, fog: 0xc4e8ff,
@@ -37,7 +40,8 @@ window.MK = window.MK || {};
       id: 'sherbet-land',
       name: 'SHERBET LAND',
       jp: 'シャーベットランド',
-      blurb: 'つるつる滑る氷のコース',
+      blurb: 'Slippery ice over frozen, undulating hills',
+      music: 'music/03_Frappe_Snowland.mp3',
       difficulty: 2,
       emoji: '❄️',
       uiColor: '#7fd0ff',
@@ -46,10 +50,11 @@ window.MK = window.MK || {};
       voidRespawn: false,
       boxesPerRow: 5,
       itemBoxFractions: [0.2, 0.45, 0.68, 0.88],
+      // 凍った丘をうねる氷のコース
       points: [
-        [0, -115], [82, -104], [124, -52], [92, 2], [134, 62],
-        [72, 116], [-18, 124], [-92, 104], [-126, 42], [-92, -18],
-        [-126, -72], [-58, -114],
+        [0, 0, -115], [82, 5, -104], [124, 9, -52], [92, 5, 2], [134, 2, 62],
+        [72, 7, 116], [-18, 11, 124], [-92, 6, 104], [-126, 1, 42], [-92, 5, -18],
+        [-126, 8, -72], [-58, 3, -114],
       ],
       theme: {
         sky: ['#bfe3ff', '#ffffff'], ground: 0xe9f4ff, fog: 0xeaf6ff,
@@ -62,32 +67,43 @@ window.MK = window.MK || {};
       id: 'bowser-castle',
       name: "BOWSER'S CASTLE",
       jp: 'クッパキャッスル',
-      blurb: '溶岩と障害物の難関コース',
+      blurb: 'Indoor stone walkways winding over a sea of lava',
+      music: 'music/04_Bowser_Castle.mp3',
       difficulty: 3,
       emoji: '🏰',
       uiColor: '#e2562e',
-      roadHalf: 9.5,
+      roadHalf: 9,
       hasWalls: true,
       voidRespawn: false,
-      boxesPerRow: 4,
-      itemBoxFractions: [0.18, 0.42, 0.66, 0.88],
+      shoulder: 3,
+      tension: 0.42,           // 角を立てて 90 度に近い屈曲にする
+      boxesPerRow: 3,
+      itemBoxFractions: [0.14, 0.34, 0.52, 0.7, 0.88],
+      // 角ばった 90 度コーナーで折れ曲がる、溶岩上の城内回廊（面取り点で直角を作る）
       points: [
-        [0, -98], [56, -92], [98, -56], [86, -4], [104, 46],
-        [62, 92], [0, 104], [-62, 90], [-100, 46], [-92, -10],
-        [-98, -62], [-50, -94],
+        [-81, 12, 92], [81, 13, 92],            // 下の回廊（スタート直線）→
+        [95, 15, 78], [95, 17, 50],             // 右上へ ↑
+        [81, 18, 36], [-36, 15, 36],            // 中段の回廊 ←
+        [-50, 13, 22], [-50, 9, -6],            // 短い縦路 ↑
+        [-36, 8, -20], [81, 13, -20],           // 回廊 →
+        [95, 16, -34], [95, 12, -78],           // 右を上へ ↑
+        [81, 10, -92], [-81, 12, -92],          // 上の回廊 ←
+        [-95, 14, -78], [-95, 13, 78],          // 左の壁沿いを下りてスタートへ ↓
       ],
       theme: {
-        sky: ['#3a1408', '#7e2c16'], ground: 0x2a2026, fog: 0x4a1808,
-        fogNear: 80, fogFar: 420, light: 0.85,
-        hemiSky: 0x7e2c16, hemiGround: 0x1a1014,
-        road: '#4a4450', wall: 0x55505a, props: 'castle',
+        sky: ['#1c0a06', '#52160c'], ground: 0x1a1014, fog: 0x35100a,
+        fogNear: 70, fogFar: 360, light: 0.72,
+        hemiSky: 0x6e2410, hemiGround: 0x140a08,
+        road: '#3f3a47', wall: 0x4a4550, props: 'castle',
+        lava: true,
       },
     },
     {
       id: 'rainbow-road',
       name: 'RAINBOW ROAD',
       jp: 'レインボーロード',
-      blurb: '宇宙に浮かぶ究極コース',
+      blurb: 'The ultimate floating track high in space',
+      music: 'music/12_Rainbow_Road.mp3',
       difficulty: 4,
       emoji: '🌈',
       uiColor: '#c45dff',
@@ -98,9 +114,9 @@ window.MK = window.MK || {};
       boxesPerRow: 3,
       itemBoxFractions: [0.22, 0.48, 0.72, 0.9],
       points: [
-        [0, 0, -155], [92, 8, -132], [152, 18, -58], [120, 28, 22],
-        [162, 14, 92], [82, 4, 152], [-12, 16, 162], [-102, 26, 120],
-        [-162, 16, 40], [-130, 6, -42], [-162, 14, -112], [-80, 4, -150],
+        [0, 0, -155], [92, 14, -132], [152, 24, -58], [120, 30, 22],
+        [162, 16, 92], [82, 6, 152], [-12, 20, 162], [-102, 30, 120],
+        [-162, 18, 40], [-130, 8, -42], [-162, 18, -112], [-80, 6, -150],
       ],
       theme: {
         sky: ['#05050e', '#11113a'], ground: 0x05050e, fog: 0x11113a,

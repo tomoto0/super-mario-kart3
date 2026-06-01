@@ -10,19 +10,31 @@ window.MK = window.MK || {};
   const C = MK.CONFIG;
 
   /* ---- カートのシャシー造形 ---- */
-  function buildChassis(color) {
+  function buildChassis(color, accent) {
+    accent = accent != null ? accent : 0xffffff;
     const g = new THREE.Group();
-    const M = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.55, metalness: 0.25, flatShading: true }, o || {}));
+    const M = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.5, metalness: 0.3, flatShading: true }, o || {}));
 
     // メインフレーム
     const body = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.5, 2.5), M(color));
     body.position.y = 0.5; g.add(body);
+    // ボンネットのアクセントストライプ
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 2.3), M(accent, { metalness: 0.4 }));
+    stripe.position.set(0, 0.77, -0.05); g.add(stripe);
     // 前方を絞ったノーズ
     const nose = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.4, 0.7), M(color));
     nose.position.set(0, 0.45, -1.4); g.add(nose);
+    // 前スプリッター
+    const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.5), M(0x2a2d34));
+    splitter.position.set(0, 0.27, -1.7); g.add(splitter);
     // 下回り（黒）
     const under = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 2.6), M(0x2a2d34));
     under.position.y = 0.28; g.add(under);
+    // サイドポンツーン（アクセント）
+    for (const s of [-1, 1]) {
+      const pod = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 1.5), M(accent, { metalness: 0.35 }));
+      pod.position.set(s * 0.96, 0.45, 0.1); g.add(pod);
+    }
     // 座席
     const seat = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.25, 0.9), M(0x33363d));
     seat.position.set(0, 0.66, 0.35); g.add(seat);
@@ -46,11 +58,35 @@ window.MK = window.MK || {};
       const hl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), M(0xfff6c0, { emissive: 0x554400, emissiveIntensity: 0.4 }));
       hl.position.set(s * 0.45, 0.5, -1.72); g.add(hl);
     }
+    // フロントグリル
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.26, 0.08), M(0x15171b));
+    grille.position.set(0, 0.45, -1.78); g.add(grille);
+    for (let i = -1; i <= 1; i++) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.26, 0.12), M(0x9aa0aa, { metalness: 0.7, roughness: 0.3 })); bar.position.set(i * 0.28, 0.45, -1.8); g.add(bar); }
+    // ボンネットのナンバー丸
+    const roundel = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 16), M(0xffffff, { roughness: 0.4 }));
+    roundel.rotation.x = -Math.PI / 2 + 0.05; roundel.position.set(0, 0.8, -0.5); g.add(roundel);
+    const rring = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.04, 8, 18), M(accent, { metalness: 0.4 }));
+    rring.rotation.x = -Math.PI / 2 + 0.05; rring.position.set(0, 0.81, -0.5); g.add(rring);
+    // サイドミラー
+    for (const s of [-1, 1]) {
+      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6), M(0x202327)); stalk.position.set(s * 0.72, 0.88, -0.45); stalk.rotation.z = s * 0.6; g.add(stalk);
+      const mir = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.05), M(0x9fdcff, { metalness: 0.6, roughness: 0.2, emissive: 0x183040, emissiveIntensity: 0.3 })); mir.position.set(s * 0.86, 0.98, -0.45); g.add(mir);
+    }
+    // 排気口の赤熱
+    for (const s of [-1, 1]) { const tip = new THREE.Mesh(new THREE.CircleGeometry(0.085, 10), new THREE.MeshBasicMaterial({ color: 0xff8a3a })); tip.position.set(s * 0.4, 0.7, 1.61); g.add(tip); }
+    // ロールフープ（運転席後ろのアーチ）
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 8, 16, Math.PI), M(0x9aa0aa, { metalness: 0.6, roughness: 0.3 }));
+    hoop.position.set(0, 1.0, 0.92); g.add(hoop);
+    // リアウイング（スポイラー）
+    for (const s of [-1, 1]) { const stay = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.42, 0.1), M(0x2a2d34)); stay.position.set(s * 0.5, 1.02, 1.32); g.add(stay); }
+    const rearwing = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.08, 0.5), M(accent, { metalness: 0.4 }));
+    rearwing.position.set(0, 1.24, 1.34); rearwing.rotation.x = 0.18; g.add(rearwing);
 
-    // ホイール
+    // ホイール（アクセント色の十字スポーク付き）
     const wheels = [], steerPivots = [];
     const tireMat = M(0x1a1c20, { metalness: 0.1, roughness: 0.85 });
-    const hubMat = M(0xe8e8e8, { metalness: 0.6, roughness: 0.3 });
+    const hubMat = M(0xe8e8e8, { metalness: 0.7, roughness: 0.25 });
+    const spokeMat = M(accent, { metalness: 0.5, roughness: 0.4 });
     function makeWheel(big) {
       const wg = new THREE.Group();
       const r = big ? 0.42 : 0.36;
@@ -58,6 +94,8 @@ window.MK = window.MK || {};
       tire.rotation.z = Math.PI / 2; wg.add(tire);
       const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.45, r * 0.45, 0.36, 8), hubMat);
       hub.rotation.z = Math.PI / 2; wg.add(hub);
+      const sp1 = new THREE.Mesh(new THREE.BoxGeometry(0.36, r * 1.7, 0.08), spokeMat); wg.add(sp1);
+      const sp2 = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.08, r * 1.7), spokeMat); wg.add(sp2);
       return wg;
     }
     const positions = [
@@ -117,6 +155,7 @@ window.MK = window.MK || {};
       this.invulnTimer = 0;
       this.falling = false;
       this.respawnTimer = 0;
+      this._wallContact = false;
 
       // レース進行
       this.lap = 0;
@@ -138,6 +177,7 @@ window.MK = window.MK || {};
       this.item = null;
       this.itemCount = 0;
       this.rouletteTime = 0;
+      this._orbiter = null;      // トリプルグリーンこうらの周回シールド（ItemSystem が管理）
 
       this._build();
     }
@@ -160,7 +200,7 @@ window.MK = window.MK || {};
       g.add(tilt);
       this.tilt = tilt;
 
-      const chassis = buildChassis(this.color);
+      const chassis = buildChassis(this.color, this.character.colors.secondary);
       tilt.add(chassis);
       this.chassis = chassis;
       this.wheels = chassis.userData.wheels;
@@ -178,6 +218,13 @@ window.MK = window.MK || {};
       aura.scale.set(5, 5, 1); aura.position.y = 1.2;
       g.add(aura);
       this.aura = aura;
+
+      // スター無敵中の虹リング
+      const starRing = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.18, 8, 28),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+      starRing.rotation.x = Math.PI / 2; starRing.position.y = 0.5; starRing.visible = false;
+      g.add(starRing);
+      this.starRing = starRing;
 
       this.scene.add(g);
       this._wheelSpin = 0;
@@ -225,6 +272,8 @@ window.MK = window.MK || {};
       this.starTimer = C.starTime;
       this.applyBoost(C.starSpeedBoost, 0.6);
       if (this.isPlayer) MK.audio.starGet();
+      const gp = this.group.position;
+      if (this.world.particles) this.world.particles.starBurst(gp.x, gp.y + 0.6, gp.z);
     }
     applyBoost(power, duration) {
       this.boostPower = Math.max(this.boostPower, power);
@@ -290,12 +339,14 @@ window.MK = window.MK || {};
       const absLat = Math.abs(info.lateral);
       const onRoad = absLat <= track.roadHalf;
       const offRoad = absLat > track.roadHalf && absLat <= track.wallHalf + 2;
+      // 壁に沿って滑っている間はオフロード減速を免除（ぶつかっても失速しない）
+      const offSlow = offRoad && !this._wallContact;
 
       const spinning = this.spinTimer > 0;
 
       // 最高速の決定
       let maxV = d.maxSpeed;
-      if (offRoad) maxV *= C.offRoadMaxFactor;
+      if (offSlow) maxV *= C.offRoadMaxFactor;
       if (this.squishTimer > 0) maxV *= C.squishSpeedFactor;
       if (this.starTimer > 0) maxV += C.starSpeedBoost;
       const boosting = this.boostTimer > 0;
@@ -321,7 +372,7 @@ window.MK = window.MK || {};
           this.speed = U.damp(this.speed, 0, C.coastDecel / Math.max(8, Math.abs(this.speed) + 8), dt);
           if (Math.abs(this.speed) < 0.05) this.speed = 0;
         }
-        if (offRoad) this.speed = Math.max(0, this.speed - C.offRoadDrag * dt);
+        if (offSlow) this.speed = Math.max(0, this.speed - C.offRoadDrag * dt);
       }
 
       /* --- ドリフト処理 --- */
@@ -355,15 +406,27 @@ window.MK = window.MK || {};
         if (track.course.voidRespawn) {
           if (!this.falling) { this.falling = true; this.hopVel = 1.5; if (this.isPlayer) MK.audio.bump(); }
         } else {
-          // 壁で押し戻し＋減速
+          // 壁：めり込みを戻し、弾力を保って壁沿いに滑らせる（失速・スタックを防ぐ）
           const over = absL - track.wallHalf;
           const sgn = after.lateral > 0 ? 1 : -1;
-          gp.x -= after.normal.x * sgn * over;
-          gp.z -= after.normal.z * sgn * over;
-          this.speed *= (1 - C.wallBounce);
-          if (this.isPlayer && this.speed > 8) MK.audio.bump();
+          const n = after.normal;
+          // 内側へ少し余裕をつけて押し戻す（再衝突を防ぐ）
+          gp.x -= n.x * sgn * (over + 0.08);
+          gp.z -= n.z * sgn * (over + 0.08);
+          // 壁へ向かう進行成分を取り除き、壁沿い方向へ向き直す（沿って滑る）
+          const ox = n.x * sgn, oz = n.z * sgn;        // 壁の外向き法線
+          const into = fwd.x * ox + fwd.z * oz;        // >0 で壁へ突っ込んでいる
+          if (into > 0) {
+            const sx = fwd.x - into * ox, sz = fwd.z - into * oz; // 壁に平行な成分
+            const len = Math.hypot(sx, sz);
+            if (len > 0.0001) this.yaw = U.dampAngle(this.yaw, Math.atan2(-sx / len, -sz / len), 14, dt);
+          }
+          // 接触した「瞬間」だけわずかに減速。沿って滑る間は失速させない。
+          if (!this._wallContact) { this.speed *= (1 - C.wallBounce); if (this.isPlayer && into > 0.3) MK.audio.bump(); }
         }
       }
+      // 壁ヒステリシス：少し内側まで接触中とみなし、毎フレームの減速を防ぐ
+      this._wallContact = absL > track.wallHalf - 1.0;
 
       /* --- 進行・周回 --- */
       this._updateProgress(track, after, raceTime);
@@ -523,15 +586,32 @@ window.MK = window.MK || {};
         U.damp(this.tilt.scale.y, squishK, 10, dt),
         U.damp(this.tilt.scale.z, sx, 10, dt));
 
-      // スターの点滅
+      // スター無敵の演出（虹色発光＋オーラ＋回転リング）
       if (this.starTimer > 0) {
-        const flash = (Math.sin(performance.now() * 0.03) + 1) * 0.5;
-        this.aura.material.opacity = 0.4 + flash * 0.4;
+        const tnow = performance.now();
+        const flash = (Math.sin(tnow * 0.03) + 1) * 0.5;
         const cols = [0xff5d5d, 0xffba4d, 0xfff04d, 0x5dff8a, 0x5db9ff, 0xc45dff];
-        const col = cols[(performance.now() * 0.01 | 0) % cols.length];
-        this.driver.traverse((o) => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(col); o.material.emissiveIntensity = 0.5; } });
+        const col = cols[(tnow * 0.012 | 0) % cols.length];
+        this.aura.material.opacity = 0.45 + flash * 0.45;
+        this.aura.scale.setScalar(4.6 + flash * 1.0);
+        this.driver.traverse((o) => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(col); o.material.emissiveIntensity = 0.55; } });
+        this.starRing.visible = true;
+        this.starRing.material.color.setHex(col);
+        this.starRing.material.opacity = 0.5 + flash * 0.35;
+        this.starRing.rotation.z += dt * 6;
+        // 点滅で半透明（無敵の点滅）
+        const blink = (tnow * 0.02 | 0) % 2 === 0 ? 1 : 0.55;
+        this.chassis.scale.setScalar(blink);
       } else {
         this.aura.material.opacity = U.damp(this.aura.material.opacity, 0, 10, dt);
+        if (this.chassis.scale.x !== 1) this.chassis.scale.setScalar(1);
+        if (this.starRing && this.starRing.visible) {
+          this.starRing.material.opacity = U.damp(this.starRing.material.opacity, 0, 12, dt);
+          if (this.starRing.material.opacity < 0.02) {
+            this.starRing.visible = false;
+            this.driver.traverse((o) => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(0x000000); o.material.emissiveIntensity = 0; } });
+          }
+        }
       }
 
       // 影サイズ（ホップで小さく）

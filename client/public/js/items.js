@@ -10,13 +10,23 @@ window.MK = window.MK || {};
 
   /* ---- 見た目ビルダ ---- */
   function buildItemBox() {
+    const g = new THREE.Group();
     const tex = U.questionTexture();
     const mat = new THREE.MeshStandardMaterial({
-      map: tex, transparent: true, roughness: 0.3, metalness: 0.1,
-      emissive: 0x332200, emissiveIntensity: 0.4, opacity: 0.92,
+      map: tex, transparent: true, roughness: 0.25, metalness: 0.15,
+      emissive: 0x553300, emissiveIntensity: 0.55, opacity: 0.94,
     });
     const box = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 2.4), mat);
-    return box;
+    g.add(box);
+    // 明るい縁取り
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(2.52, 2.52, 2.52),
+      new THREE.MeshBasicMaterial({ color: 0xffe27a, wireframe: true, transparent: true, opacity: 0.5 }));
+    g.add(edge);
+    // ふわっと光るオーラ
+    const auraTex = U.softCircleTexture('rgba(255,232,150,0.9)', 'rgba(255,210,80,0)');
+    const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: auraTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    aura.scale.set(4.4, 4.4, 1); g.add(aura);
+    return g;
   }
   function buildShell(color, dark) {
     const g = new THREE.Group();
@@ -73,6 +83,8 @@ window.MK = window.MK || {};
       this.scene = world.scene;
       this.boxes = [];
       this.projectiles = [];
+      this.orbiters = [];   // 周回するこうら（トリプルグリーン）
+      this.bolts = [];      // 落雷ビジュアル
       this._tmpl = { shellG: null };
     }
 
@@ -97,10 +109,14 @@ window.MK = window.MK || {};
 
     _finalizeRoulette(kart) {
       const id = kart._rollFinal;
+      const def = MK.ITEMS[id];
       if (id === 'triple') { kart.item = 'mushroom'; kart.itemCount = 3; }
+      else if (def && def.count) { kart.item = id; kart.itemCount = def.count; }
       else { kart.item = id; kart.itemCount = 1; }
       kart.rouletteTime = 0;
       if (kart.isPlayer) MK.audio.itemGet();
+      const gp = kart.group.position;
+      if (this.world.particles) this.world.particles.sparkle(gp.x, gp.y + 1.2, gp.z, def ? def.color : 0xffffff);
     }
 
     /* ---- アイテム使用 ---- */
@@ -110,6 +126,17 @@ window.MK = window.MK || {};
       if (!item) { kart.item = null; return; }
       const gp = kart.group.position;
       const fwd = kart.forward(new THREE.Vector3());
+
+      // トリプルグリーンこうら：1回目で周囲に展開、以降は1発ずつ発射
+      if (item.type === 'tripleShell') {
+        if (!kart._orbiter) this._activateTripleShell(kart);
+        else this._fireOrbitShell(kart, fwd, gp);
+        return; // 在庫は内部で管理
+      }
+
+      // 発動の演出
+      if (this.world.particles && item.type !== 'lightning') this.world.particles.itemPop(gp.x, gp.y + 0.6, gp.z, item.color || 0xffffff);
+
       switch (item.type) {
         case 'boost':
           kart.useMushroom();
@@ -169,19 +196,175 @@ window.MK = window.MK || {};
     _castLightning(owner) {
       for (const k of this.world.karts) {
         if (k === owner) continue;
-        k.squish();
+        if (k.squish()) {
+          if (k._orbiter) this._removeOrbiter(k._orbiter); // 縮むとこうらは落ちる
+          this._spawnBolt(k.group.position);
+        }
       }
       if (this.world.onLightning) this.world.onLightning(owner);
-      MK.audio.explosion();
+      MK.audio.thunder();
     }
 
     explodeAt(pos, radius, owner) {
       this.world.particles.explosion(pos.x, pos.y, pos.z, 0xffd24a);
+      this.world.particles.shockwave(pos.x, pos.y + 0.5, pos.z, 0xffc090);
       MK.audio.explosion();
       if (this.world.shake) this.world.shake(0.9);
       for (const k of this.world.karts) {
         const d = k.group.position.distanceTo(pos);
         if (d < radius && k.isHittable()) k.launch();
+      }
+    }
+
+    /* ---- トリプルグリーンこうら（周回シールド） ---- */
+    _activateTripleShell(kart) {
+      const orb = { owner: kart, shells: [], spin: Math.random() * U.TAU };
+      const n = Math.max(1, kart.itemCount || 3);
+      for (let i = 0; i < n; i++) {
+        const mesh = buildShell(0x2fae4a, 0xffffff);
+        mesh.scale.setScalar(0.82);
+        this.scene.add(mesh);
+        orb.shells.push({ mesh, dead: false });
+      }
+      kart._orbiter = orb;
+      this.orbiters.push(orb);
+      MK.audio.shield();
+      const gp = kart.group.position;
+      if (this.world.particles) this.world.particles.itemPop(gp.x, gp.y + 0.6, gp.z, 0x2fae4a);
+    }
+
+    _fireOrbitShell(kart, fwd, gp) {
+      const orb = kart._orbiter;
+      if (!orb || orb.shells.length === 0) return;
+      const sh = orb.shells.shift();
+      this.scene.remove(sh.mesh); this._disposeMesh(sh.mesh);
+      const mesh = buildShell(0x2fae4a, 0xffffff);
+      mesh.position.set(gp.x + fwd.x * 2.4, gp.y + 0.6, gp.z + fwd.z * 2.4);
+      this.scene.add(mesh);
+      this.projectiles.push({
+        type: 'greenShell', mesh, vel: new THREE.Vector3(fwd.x * 54, 0, fwd.z * 54),
+        life: 7, owner: kart, grace: 0.15, bounces: 0, spin: U.randRange(-3, 3),
+      });
+      MK.audio.shellFire();
+      kart.itemCount = orb.shells.length;
+      if (orb.shells.length === 0) this._removeOrbiter(orb);
+    }
+
+    _breakOneShell(kart) {
+      const orb = kart._orbiter;
+      if (!orb || orb.shells.length === 0) return false;
+      const sh = orb.shells.pop();
+      const p = sh.mesh.position;
+      if (this.world.particles) this.world.particles.burst(p.x, p.y, p.z, 0x7affa0, 8, 6);
+      this.scene.remove(sh.mesh); this._disposeMesh(sh.mesh);
+      kart.itemCount = orb.shells.length;
+      if (orb.shells.length === 0) this._removeOrbiter(orb);
+      return true;
+    }
+
+    _removeOrbiter(orb) {
+      for (const sh of orb.shells) { this.scene.remove(sh.mesh); this._disposeMesh(sh.mesh); }
+      orb.shells.length = 0;
+      const i = this.orbiters.indexOf(orb);
+      if (i >= 0) this.orbiters.splice(i, 1);
+      if (orb.owner) {
+        orb.owner._orbiter = null;
+        if (orb.owner.itemCount <= 0 && orb.owner.item === 'tripleGreen') { orb.owner.item = null; orb.owner.itemCount = 0; }
+      }
+    }
+
+    _updateOrbiters(dt) {
+      const R = 2.9;
+      for (let oi = this.orbiters.length - 1; oi >= 0; oi--) {
+        const orb = this.orbiters[oi];
+        const owner = orb.owner;
+        // オーナーが脱落・被弾・縮小・スター中はシールド解除
+        if (!owner || owner._orbiter !== orb || owner.finished || owner.falling ||
+            owner.respawnTimer > 0 || owner.spinTimer > 0 || owner.squishTimer > 0) {
+          this._removeOrbiter(orb); continue;
+        }
+        orb.spin += dt * 3.2;
+        const gp = owner.group.position, m = orb.shells.length;
+        // 配置＋体当たり：当てた甲羅は消費（dead 印）
+        for (let i = 0; i < orb.shells.length; i++) {
+          const sh = orb.shells[i];
+          const a = orb.spin + (i / m) * U.TAU;
+          sh.mesh.position.set(gp.x + Math.cos(a) * R, gp.y + 0.5, gp.z + Math.sin(a) * R);
+          sh.mesh.rotation.y += dt * 9;
+          if (sh.dead) continue;
+          for (const k of this.world.karts) {
+            if (k === owner || !k.isHittable()) continue;
+            if (k.group.position.distanceTo(sh.mesh.position) < C.kartRadius + 0.6) {
+              if (k._orbiter) this._breakOneShell(k); else k.spinOut();
+              if (this.world.particles) this.world.particles.sparkle(k.group.position.x, k.group.position.y + 0.5, k.group.position.z, 0x7affa0);
+              MK.audio.hit(); sh.dead = true; break; // 体当たりで1つ消費
+            }
+          }
+        }
+        // 飛んでくるアイテムを打ち消す：1ブロックにつき甲羅1つ消費
+        const shieldR = R + 1.0;
+        for (let pi = this.projectiles.length - 1; pi >= 0; pi--) {
+          if (!orb.shells.some((s) => !s.dead)) break; // 残弾なし＝防げない
+          const pr = this.projectiles[pi];
+          if (pr.owner === owner) continue;
+          if (pr.mesh.position.distanceTo(gp) < shieldR) {
+            if (this.world.particles) this.world.particles.burst(pr.mesh.position.x, pr.mesh.position.y, pr.mesh.position.z, 0x7affa0, 8, 6);
+            if (pr.type === 'bomb') this.explodeAt(pr.mesh.position, 5, pr.owner);
+            this.scene.remove(pr.mesh); this._disposeMesh(pr.mesh); this.projectiles.splice(pi, 1);
+            MK.audio.bump();
+            const live = orb.shells.find((s) => !s.dead); if (live) live.dead = true; // 打ち消しで1つ消費
+          }
+        }
+        // 消費した甲羅を取り除き、在庫を更新
+        let changed = false;
+        for (let i = orb.shells.length - 1; i >= 0; i--) {
+          if (orb.shells[i].dead) {
+            const sh = orb.shells[i];
+            this.scene.remove(sh.mesh); this._disposeMesh(sh.mesh);
+            orb.shells.splice(i, 1); changed = true;
+          }
+        }
+        if (changed) {
+          owner.itemCount = orb.shells.length;
+          if (orb.shells.length === 0) this._removeOrbiter(orb);
+        }
+      }
+    }
+
+    /* ---- 落雷ビジュアル ---- */
+    _spawnBolt(target) {
+      const topY = target.y + 42, segs = 7, pts = [];
+      for (let i = 0; i <= segs; i++) {
+        const t = i / segs;
+        const jit = (i === 0 || i === segs) ? 0 : (1 - t) * 3.0;
+        pts.push(new THREE.Vector3(target.x + U.randRange(-jit, jit), U.lerp(topY, target.y + 0.5, t), target.z + U.randRange(-jit, jit)));
+      }
+      const g = new THREE.Group();
+      const mat = new THREE.MeshBasicMaterial({ color: 0xe6d4ff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1], len = a.distanceTo(b);
+        const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, len, 5), mat);
+        seg.position.copy(a).add(b).multiplyScalar(0.5);
+        const dir = new THREE.Vector3().subVectors(b, a).normalize();
+        seg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+        g.add(seg);
+      }
+      this.scene.add(g);
+      this.bolts.push({ group: g, mat, life: 0.42, max: 0.42 });
+      if (this.world.particles) this.world.particles.boltFlash(target.x, target.y + 0.5, target.z);
+    }
+
+    _updateBolts(dt) {
+      for (let i = this.bolts.length - 1; i >= 0; i--) {
+        const bl = this.bolts[i];
+        bl.life -= dt;
+        bl.mat.opacity = Math.max(0, bl.life / bl.max) * (0.5 + Math.random() * 0.5);
+        if (bl.life <= 0) {
+          this.scene.remove(bl.group);
+          bl.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+          bl.mat.dispose();
+          this.bolts.splice(i, 1);
+        }
       }
     }
 
@@ -220,6 +403,10 @@ window.MK = window.MK || {};
         }
       }
 
+      // 周回こうら・落雷の更新
+      this._updateOrbiters(dt);
+      this._updateBolts(dt);
+
       // 弾の更新
       const track = this.world.track;
       for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -250,6 +437,9 @@ window.MK = window.MK || {};
         const info = track.project(m.position);
         m.position.y = info.point.y + (pr.type === 'bomb' ? 0.5 : 0.6);
         m.rotation.y += pr.spin * dt * 4;
+        if ((pr.type === 'greenShell' || pr.type === 'redShell') && this.world.particles && Math.random() < 0.5) {
+          this.world.particles.shellTrail(m.position.x, m.position.y, m.position.z, pr.type === 'redShell' ? 0xff8a7a : 0x7affa0);
+        }
 
         // 壁で反射 / 落下消滅
         if (pr.type === 'greenShell' || pr.type === 'redShell' || pr.type === 'bomb') {
@@ -277,6 +467,10 @@ window.MK = window.MK || {};
             if (!k.isHittable()) continue;
             const d = k.group.position.distanceTo(m.position);
             if (d < C.itemHitRadius + 0.4) {
+              if (k._orbiter && k._orbiter.shells.length > 0) { // こうらシールドで1つ消費して防御
+                this._breakOneShell(k);
+                MK.audio.bump(); remove = true; break;
+              }
               if (pr.type === 'bomb') { this.explodeAt(m.position, 7, pr.owner); }
               else { k.spinOut(); this.world.particles.sparkle(m.position.x, m.position.y, m.position.z, pr.type === 'redShell' ? 0xff6a5a : 0x7affa0); MK.audio.hit(); }
               remove = true; break;
@@ -327,7 +521,9 @@ window.MK = window.MK || {};
     reset() {
       for (const b of this.boxes) this.scene.remove(b.mesh);
       for (const pr of this.projectiles) this.scene.remove(pr.mesh);
-      this.boxes = []; this.projectiles = [];
+      for (const orb of this.orbiters) { for (const sh of orb.shells) this.scene.remove(sh.mesh); if (orb.owner) orb.owner._orbiter = null; }
+      for (const bl of this.bolts) this.scene.remove(bl.group);
+      this.boxes = []; this.projectiles = []; this.orbiters = []; this.bolts = [];
     }
   }
 

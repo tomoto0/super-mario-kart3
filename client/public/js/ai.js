@@ -149,6 +149,11 @@ window.MK = window.MK || {};
         case 'star':
           use();
           break;
+        case 'tripleShell':
+          // 未展開なら即シールド展開、展開後は前後に敵がいれば1発発射
+          if (!k._orbiter) use();
+          else if (nearestAheadDist < 60 || nearestBehindDist < 22) use();
+          break;
         case 'lightning':
           if (k.place > 2) use();
           break;

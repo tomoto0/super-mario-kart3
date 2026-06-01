@@ -31,6 +31,10 @@ window.MK = window.MK || {};
     pupil.position.set((look || 0) * 0.04, -0.01, -0.1);
     pupil.scale.set(0.9, 1.3, 0.6);
     g.add(pupil);
+    // 瞳のハイライト（生き生きとした表情に）
+    const shine = sph(0.022, 0xffffff, 6);
+    shine.position.set((look || 0) * 0.04 - 0.03, 0.045, -0.155);
+    g.add(shine);
     g.position.set(x, y, z);
     return g;
   }
@@ -99,13 +103,23 @@ window.MK = window.MK || {};
     // 腕（前方のハンドルへ）
     const armColor = shirt;
     for (const s of [-1, 1]) {
+      const shoulder = sph(0.17, shirt, 10); shoulder.position.set(s * 0.36, 0.8, 0); g.add(shoulder);
       const arm = cyl(0.1, 0.12, 0.5, armColor, 10);
       arm.position.set(s * 0.34, 0.55, -0.25);
       arm.rotation.x = 1.15; arm.rotation.z = s * 0.18;
       g.add(arm);
+      const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.04, 6, 12), mat(opts.glove || 0xffffff)); cuff.position.set(s * 0.31, 0.42, -0.5); cuff.rotation.x = 1.15; g.add(cuff);
       const glove = sph(0.14, opts.glove || 0xffffff, 12);
       glove.position.set(s * 0.30, 0.36, -0.55);
       g.add(glove);
+    }
+    // 首
+    const neck = cyl(0.17, 0.19, 0.2, skin, 10); place(neck, 0, 1.0, 0); g.add(neck);
+
+    // 脚・靴（ペダルへ伸ばす）
+    for (const s of [-1, 1]) {
+      const shin = cyl(0.1, 0.12, 0.34, overalls, 8); shin.position.set(s * 0.2, 0.18, -0.34); shin.rotation.x = 1.2; g.add(shin);
+      const shoe = box(0.26, 0.2, 0.46, opts.shoe || 0x5a3210); place(shoe, s * 0.2, 0.06, -0.6); g.add(shoe);
     }
 
     // 頭

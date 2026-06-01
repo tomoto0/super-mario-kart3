@@ -107,6 +107,95 @@ window.MK = window.MK || {};
       const cap = sph(0.3, 0xb8bcc4, 10, { metalness: 0.6, roughness: 0.3 }); cap.position.y = 1.6; g.add(cap);
       return g;
     },
+    // --- 草原：モグラ（穴から飛び出す）---
+    montyMole() {
+      const g = new THREE.Group();
+      const mound = new THREE.Mesh(new THREE.SphereGeometry(1.35, 16, 8, 0, U.TAU, 0, Math.PI * 0.5), M(0x6f4521));
+      mound.scale.set(1, 0.42, 1); mound.position.y = 0.02; g.add(mound);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.22, 8, 16), M(0x4f3018)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.04; g.add(ring);
+      const mole = new THREE.Group();
+      const body = sph(0.56, 0x8a6a4a, 12); body.scale.set(1, 1.1, 1); body.position.y = 0.5; mole.add(body);
+      const belly = sph(0.4, 0xf0d8b8, 12); belly.scale.set(0.8, 1.0, 0.5); belly.position.set(0, 0.45, -0.3); mole.add(belly);
+      const snout = sph(0.26, 0xf0d0b0, 10); snout.scale.set(1.1, 0.8, 1.2); snout.position.set(0, 0.5, -0.5); mole.add(snout);
+      const noseTip = sph(0.13, 0xe07a6a, 8); noseTip.position.set(0, 0.5, -0.7); mole.add(noseTip);
+      eyes(mole, 0.78, -0.46, 0.16, 1);
+      for (const s of [-1, 1]) { const claw = box(0.2, 0.16, 0.34, 0xedeff4); claw.position.set(s * 0.42, 0.16, -0.42); mole.add(claw); }
+      mole.position.y = -1.0; g.add(mole); g.userData.mole = mole;
+      return g;
+    },
+    // --- 草原：ノコノコ（左右に歩く）---
+    koopa() {
+      const g = new THREE.Group();
+      for (const s of [-1, 1]) { const leg = box(0.22, 0.32, 0.28, 0xf2cf3a); leg.position.set(s * 0.26, 0.16, 0.05); g.add(leg); const foot = box(0.26, 0.12, 0.4, 0xe88a20); foot.position.set(s * 0.26, 0.05, -0.05); g.add(foot); }
+      const shell = sph(0.64, 0x2fae4a, 14); shell.scale.set(1.08, 1.0, 0.92); shell.position.y = 0.92; g.add(shell);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.13, 8, 18), M(0xf2e3a8)); rim.rotation.x = Math.PI / 2 - 0.15; rim.position.y = 0.74; g.add(rim);
+      const belly = sph(0.5, 0xf2e3a8, 12); belly.scale.set(0.85, 0.9, 0.5); belly.position.set(0, 0.78, -0.34); g.add(belly);
+      const neck = cyl(0.18, 0.2, 0.4, 0xf2cf3a, 8); neck.position.set(0, 1.18, -0.12); g.add(neck);
+      const head = sph(0.36, 0xf2cf3a, 12); head.position.set(0, 1.45, -0.18); g.add(head);
+      const beak = cone(0.17, 0.3, 0xe88a20, 8); beak.position.set(0, 1.4, -0.52); beak.rotation.x = -Math.PI / 2; g.add(beak);
+      eyes(g, 1.56, -0.44, 0.15, 1);
+      g.userData.head = head;
+      return g;
+    },
+    // --- 雪：転がる雪玉 ---
+    snowball() {
+      const g = new THREE.Group();
+      const ball = sph(1.15, 0xffffff, 16, { roughness: 0.95 }); ball.position.y = 1.15; g.add(ball);
+      for (let i = 0; i < 7; i++) { const sp = sph(0.18, 0xdcebff, 8); const a = i / 7 * U.TAU; ball.add(sp); sp.position.set(Math.cos(a) * 0.75, Math.sin(a * 1.7) * 0.7, Math.sin(a) * 0.75); }
+      g.userData.ball = ball;
+      return g;
+    },
+    // --- 雪：落ちてくるつらら ---
+    icicle() {
+      const g = new THREE.Group();
+      const iceMat = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, roughness: 0.2, metalness: 0.15, transparent: true, opacity: 0.88, flatShading: true });
+      const ice = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.4, 8), iceMat); ice.rotation.x = Math.PI; ice.position.y = -1.2; g.add(ice);
+      const hi = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.4, 6), new THREE.MeshStandardMaterial({ color: 0xeaf6ff, roughness: 0.1, transparent: true, opacity: 0.7 })); hi.rotation.x = Math.PI; hi.position.set(-0.12, -0.7, -0.12); g.add(hi);
+      g.userData.ice = ice;
+      return g;
+    },
+    // --- 城：溶岩から飛び出す火の玉（プクプク）---
+    podoboo() {
+      const g = new THREE.Group();
+      const core = sph(0.72, 0xff8a2a, 14, { emissive: 0xff3a00, emissiveIntensity: 1.0, roughness: 0.4 }); g.add(core);
+      const inner = sph(0.5, 0xffe27a, 12, { emissive: 0xffb030, emissiveIntensity: 1.0 }); inner.position.z = -0.2; g.add(inner);
+      eyes(g, 0.18, -0.62, 0.2, 1);
+      const mouth = box(0.4, 0.1, 0.1, 0x7a1500); mouth.position.set(0, -0.12, -0.66); g.add(mouth);
+      g.add(glowSprite(0xff7a2a, 2.8));
+      g.userData.core = core;
+      return g;
+    },
+    // --- 城：垂直に噴き上がる炎 ---
+    flameJet() {
+      const g = new THREE.Group();
+      const base = cyl(0.5, 0.72, 0.6, 0x33292f, 10); base.position.y = 0.3; g.add(base);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.1, 8, 14), M(0x59453a)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.6; g.add(ring);
+      const flame = new THREE.Group();
+      const tex = U.softCircleTexture('rgba(255,205,90,1)', 'rgba(255,60,0,0)');
+      for (let i = 0; i < 4; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffae33 })); s.scale.set(1.7, 2.3, 1); s.position.y = 0.9 + i * 1.05; flame.add(s); }
+      flame.visible = false; g.add(flame); g.userData.flame = flame;
+      return g;
+    },
+    // --- 虹：横切る彗星 ---
+    comet() {
+      const g = new THREE.Group();
+      const core = sph(0.62, 0xfff0a0, 14, { emissive: 0xffd24a, emissiveIntensity: 0.95 }); g.add(core);
+      g.add(glowSprite(0x9fd0ff, 2.6));
+      const tailTex = U.softCircleTexture('rgba(190,215,255,1)', 'rgba(120,140,255,0)');
+      const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map: tailTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      tail.scale.set(4.2, 1.5, 1); tail.position.set(0, 0, 1.7); g.add(tail);
+      g.userData.core = core; g.userData.tail = tail;
+      return g;
+    },
+    // --- 虹：回転するスター・バー（火柱の星版）---
+    starOrb() {
+      const g = new THREE.Group();
+      const tex = U.starTexture('#fff04d');
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      s.scale.set(1.5, 1.5, 1); g.add(s);
+      const core = sph(0.3, 0xfff7c0, 10, { emissive: 0xffe14d, emissiveIntensity: 1.0 }); g.add(core);
+      return g;
+    },
   };
 
   /* ---- システム ---- */
@@ -123,10 +212,10 @@ window.MK = window.MK || {};
     build(course) {
       const props = course.theme.props;
       const plans = {
-        grass: [['goomba', 4], ['piranha', 2]],
-        snow: [['penguin', 5]],
-        castle: [['thwomp', 3], ['firebar', 2]],
-        rainbow: [['chomp', 3]],
+        grass: [['goomba', 3], ['koopa', 2], ['piranha', 2], ['montyMole', 3]],
+        snow: [['penguin', 4], ['snowball', 2], ['icicle', 3]],
+        castle: [['thwomp', 2], ['firebar', 2], ['podoboo', 3], ['flameJet', 2]],
+        rainbow: [['chomp', 2], ['comet', 2], ['spinBar', 2]],
       }[props] || [];
 
       // 0.15〜0.95 の範囲に種類ごとへ均等配置
@@ -196,6 +285,46 @@ window.MK = window.MK || {};
         for (let i = 0; i < 4; i++) { const l = sph(0.2, 0x33343d, 8, { metalness: 0.4 }); hz.group.add(l); hz.links.push(l); }
         hz.reachBase = rh * 0.3; hz.reachAmp = rh * 1.05;
         hz.hitPoints = [hz._p];
+      } else if (kind === 'koopa') {
+        hz.group = Build.koopa();
+        hz.amp = rh * 0.72; hz.speed = 0.95; hz.radius = 1.5; hz.effect = 'spin';
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'montyMole') {
+        hz.group = Build.montyMole();
+        hz.lateral = U.randRange(-rh * 0.7, rh * 0.7); hz.radius = 1.5; hz.effect = 'spin';
+        hz._yaw = Math.random() * U.TAU; hz.cycle = U.randRange(2.6, 3.8);
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'snowball') {
+        hz.group = Build.snowball();
+        hz.amp = rh * 0.92; hz.speed = 1.05; hz.radius = 1.75; hz.effect = 'spin';
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'icicle') {
+        hz.group = Build.icicle();
+        hz.lateral = U.randRange(-rh * 0.65, rh * 0.65); hz.radius = 1.4; hz.effect = 'spin';
+        hz.hangY = 6.5; hz.cycle = U.randRange(3.4, 4.6); hz.shadow = blob(1.5); this.root.add(hz.shadow);
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'podoboo') {
+        hz.group = Build.podoboo();
+        hz.lateral = U.randRange(-rh * 0.55, rh * 0.55); hz.radius = 1.7; hz.effect = 'launch';
+        hz.cycle = U.randRange(2.6, 3.6); hz.lavaY = -6; hz.height = (hz.sample.point.y - hz.lavaY) + 4;
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'flameJet') {
+        hz.group = Build.flameJet();
+        hz.lateral = (rh - 0.6) * side; hz.radius = 1.5; hz.effect = 'spin';
+        hz.cycle = U.randRange(2.2, 3.2);
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'comet') {
+        hz.group = Build.comet();
+        hz.amp = rh * 0.95; hz.speed = 0.85; hz.radius = 1.75; hz.effect = 'launch';
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'spinBar') {
+        hz.group = new THREE.Group();
+        hz.lateral = U.randRange(-rh * 0.2, rh * 0.2); hz.radius = 1.3; hz.effect = 'spin';
+        hz.pivot = new THREE.Group(); hz.group.add(hz.pivot);
+        hz.balls = []; hz.dists = [2.4, 3.8, 5.2]; hz.rot = 1.05 * (side > 0 ? 1 : -1); hz._pts = [];
+        const hub2 = cyl(0.4, 0.5, 1.3, 0xffffff, 10); hub2.position.y = 1.6; hz.group.add(hub2);
+        for (const sgn of [1, -1]) for (const d of hz.dists) { const so = Build.starOrb(); so.position.set(sgn * d, 1.6, 0); hz.pivot.add(so); hz.balls.push(so); hz._pts.push(new THREE.Vector3()); }
+        hz.hitPoints = hz._pts;
       }
 
       this.root.add(hz.group);
@@ -209,8 +338,8 @@ window.MK = window.MK || {};
       const sm = hz.sample;
       hz._p.set(sm.point.x, sm.point.y, sm.point.z);
       hz.markerPos.copy(hz._p);
-      if (hz.group && hz.kind !== 'chomp' && hz.kind !== 'firebar') hz.group.position.copy(sm.point);
-      if (hz.kind === 'firebar') hz.group.position.set(sm.point.x + sm.normal.x * hz.lateral, sm.point.y, sm.point.z + sm.normal.z * hz.lateral);
+      if (hz.group && hz.kind !== 'chomp' && hz.kind !== 'firebar' && hz.kind !== 'spinBar') hz.group.position.copy(sm.point);
+      if (hz.kind === 'firebar' || hz.kind === 'spinBar') hz.group.position.set(sm.point.x + sm.normal.x * hz.lateral, sm.point.y, sm.point.z + sm.normal.z * hz.lateral);
     }
 
     /* ---- 更新 ---- */
@@ -325,6 +454,99 @@ window.MK = window.MK || {};
               hz.post.z + (bz - hz.post.z) * u);
           }
           hz._p.set(bx, by, bz); hz.markerPos.set(bx, by, bz);
+          hz.dangerous = true; break;
+        }
+        case 'koopa': {
+          const lat = Math.sin(hz.t * hz.speed + hz.phase) * hz.amp;
+          const vx = Math.cos(hz.t * hz.speed + hz.phase);
+          hz.group.position.set(bp.x + nrm.x * lat, bp.y + Math.abs(Math.sin(hz.t * 5)) * 0.08, bp.z + nrm.z * lat);
+          hz.group.rotation.y = Math.atan2(-nrm.x * Math.sign(vx || 1), -nrm.z * Math.sign(vx || 1));
+          if (hz.group.userData.head) hz.group.userData.head.rotation.z = Math.sin(hz.t * 6) * 0.12;
+          hz._p.copy(hz.group.position); hz.markerPos.copy(hz._p);
+          hz.dangerous = true; break;
+        }
+        case 'montyMole': {
+          const cyc = (hz.t + hz.phase) % hz.cycle;
+          const out = cyc > 1.0 && cyc < hz.cycle - 0.4;
+          const span = (hz.cycle - 0.4) - 1.0;
+          const ext = out ? Math.sin((cyc - 1.0) / span * Math.PI) : 0;
+          const cx = bp.x + nrm.x * hz.lateral, cz = bp.z + nrm.z * hz.lateral;
+          hz.group.position.set(cx, bp.y, cz);
+          hz.group.rotation.y = hz._yaw;
+          if (hz.group.userData.mole) hz.group.userData.mole.position.y = -1.0 + ext * 1.05;
+          hz._p.set(cx, bp.y + 0.6, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = ext > 0.45; break;
+        }
+        case 'snowball': {
+          const cyc = hz.t * hz.speed + hz.phase;
+          const lat = Math.cos(cyc) * hz.amp;
+          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
+          hz.group.position.set(cx, bp.y, cz);
+          if (hz.group.userData.ball) hz.group.userData.ball.rotation.x += dt * (4 + Math.abs(Math.sin(cyc)) * 5);
+          hz._p.set(cx, bp.y + 1.0, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = true; break;
+        }
+        case 'icicle': {
+          const cyc = (hz.t + hz.phase) % hz.cycle;
+          const cx = bp.x + nrm.x * hz.lateral, cz = bp.z + nrm.z * hz.lateral;
+          let y, danger = false;
+          const dropAt = hz.cycle - 1.5;
+          if (cyc < dropAt) { y = hz.hangY + Math.sin(hz.t * 8) * 0.06; }
+          else if (cyc < dropAt + 0.32) { y = hz.hangY * (1 - (cyc - dropAt) / 0.32); danger = true; }
+          else if (cyc < dropAt + 1.1) { y = 0; danger = true; }
+          else { y = hz.hangY; }
+          hz.group.position.set(cx, bp.y + y, cz);
+          if (hz.shadow) { hz.shadow.position.set(cx, bp.y + 0.06, cz); const k = U.clamp(1 - y / hz.hangY, 0.15, 1); hz.shadow.scale.set(0.7 + k, 0.7 + k, 1); hz.shadow.material.opacity = 0.18 + k * 0.5; }
+          const grounded = y < 1.0;
+          if (grounded && !hz._prevDown) { if (this.world.particles) for (let i = 0; i < 6; i++) this.world.particles.dust(cx + U.randRange(-1.5, 1.5), bp.y, cz + U.randRange(-1.5, 1.5)); MK.audio.bump(); }
+          hz._prevDown = grounded;
+          hz._p.set(cx, bp.y + 0.5, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = danger; break;
+        }
+        case 'podoboo': {
+          const u = (hz.t + hz.phase) % hz.cycle / hz.cycle;
+          const jump = Math.sin(u * Math.PI);
+          const y = hz.lavaY + jump * hz.height;
+          const cx = bp.x + nrm.x * hz.lateral, cz = bp.z + nrm.z * hz.lateral;
+          hz.group.position.set(cx, y, cz);
+          hz.group.rotation.y += dt * 3;
+          if (hz.group.userData.core) hz.group.userData.core.material.emissiveIntensity = 0.8 + Math.sin(hz.t * 10) * 0.3;
+          hz._p.set(cx, y, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = Math.abs(y - bp.y) < 2.4; break;
+        }
+        case 'flameJet': {
+          const cyc = (hz.t + hz.phase) % hz.cycle;
+          const on = cyc > hz.cycle * 0.45;
+          const cx = bp.x + nrm.x * hz.lateral, cz = bp.z + nrm.z * hz.lateral;
+          hz.group.position.set(cx, bp.y, cz);
+          const flame = hz.group.userData.flame;
+          if (flame) {
+            flame.visible = on;
+            if (on) { const f = 0.85 + Math.sin(hz.t * 22) * 0.15; flame.scale.set(1, f + 0.15, 1); flame.children.forEach((s, i) => { s.material.opacity = 0.7 + Math.sin(hz.t * 16 + i) * 0.3; }); }
+          }
+          hz._p.set(cx, bp.y + 1.6, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = on; break;
+        }
+        case 'comet': {
+          const cyc = hz.t * hz.speed + hz.phase;
+          const lat = Math.sin(cyc) * hz.amp;
+          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat, cy = bp.y + 1.3 + Math.sin(hz.t * 2) * 0.3;
+          hz.group.position.set(cx, cy, cz);
+          hz.group.rotation.y = Math.atan2(-nrm.x, -nrm.z) + (Math.cos(cyc) < 0 ? Math.PI : 0);
+          if (this.world.particles && Math.random() < 0.4) this.world.particles.starTrail(cx, cy, cz);
+          hz._p.set(cx, cy, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = true; break;
+        }
+        case 'spinBar': {
+          const a = hz.t * hz.rot; hz.pivot.rotation.y = a;
+          const cx = hz.group.position.x, cy = hz.group.position.y + 1.6, cz = hz.group.position.z;
+          const n = hz.dists.length;
+          for (let i = 0; i < n; i++) {
+            const d = hz.dists[i];
+            hz._pts[i].set(cx + Math.cos(a) * d, cy, cz - Math.sin(a) * d);
+            hz._pts[i + n].set(cx - Math.cos(a) * d, cy, cz + Math.sin(a) * d);
+          }
+          hz.markerPos.set(cx, cy, cz);
           hz.dangerous = true; break;
         }
       }

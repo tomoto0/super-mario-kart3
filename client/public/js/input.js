@@ -92,7 +92,7 @@ window.MK = window.MK || {};
         <div class="tc-right">
           <button class="tc-btn tc-item" data-press="Space">★</button>
           <button class="tc-btn tc-drift" data-key="_drift">DRIFT</button>
-          <button class="tc-btn tc-accel" data-key="ArrowUp">アクセル</button>
+          <button class="tc-btn tc-accel" data-key="ArrowUp">GAS</button>
         </div>`;
       document.body.appendChild(root);
 

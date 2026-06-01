@@ -28,11 +28,16 @@ window.MK = window.MK || {};
     },
     coin() {
       const g = new THREE.Group();
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.14, 18),
-        new THREE.MeshStandardMaterial({ color: 0xffd24a, roughness: 0.3, metalness: 0.6, emissive: 0x6a4a00, emissiveIntensity: 0.3 }));
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.14, 22),
+        new THREE.MeshStandardMaterial({ color: 0xffd24a, roughness: 0.22, metalness: 0.8, emissive: 0x6a4a00, emissiveIntensity: 0.4 }));
       c.rotation.x = Math.PI / 2; g.add(c);
-      const inner = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.06, 8, 16),
-        new THREE.MeshStandardMaterial({ color: 0xe0a800, roughness: 0.4, metalness: 0.5 }));
+      // 明るい縁
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.1, 10, 24),
+        new THREE.MeshStandardMaterial({ color: 0xffe98a, roughness: 0.28, metalness: 0.7 }));
+      g.add(rim);
+      // 中央の窪み（両面）
+      const inner = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.05, 8, 18),
+        new THREE.MeshStandardMaterial({ color: 0xe0a800, roughness: 0.4, metalness: 0.6 }));
       g.add(inner);
       return g;
     },
@@ -44,16 +49,24 @@ window.MK = window.MK || {};
     },
     goomba() {
       const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.62), M(0x8a5a2b));
-      body.scale.set(1, 0.85, 1); body.position.y = 0.8; g.add(body);
-      const under = new THREE.Mesh(new THREE.SphereGeometry(0.88, 16, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), M(0xf0d8b0));
-      under.position.y = 0.8; g.add(under);
+      // 頭＋体（栗色のドーム）
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.92, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.64), M(0x875428));
+      body.scale.set(1.05, 0.9, 1); body.position.y = 0.82; g.add(body);
+      // 顔まわりの明るい帯
+      const cheeks = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI * 2, Math.PI * 0.34, Math.PI * 0.32), M(0xa9763a));
+      cheeks.scale.set(1.04, 0.9, 1); cheeks.position.y = 0.82; g.add(cheeks);
+      // 底（クリーム）
+      const under = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), M(0xf0d8b0));
+      under.position.y = 0.82; g.add(under);
       for (const s of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), basic(0xffffff)); eye.position.set(s * 0.28, 0.95, -0.7); eye.scale.set(0.8, 1.2, 0.6); g.add(eye);
-        const p = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), basic(0x1a1a1a)); p.position.set(s * 0.3, 0.92, -0.82); g.add(p);
-        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.08), M(0x3a2410)); brow.position.set(s * 0.3, 1.12, -0.7); brow.rotation.z = -s * 0.4; g.add(brow);
-        const foot = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), M(0x5a3a1a)); foot.scale.set(1, 0.5, 1.3); foot.position.set(s * 0.4, 0.12, 0); g.add(foot);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), basic(0xffffff)); eye.position.set(s * 0.27, 0.96, -0.72); eye.scale.set(0.82, 1.25, 0.6); g.add(eye);
+        const p = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), basic(0x1a1a1a)); p.position.set(s * 0.3, 0.92, -0.84); g.add(p);
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.1, 0.1), M(0x32200e)); brow.position.set(s * 0.3, 1.15, -0.72); brow.rotation.z = -s * 0.52; g.add(brow);
+        const foot = new THREE.Mesh(new THREE.SphereGeometry(0.33, 12, 8), M(0x4a3014)); foot.scale.set(1, 0.5, 1.4); foot.position.set(s * 0.43, 0.12, 0.02); g.add(foot);
       }
+      // 口（への字）＋牙
+      const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.09, 0.08), M(0x2a1808)); mouth.position.set(0, 0.66, -0.87); g.add(mouth);
+      for (const s of [-1, 1]) { const fang = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 6), basic(0xffffff)); fang.position.set(s * 0.12, 0.61, -0.87); fang.rotation.x = Math.PI; g.add(fang); }
       return g;
     },
     tree(snow) {
@@ -100,13 +113,36 @@ window.MK = window.MK || {};
       const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffae33 }));
       flame.scale.set(1.6, 2.4, 1); flame.position.y = 4.5; g.add(flame);
       const light = new THREE.PointLight(0xff8a2a, 1.2, 16); light.position.y = 4.4; g.add(light);
-      g.userData.flame = flame; g.userData.light = light;
+      g.userData.flame = flame; g.userData.light = light; g.userData.flameBase = [1.6, 2.4];
       return g;
     },
     lavaBubble() {
       const m = new THREE.Mesh(new THREE.SphereGeometry(1.2, 12, 8),
         new THREE.MeshStandardMaterial({ color: 0xff6a1a, emissive: 0xff3a00, emissiveIntensity: 0.9, roughness: 0.5 }));
       return m;
+    },
+    // 溶岩から立ち上がる石柱（高架通路を支える城内の柱・上に篝火）
+    castlePillar() {
+      const g = new THREE.Group();
+      const h = 34;
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.2, h, 10), M(0x453f4b)); g.add(col);
+      for (let i = 0; i < 5; i++) { const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.85, 1.95, 1.2, 10), M(0x352f3a)); ring.position.y = -h / 2 + 4 + i * 7; g.add(ring); }
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 1.7, 1.0, 10), M(0x4f4956)); cap.position.y = h / 2 - 0.3; g.add(cap);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.6, 0.9, 10), M(0x241c22)); bowl.position.y = h / 2 + 0.6; g.add(bowl);
+      const tex = U.softCircleTexture('rgba(255,185,55,1)', 'rgba(255,70,0,0)');
+      const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffae33 }));
+      flame.scale.set(2.6, 3.8, 1); flame.position.y = h / 2 + 2.4; g.add(flame);
+      const light = new THREE.PointLight(0xff8a2a, 1.1, 30); light.position.y = h / 2 + 2; g.add(light);
+      g.userData.flame = flame; g.userData.light = light; g.userData.flameBase = [2.6, 3.8];
+      return g;
+    },
+    // 草原の花
+    flower(color) {
+      const g = new THREE.Group();
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.0, 6), M(0x2f9d3a)); stem.position.y = 0.5; g.add(stem);
+      const center = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), M(0xffe14d)); center.position.y = 1.05; g.add(center);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * U.TAU; const pet = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), M(color)); pet.scale.set(1, 0.4, 1.5); pet.position.set(Math.cos(a) * 0.28, 1.05, Math.sin(a) * 0.28); g.add(pet); }
+      return g;
     },
     statue() {
       const g = new THREE.Group();
@@ -135,6 +171,64 @@ window.MK = window.MK || {};
     },
     planet(color, r) {
       return new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), M(color, { emissive: color, emissiveIntensity: 0.15 }));
+    },
+    // ピーチ城（草原の遠景ランドマーク）
+    peachCastle() {
+      const g = new THREE.Group();
+      const wall = 0xfdeef5, brick = 0xf3c4da, roof = 0xe24a8a;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(24, 7, 24), M(brick)); base.position.y = 3.5; g.add(base);
+      const keep = new THREE.Mesh(new THREE.CylinderGeometry(7.5, 8.5, 16, 14), M(wall)); keep.position.y = 13; g.add(keep);
+      const keepRoof = new THREE.Mesh(new THREE.ConeGeometry(9, 11, 14), M(roof)); keepRoof.position.y = 26; g.add(keepRoof);
+      const finial = new THREE.Mesh(new THREE.SphereGeometry(0.8, 10, 8), M(0xffd24a, { emissive: 0x6a4a00, emissiveIntensity: 0.3 })); finial.position.y = 32; g.add(finial);
+      for (const t of [[-10, -10, 13, 3], [10, -10, 13, 3], [-10, 10, 11, 2.6], [10, 10, 11, 2.6]]) {
+        const tw = new THREE.Mesh(new THREE.CylinderGeometry(t[3], t[3] * 1.12, t[2], 12), M(wall)); tw.position.set(t[0], t[2] / 2 + 1, t[1]); g.add(tw);
+        const tr = new THREE.Mesh(new THREE.ConeGeometry(t[3] * 1.3, t[3] * 2.4, 12), M(roof)); tr.position.set(t[0], t[2] + 1 + t[3] * 1.2, t[1]); g.add(tr);
+      }
+      const win = new THREE.Mesh(new THREE.CircleGeometry(2.6, 20), new THREE.MeshStandardMaterial({ color: 0xfff0c0, emissive: 0xffd24a, emissiveIntensity: 0.5 })); win.position.set(0, 13, -8.55); g.add(win);
+      const gate = new THREE.Mesh(new THREE.BoxGeometry(4.5, 6, 1), M(0x9a4060)); gate.position.set(0, 3.5, -12.05); g.add(gate);
+      return g;
+    },
+    // かまくら（雪原）
+    igloo() {
+      const g = new THREE.Group();
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(2.4, 16, 10, 0, U.TAU, 0, Math.PI * 0.5), M(0xeaf4ff)); dome.position.y = 0.02; g.add(dome);
+      for (let i = 0; i < 3; i++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(2.4 - i * 0.55, 0.06, 6, 18, Math.PI), M(0xcfe6f7)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.4 + i * 0.7; g.add(ring); }
+      const entry = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 1.6, 10, 1, true, 0, Math.PI), M(0xdfeefc)); entry.rotation.z = Math.PI / 2; entry.position.set(0, 0.9, -2.4); g.add(entry);
+      const hole = new THREE.Mesh(new THREE.CircleGeometry(0.8, 12), basic(0x3a5a7a)); hole.position.set(0, 0.9, -3.0); g.add(hole);
+      return g;
+    },
+    // クッパの塔（城の遠景シルエット）
+    bowserKeep() {
+      const g = new THREE.Group();
+      const stone = 0x35313b, dark = 0x241f29;
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(6, 8.5, 32, 10), M(stone)); body.position.y = 16; g.add(body);
+      for (let i = 0; i < 8; i++) { const a = i / 8 * U.TAU; const m = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.6, 1.7), M(stone)); m.position.set(Math.cos(a) * 6.4, 32.5, Math.sin(a) * 6.4); g.add(m); }
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(7.2, 10, 10), M(dark)); roof.position.y = 38; g.add(roof);
+      for (const s of [-1, 1]) { const horn = new THREE.Mesh(new THREE.ConeGeometry(0.7, 3.2, 8), M(0xf2ead2)); horn.position.set(s * 2.6, 41, 0); horn.rotation.z = s * -0.3; g.add(horn); }
+      for (const s of [-1, 1]) { const eye = new THREE.Mesh(new THREE.CircleGeometry(1.0, 10), new THREE.MeshStandardMaterial({ color: 0xff5a1a, emissive: 0xff2a00, emissiveIntensity: 1.0 })); eye.position.set(s * 2.2, 23, -6.05); g.add(eye); }
+      return g;
+    },
+    // ウォンプ（怒り顔の石壁ブロック・城）
+    whompBlock() {
+      const g = new THREE.Group();
+      const block = new THREE.Mesh(new THREE.BoxGeometry(4.2, 5.4, 1.5), M(0x6a6470)); block.position.y = 2.7; g.add(block);
+      const face = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4.5, 0.2), M(0x837e88)); face.position.set(0, 2.9, -0.78); g.add(face);
+      for (const s of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.44, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffe6e6, emissive: 0xff2a00, emissiveIntensity: 0.95 })); eye.scale.set(1, 0.8, 0.5); eye.position.set(s * 0.85, 3.5, -0.86); g.add(eye);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 8), basic(0x1a0000)); pupil.position.set(s * 0.9, 3.4, -1.02); g.add(pupil);
+        const brow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.32, 0.2), M(0x45414c)); brow.position.set(s * 0.85, 4.05, -0.9); brow.rotation.z = -s * 0.5; g.add(brow);
+      }
+      const mouth = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.7, 0.2), basic(0x2a0e0e)); mouth.position.set(0, 1.95, -0.9); g.add(mouth);
+      for (let i = -1; i <= 1; i++) { const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.55, 6), M(0xffffff)); tooth.position.set(i * 0.65, 2.05, -1.0); g.add(tooth); }
+      g.userData.isWhomp = true;
+      return g;
+    },
+    // 環のある惑星（虹の遠景）
+    ringedPlanet(color, r) {
+      const g = new THREE.Group();
+      const pl = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 14), M(color, { emissive: color, emissiveIntensity: 0.28 })); g.add(pl);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r * 1.7, r * 0.16, 8, 32), new THREE.MeshStandardMaterial({ color: 0xffe7b0, emissive: 0xffcf80, emissiveIntensity: 0.45, transparent: true, opacity: 0.85, side: THREE.DoubleSide })); ring.rotation.x = Math.PI / 2.4; g.add(ring);
+      return g;
     },
     lakitu() {
       const g = new THREE.Group();
@@ -225,8 +319,13 @@ window.MK = window.MK || {};
         // 虹コース：星空
         this._buildStarfield();
         // 遠景の惑星
-        const planets = [[0x59b6ff, 40, -300, 120, -200], [0xff8ad6, 28, 250, 90, -260], [0xffd24a, 60, -120, 160, -420]];
+        const planets = [[0x59b6ff, 40, -300, 120, -200], [0xff8ad6, 28, 250, 90, -260], [0xffd24a, 60, -120, 160, -420], [0x6affc0, 22, 330, 60, -120]];
         planets.forEach((p) => { const pl = Build.planet(p[0], p[1]); pl.position.set(p[2], p[3], p[4]); this.root.add(pl); });
+        // 環のある惑星
+        const saturn = Build.ringedPlanet(0xc9a0ff, 34); saturn.position.set(300, 130, -130); saturn.rotation.z = 0.35; this.root.add(saturn);
+        // 銀河の中心（淡く光るネビュラ）
+        const core = new THREE.Mesh(new THREE.SphereGeometry(95, 20, 16), new THREE.MeshBasicMaterial({ color: 0x6a4aff, transparent: true, opacity: 0.16, fog: false })); core.position.set(-170, 190, -470); this.root.add(core);
+        const core2 = new THREE.Mesh(new THREE.SphereGeometry(46, 18, 14), new THREE.MeshBasicMaterial({ color: 0xff8ad6, transparent: true, opacity: 0.22, fog: false })); core2.position.set(-170, 190, -470); this.root.add(core2);
       }
 
       // 遠景の山（grass/snow）
@@ -241,11 +340,50 @@ window.MK = window.MK || {};
           if (t.props === 'snow') { const cap = new THREE.Mesh(new THREE.ConeGeometry(22, 30, 6), M(0xffffff)); cap.position.set(mtn.position.x, 75, mtn.position.z); this.root.add(cap); }
         }
       }
-      // 城コース：溶岩の海
+      // 草原：遠景にピーチ城
+      if (t.props === 'grass') {
+        const castle = Build.peachCastle();
+        castle.position.set(95, 0, -300); castle.rotation.y = -0.32; castle.scale.setScalar(2.4);
+        this.root.add(castle);
+      }
+      // 雪原：巨大な氷山
+      if (t.props === 'snow') {
+        for (const p of [[-185, -255, 1.3], [215, -175, 1.05], [-55, -325, 1.5]]) {
+          const berg = new THREE.Mesh(new THREE.ConeGeometry(40, 96, 5), M(0xeaf4ff, { roughness: 0.45 })); berg.position.set(p[0], 18, p[1]); berg.scale.setScalar(p[2]); this.root.add(berg);
+          const cap = new THREE.Mesh(new THREE.ConeGeometry(15, 30, 5), M(0xffffff)); cap.position.set(p[0], 18 + 33 * p[2], p[1]); cap.scale.setScalar(p[2]); this.root.add(cap);
+        }
+      }
+      // 城コース：高架の通路の下に広がる溶岩の海
       if (t.props === 'castle') {
-        const lava = new THREE.Mesh(new THREE.CircleGeometry(620, 48),
-          new THREE.MeshStandardMaterial({ color: 0xff5a1a, emissive: 0xff3000, emissiveIntensity: 0.7, roughness: 0.6 }));
-        lava.rotation.x = -Math.PI / 2; lava.position.y = -1.2; this.root.add(lava);
+        const lavaTex = U.makeCanvasTexture(256, (ctx, s) => {
+          ctx.fillStyle = '#ff5210'; ctx.fillRect(0, 0, s, s);
+          ctx.fillStyle = '#ffd24a';
+          for (let i = 0; i < 28; i++) { ctx.globalAlpha = 0.4 + Math.random() * 0.55; const x = Math.random() * s, y = Math.random() * s, r = 4 + Math.random() * 16; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+          ctx.globalAlpha = 1; ctx.strokeStyle = '#9a1f00'; ctx.lineWidth = 3;
+          for (let i = 0; i < 22; i++) { ctx.beginPath(); ctx.moveTo(Math.random() * s, Math.random() * s); ctx.lineTo(Math.random() * s, Math.random() * s); ctx.stroke(); }
+        });
+        lavaTex.wrapS = lavaTex.wrapT = THREE.RepeatWrapping; lavaTex.repeat.set(10, 10);
+        const lava = new THREE.Mesh(new THREE.CircleGeometry(690, 56),
+          new THREE.MeshStandardMaterial({ map: lavaTex, emissive: 0xff3400, emissiveIntensity: 0.85, emissiveMap: lavaTex, roughness: 0.5, metalness: 0.0 }));
+        lava.rotation.x = -Math.PI / 2; lava.position.y = -6; this.root.add(lava);
+        this.lavaMesh = lava; this.lavaTex = lavaTex;
+        // 溶岩からの照り返し
+        for (let i = 0; i < 5; i++) { const a = i / 5 * U.TAU; const pl = new THREE.PointLight(0xff5a1a, 0.7, 220); pl.position.set(Math.cos(a) * 130, 0, Math.sin(a) * 130); this.root.add(pl); }
+        // 遠景：クッパの塔
+        for (const p of [[-225, -185, 1.7], [245, -120, 1.5], [55, -345, 2.0], [-300, 60, 1.6]]) {
+          const keep = Build.bowserKeep(); keep.position.set(p[0], -6, p[1]); keep.scale.setScalar(p[2]); keep.rotation.y = Math.random() * U.TAU; this.root.add(keep);
+        }
+        // 周囲を囲む城壁（歯壁＋埋め込まれたウォンプ）
+        const ringR = 250, segN = 44;
+        for (let i = 0; i < segN; i++) {
+          const a = i / segN * U.TAU, cx = Math.cos(a) * ringR, cz = Math.sin(a) * ringR;
+          const seg = new THREE.Mesh(new THREE.BoxGeometry(40, 30, 9), M(0x35313b)); seg.position.set(cx, 7, cz); seg.rotation.y = -a; this.root.add(seg);
+          const mer = new THREE.Mesh(new THREE.BoxGeometry(7, 6, 9), M(0x2a2630)); mer.position.set(cx, 24, cz); mer.rotation.y = -a; this.root.add(mer);
+          if (i % 7 === 3) {
+            const wh = Build.whompBlock(); wh.position.set(Math.cos(a) * (ringR - 7), 9, Math.sin(a) * (ringR - 7));
+            wh.rotation.y = Math.atan2(Math.cos(a), Math.sin(a)); wh.scale.setScalar(2.6); this.root.add(wh);
+          }
+        }
       }
     }
 
@@ -271,10 +409,11 @@ window.MK = window.MK || {};
       const N = samples.length;
       const step = Math.max(4, Math.floor(N / 90));
       const edge = this.track.wallHalf + 4;
+      const skip = t.props === 'castle' ? 0.72 : t.props === 'rainbow' ? 0.55 : 0.42;
       for (let i = 0; i < N; i += step) {
         const sm = samples[i];
         for (const side of [-1, 1]) {
-          if (Math.random() < 0.45) continue;
+          if (Math.random() < skip) continue;
           const dist = edge + U.randRange(1, 14);
           const px = sm.point.x + sm.normal.x * side * dist;
           const pz = sm.point.z + sm.normal.z * side * dist;
@@ -299,21 +438,21 @@ window.MK = window.MK || {};
     _pickProp(theme) {
       const r = Math.random();
       if (theme === 'grass') {
-        if (r < 0.4) return Build.tree(false);
-        if (r < 0.6) return Build.bush();
-        if (r < 0.75) { const g = Build.pipe(U.randRange(3, 6)); return g; }
+        if (r < 0.34) return Build.tree(false);
+        if (r < 0.5) return Build.bush();
+        if (r < 0.66) { const fc = ['#ff5d8a', '#ff8a2a', '#ffe14d', '#9b6bff', '#ffffff'][(Math.random() * 5) | 0]; return Build.flower(fc); }
+        if (r < 0.78) { const g = Build.pipe(U.randRange(3, 6)); return g; }
         if (r < 0.9) { const gb = Build.goomba(); this.goombas.push({ mesh: gb, phase: Math.random() * 10, base: null }); return gb; }
         return Build.qblock();
       } else if (theme === 'snow') {
-        if (r < 0.4) return Build.tree(true);
-        if (r < 0.6) return Build.snowman();
-        if (r < 0.8) { const g = Build.pipe(U.randRange(3, 5)); return g; }
+        if (r < 0.34) return Build.tree(true);
+        if (r < 0.5) return Build.snowman();
+        if (r < 0.66) return Build.igloo();
+        if (r < 0.82) { const g = Build.pipe(U.randRange(3, 5)); return g; }
         return Build.tree(true);
       } else if (theme === 'castle') {
-        if (r < 0.35) { const tor = Build.torch(); this.torches.push(tor); return tor; }
-        if (r < 0.6) return Build.statue();
-        if (r < 0.8) { const b = Build.lavaBubble(); b.position.y = -0.5; this.bubbles.push({ mesh: b, phase: Math.random() * 10 }); return b; }
-        return Build.statue();
+        if (r < 0.66) { const p = Build.castlePillar(); this.torches.push(p); return p; }
+        const b = Build.lavaBubble(); this.bubbles.push({ mesh: b, phase: Math.random() * 10, baseY: -5.5 }); return b;
       } else if (theme === 'rainbow') {
         if (r < 0.5) { const p = Build.pylon([0xff5d5d, 0x5db9ff, 0xfff04d, 0xc45dff][(Math.random() * 4) | 0]); return p; }
         const s = Build.starProp(); s.position.y = 2 + Math.random() * 3; this.spinners.push({ mesh: s, kind: 'star' }); return s;
@@ -412,18 +551,24 @@ window.MK = window.MK || {};
       }
       // 回転系（虹の星など）
       for (const s of this.spinners) { s.mesh.material.rotation += dt * 1.5; }
-      // たいまつ
+      // たいまつ / 篝火
       for (const t of this.torches) {
         const f = 0.85 + Math.sin(now * 18 + t.position.x) * 0.15 + Math.random() * 0.1;
-        if (t.userData.flame) t.userData.flame.scale.set(1.4 + f * 0.3, 2.0 + f * 0.6, 1);
-        if (t.userData.light) t.userData.light.intensity = 1.0 + f * 0.5;
+        const fb = t.userData.flameBase || [1.4, 2.0];
+        if (t.userData.flame) t.userData.flame.scale.set(fb[0] * (0.92 + f * 0.14), fb[1] * (0.9 + f * 0.18), 1);
+        if (t.userData.light) t.userData.light.intensity = 0.9 + f * 0.5;
       }
-      // 溶岩バブル
+      // 溶岩バブル（溶岩面から立ち上る）
       for (const b of this.bubbles) {
-        const y = Math.abs(Math.sin(now * 1.2 + b.phase)) * 2.5 - 0.8;
-        b.mesh.position.y = y;
+        const base = b.baseY != null ? b.baseY : -0.5;
+        b.mesh.position.y = base + Math.abs(Math.sin(now * 1.2 + b.phase)) * 3.0;
         const sc = 0.7 + Math.sin(now * 4 + b.phase) * 0.2;
         b.mesh.scale.setScalar(sc);
+      }
+      // 溶岩面の脈動・流動
+      if (this.lavaMesh) {
+        this.lavaMesh.material.emissiveIntensity = 0.72 + Math.sin(now * 0.8) * 0.18;
+        if (this.lavaTex) { this.lavaTex.offset.x = now * 0.012; this.lavaTex.offset.y = now * 0.008; }
       }
       // ラキトゥの上下
       for (const l of this.lakitus) { l.position.y += Math.sin(now * 1.5 + l.userData.bob) * dt * 0.4; }

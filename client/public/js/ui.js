@@ -7,6 +7,8 @@ window.MK = window.MK || {};
   'use strict';
   const U = MK.U;
 
+  const CLASS_LABEL = { LIGHT: 'Lightweight', MEDIUM: 'Middleweight', HEAVY: 'Cruiser' };
+
   /* ---- キャラ選択用のミニ3Dプレビュー ---- */
   class CharacterPreview {
     constructor(canvas) {
@@ -40,7 +42,7 @@ window.MK = window.MK || {};
         c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { Array.isArray(o.material) ? o.material.forEach((m) => m.dispose()) : o.material.dispose(); } });
         this.holder.remove(c);
       }
-      const chassis = MK.buildChassis(charDef.colors.kart);
+      const chassis = MK.buildChassis(charDef.colors.kart, charDef.colors.secondary);
       const driver = MK.Characters.build(charDef.id, charDef.colors);
       driver.position.set(0, 0.7, 0.35);
       chassis.add(driver);
@@ -89,17 +91,17 @@ window.MK = window.MK || {};
         <div class="title-bg"></div>
         <div class="title-emojis">🍄⭐🏎️🌈🐢🍌💣👑</div>
         <h1 class="game-logo"><span class="l1">SUPER</span><span class="l2">KART</span></h1>
-        <p class="game-sub">3D マリオカート風レース</p>
-        <button id="btn-start" class="big-btn">▶ スタート / START</button>
+        <p class="game-sub">3D Mario Kart-style Racing</p>
+        <button id="btn-start" class="big-btn">▶ START</button>
         <div class="title-controls">
-          <b>そうさ:</b> ↑↓←→ / WASD = 走行・ハンドル ｜ Shift = ドリフト ｜ Space = アイテム ｜ R = バック ｜ C = カメラ ｜ P = ポーズ ｜ M = 音
+          <b>Controls:</b> ↑↓←→ / WASD = Drive &amp; Steer ｜ Shift = Drift ｜ Space = Item ｜ R = Reverse ｜ C = Camera ｜ P = Pause ｜ M = Sound
         </div>
-        <div class="title-credit">Three.js 製 / フルブラウザ対応</div>
+        <div class="title-credit">Built with Three.js · Runs in any browser</div>
       </section>
 
       <!-- CHARACTER SELECT -->
       <section id="screen-char" class="screen hidden">
-        <h2 class="screen-title">ドライバーをえらぶ</h2>
+        <h2 class="screen-title">CHOOSE YOUR DRIVER</h2>
         <div class="char-layout">
           <div id="char-grid" class="char-grid"></div>
           <div class="char-preview">
@@ -109,51 +111,51 @@ window.MK = window.MK || {};
               <div id="char-class" class="char-class"></div>
               <div id="char-blurb" class="char-blurb"></div>
               <div class="stat-list">
-                <div class="stat"><span>スピード</span><div class="pips" data-stat="speed"></div></div>
-                <div class="stat"><span>かそく</span><div class="pips" data-stat="accel"></div></div>
-                <div class="stat"><span>ハンドル</span><div class="pips" data-stat="handling"></div></div>
-                <div class="stat"><span>おもさ</span><div class="pips" data-stat="weight"></div></div>
+                <div class="stat"><span>SPEED</span><div class="pips" data-stat="speed"></div></div>
+                <div class="stat"><span>ACCEL</span><div class="pips" data-stat="accel"></div></div>
+                <div class="stat"><span>HANDLING</span><div class="pips" data-stat="handling"></div></div>
+                <div class="stat"><span>WEIGHT</span><div class="pips" data-stat="weight"></div></div>
               </div>
             </div>
           </div>
         </div>
         <div class="screen-nav">
-          <button id="btn-char-back" class="nav-btn back">◀ もどる</button>
-          <button id="btn-char-next" class="nav-btn go">このキャラで決定 ▶</button>
+          <button id="btn-char-back" class="nav-btn back">◀ BACK</button>
+          <button id="btn-char-next" class="nav-btn go">SELECT ▶</button>
         </div>
       </section>
 
       <!-- COURSE SELECT -->
       <section id="screen-course" class="screen hidden">
-        <h2 class="screen-title">コースをえらぶ</h2>
+        <h2 class="screen-title">CHOOSE A COURSE</h2>
         <div id="course-grid" class="course-grid"></div>
         <div class="diff-row">
-          <span>むずかしさ:</span>
-          <button class="diff-btn" data-diff="EASY">50cc かんたん</button>
-          <button class="diff-btn active" data-diff="NORMAL">100cc ふつう</button>
-          <button class="diff-btn" data-diff="HARD">150cc むずかしい</button>
+          <span>DIFFICULTY:</span>
+          <button class="diff-btn" data-diff="EASY">50cc · EASY</button>
+          <button class="diff-btn active" data-diff="NORMAL">100cc · NORMAL</button>
+          <button class="diff-btn" data-diff="HARD">150cc · HARD</button>
         </div>
         <div class="screen-nav">
-          <button id="btn-course-back" class="nav-btn back">◀ もどる</button>
-          <button id="btn-course-go" class="nav-btn go">レース スタート 🏁</button>
+          <button id="btn-course-back" class="nav-btn back">◀ BACK</button>
+          <button id="btn-course-go" class="nav-btn go">START RACE 🏁</button>
         </div>
       </section>
 
       <!-- LOADING -->
       <section id="screen-loading" class="screen hidden">
-        <div class="loading-text">コースを よみこみ中…</div>
+        <div class="loading-text">Loading course…</div>
         <div class="loading-bar"><div class="loading-fill"></div></div>
       </section>
 
       <!-- PAUSE -->
       <section id="screen-pause" class="screen overlay hidden">
         <div class="pause-box">
-          <h2>ポーズ</h2>
-          <button id="btn-resume" class="big-btn">▶ つづける</button>
-          <button id="btn-restart" class="nav-btn">↻ さいしょから</button>
-          <button id="btn-quit" class="nav-btn back">⌂ タイトルへ</button>
+          <h2>PAUSED</h2>
+          <button id="btn-resume" class="big-btn">▶ RESUME</button>
+          <button id="btn-restart" class="nav-btn">↻ RESTART</button>
+          <button id="btn-quit" class="nav-btn back">⌂ TITLE</button>
           <div class="pause-toggles">
-            <button id="btn-mute" class="toggle-btn">🔊 BGM/SE</button>
+            <button id="btn-mute" class="toggle-btn">🔊 SOUND</button>
           </div>
         </div>
       </section>
@@ -161,12 +163,12 @@ window.MK = window.MK || {};
       <!-- RESULTS -->
       <section id="screen-results" class="screen overlay hidden">
         <div class="results-box">
-          <h2 id="results-title">リザルト</h2>
+          <h2 id="results-title">RESULTS</h2>
           <ol id="results-list" class="results-list"></ol>
           <div class="screen-nav">
-            <button id="btn-retry" class="nav-btn">↻ もう一度</button>
-            <button id="btn-next" class="nav-btn go">べつのコース ▶</button>
-            <button id="btn-results-title" class="nav-btn back">⌂ タイトル</button>
+            <button id="btn-retry" class="nav-btn">↻ RETRY</button>
+            <button id="btn-next" class="nav-btn go">NEXT COURSE ▶</button>
+            <button id="btn-results-title" class="nav-btn back">⌂ TITLE</button>
           </div>
         </div>
       </section>`;
@@ -204,7 +206,7 @@ window.MK = window.MK || {};
       click('#btn-next', () => { if (this.cb.nextCourse) this.cb.nextCourse(); else this.showCourseSelect(); });
       click('#btn-results-title', () => this.showTitle());
       const mute = $('#btn-mute');
-      if (mute) mute.addEventListener('click', () => { const m = MK.audio.toggleMute(); mute.textContent = m ? '🔇 ミュート中' : '🔊 BGM/SE'; });
+      if (mute) mute.addEventListener('click', () => { const m = MK.audio.toggleMute(); mute.textContent = m ? '🔇 MUTED' : '🔊 SOUND'; });
 
       this.root.querySelectorAll('.diff-btn').forEach((b) => {
         b.addEventListener('click', () => {
@@ -236,8 +238,8 @@ window.MK = window.MK || {};
         const col = '#' + c.colors.primary.toString(16).padStart(6, '0');
         card.style.setProperty('--c', col);
         card.innerHTML = `<div class="char-swatch" style="background:${col}"></div>
-          <div class="char-card-name">${c.jp}</div>
-          <div class="char-card-en">${c.name}</div>`;
+          <div class="char-card-name">${c.name}</div>
+          <div class="char-card-en">${CLASS_LABEL[c.cls] || c.cls}</div>`;
         card.addEventListener('click', () => { MK.audio.init(); MK.audio.itemRouletteTick(); this._selectChar(c, card); });
         card._charId = c.id;
         this.charGrid.appendChild(card);
@@ -248,8 +250,8 @@ window.MK = window.MK || {};
       this.selectedChar = c;
       this.charGrid.querySelectorAll('.char-card').forEach((x) => x.classList.remove('selected'));
       card.classList.add('selected');
-      this.charName.textContent = c.jp + ' / ' + c.name;
-      this.charClass.textContent = { LIGHT: '軽量級', MEDIUM: '中量級', HEAVY: '重量級' }[c.cls] || c.cls;
+      this.charName.textContent = c.name;
+      this.charClass.textContent = CLASS_LABEL[c.cls] || c.cls;
       this.charBlurb.textContent = c.blurb;
       this.statPips.speed.innerHTML = this._statPips('speed', c.stats.speed);
       this.statPips.accel.innerHTML = this._statPips('accel', c.stats.accel);
@@ -267,8 +269,7 @@ window.MK = window.MK || {};
         let stars = '';
         for (let i = 0; i < 4; i++) stars += i < co.difficulty ? '★' : '☆';
         card.innerHTML = `<div class="course-emoji">${co.emoji}</div>
-          <div class="course-name">${co.jp}</div>
-          <div class="course-en">${co.name}</div>
+          <div class="course-name">${co.name}</div>
           <div class="course-diff">${stars}</div>
           <div class="course-blurb">${co.blurb}</div>`;
         card.addEventListener('click', () => { MK.audio.init(); MK.audio.itemRouletteTick(); this._selectCourse(co, card); });
@@ -289,16 +290,17 @@ window.MK = window.MK || {};
       });
     }
 
-    showTitle() { this._stopPreview(); this._show('title'); }
+    showTitle() { this._stopPreview(); this._show('title'); MK.audio.playMenuMusic('title'); }
     showCharacterSelect() {
       this._show('char');
+      MK.audio.playMenuMusic('select');
       if (!this.preview) { this.preview = new CharacterPreview(this.previewCanvas); }
       setTimeout(() => { this.preview._resize(); this.preview.start(); }, 30);
       // 初期選択
       const firstCard = this.charGrid.querySelector('.char-card');
       this._selectChar(this.selectedChar, [...this.charGrid.children].find((x) => x._charId === this.selectedChar.id) || firstCard);
     }
-    showCourseSelect() { this._stopPreview(); this._show('course'); if (!this.courseGrid.querySelector('.selected')) this._selectCourse(this.selectedCourse, this.courseGrid.firstChild); }
+    showCourseSelect() { this._stopPreview(); this._show('course'); MK.audio.playMenuMusic('select'); if (!this.courseGrid.querySelector('.selected')) this._selectCourse(this.selectedCourse, this.courseGrid.firstChild); }
     showLoading(p) { this._show('loading'); if (this.loadingFill) this.loadingFill.style.width = Math.round((p || 0) * 100) + '%'; }
     hideAll() { this._stopPreview(); Object.values(this.screens).forEach((s) => s && s.classList.add('hidden')); }
     showPause() { this.screens.pause.classList.remove('hidden'); }
@@ -315,12 +317,12 @@ window.MK = window.MK || {};
         const col = '#' + s.kart.character.colors.primary.toString(16).padStart(6, '0');
         li.innerHTML = `<span class="r-place">${medal}</span>
           <span class="r-swatch" style="background:${col}"></span>
-          <span class="r-name">${s.kart.character.jp}</span>
+          <span class="r-name">${s.kart.character.name}</span>
           <span class="r-time">${s.finished ? U.formatTime(s.time) : 'DNF'}</span>`;
         this.resultsList.appendChild(li);
       });
       const pPlace = standings.findIndex((s) => s.isPlayer) + 1;
-      this.resultsTitle.textContent = pPlace === 1 ? '🏆 1位 ゴール！' : `ゴール！  ${pPlace}位`;
+      this.resultsTitle.textContent = pPlace === 1 ? '🏆 1st Place!' : 'Finished — ' + U.ordinal(pPlace);
     }
   }
 

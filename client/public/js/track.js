@@ -77,6 +77,7 @@ window.MK = window.MK || {};
       this._buildRoad();
       this._buildCurbs();
       if (this.course.hasWalls) this._buildWalls();
+      this._buildFences();
       this._buildItemBoxes();
 
       return this;
@@ -193,6 +194,76 @@ window.MK = window.MK || {};
           this.itemBoxPositions.push(pos);
         }
       }
+    }
+
+    /* ---- 沿道の柵（ガードレール）。テーマ別。起伏に追従 ---- */
+    _buildFences() {
+      const props = this.course.theme.props;
+      const N = this.sampleCount;
+      const lat = this.roadHalf + (props === 'rainbow' ? 0.8 : 1.3);
+      const step = Math.max(3, Math.round(N / 80));
+      const mk = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.7, metalness: 0.08, flatShading: true }, o || {}));
+      // テーマ別マテリアル
+      let postMat, railMat, accMat;
+      if (props === 'grass') { postMat = mk(0xf6f6f6); railMat = mk(0xf6f6f6); accMat = mk(0xe23b2e, { roughness: 0.5 }); }
+      else if (props === 'snow') { postMat = mk(0x8a5a34); railMat = mk(0xa7c2d4); accMat = mk(0xffffff); }
+      else if (props === 'castle') { postMat = mk(0x4a4550); railMat = mk(0x3a3640); accMat = mk(0x2a2630); }
+      else { postMat = mk(0xffffff, { emissive: 0x66ccff, emissiveIntensity: 0.9 }); railMat = mk(0xffffff, { emissive: 0x4499ff, emissiveIntensity: 0.8 }); accMat = mk(0xffffff); }
+      this._fenceMats = [postMat, railMat, accMat];
+      for (const side of [1, -1]) {
+        const posts = [];
+        for (let i = 0; i < N; i += step) {
+          const sm = this.samples[i];
+          const px = sm.point.x + sm.normal.x * lat * side;
+          const pz = sm.point.z + sm.normal.z * lat * side;
+          const ang = Math.atan2(sm.tangent.x, sm.tangent.z);
+          const post = this._fencePost(props, postMat, accMat);
+          post.position.set(px, sm.point.y, pz);
+          post.rotation.y = ang;
+          this.root.add(post);
+          posts.push({ x: px, y: sm.point.y, z: pz });
+        }
+        for (let k = 0; k < posts.length; k++) {
+          const rail = this._fenceRail(props, posts[k], posts[(k + 1) % posts.length], railMat);
+          if (rail) this.root.add(rail);
+        }
+      }
+    }
+
+    _fencePost(props, postMat, accMat) {
+      const g = new THREE.Group();
+      if (props === 'grass') {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.16), postMat); p.position.y = 0.57; g.add(p);
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), accMat); cap.position.y = 1.2; g.add(cap);
+      } else if (props === 'snow') {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 1.25, 8), postMat); p.position.y = 0.62; g.add(p);
+        const snow = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), accMat); snow.scale.y = 0.6; snow.position.y = 1.26; g.add(snow);
+      } else if (props === 'castle') {
+        const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.0, 0.5), postMat); base.position.y = 0.5; g.add(base);
+        const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.55, 0.5), postMat); merlon.position.y = 1.28; g.add(merlon);
+        const slit = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.18, 0.12), accMat); slit.position.set(0, 0.7, -0.2); g.add(slit);
+      } else {
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.05, 8), postMat); p.position.y = 0.52; g.add(p);
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })); ball.position.y = 1.15; g.add(ball);
+      }
+      return g;
+    }
+
+    _fenceRail(props, a, b, railMat) {
+      const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+      if (len > 40 || len < 0.01) return null; // 閉ループの不正な渡りを除外
+      const ang = Math.atan2(dx, dz);
+      const g = new THREE.Group();
+      const mkRail = (h, w, t) => {
+        const r = new THREE.Mesh(new THREE.BoxGeometry(w || 0.1, t || 0.12, len), railMat);
+        r.position.set((a.x + b.x) / 2, (a.y + b.y) / 2 + h, (a.z + b.z) / 2);
+        r.rotation.y = ang; return r;
+      };
+      if (props === 'grass') { g.add(mkRail(0.42)); g.add(mkRail(0.82)); }
+      else if (props === 'snow') { g.add(mkRail(0.45)); g.add(mkRail(0.88, 0.12, 0.16)); }
+      else if (props === 'castle') { g.add(mkRail(0.5, 0.34, 0.6)); }
+      else { g.add(mkRail(0.7, 0.14, 0.14)); }
+      return g;
     }
 
     /* ---- 投影：位置→(最寄りサンプル, 横ずれ) ---- */

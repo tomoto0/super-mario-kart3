@@ -193,6 +193,47 @@ window.MK = window.MK || {};
         });
       }
     }
+
+    // 拡大して消える閃光リング（衝撃波）
+    shockwave(x, y, z, color) {
+      this.spawn({ x, y: y + 0.5, z, life: 0.34, size: 0.6, sizeEnd: 7, color: color != null ? color : 0xffffff, fadePow: 2.0, opacity: 0.9 });
+    }
+    // 放射状バースト
+    burst(x, y, z, color, n, speed) {
+      n = n || 12; speed = speed || 8;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * U.TAU + Math.random() * 0.3;
+        this.spawn({
+          x, y: y + 0.5, z,
+          vx: Math.cos(a) * speed * U.randRange(0.6, 1.2), vy: U.randRange(1, 5), vz: Math.sin(a) * speed * U.randRange(0.6, 1.2),
+          gravity: -12, drag: 1.0, life: U.randRange(0.3, 0.6), size: U.randRange(0.5, 1.1), sizeEnd: 0.05,
+          color: color != null ? color : 0xffffff, fadePow: 1.3,
+        });
+      }
+    }
+    // アイテム発動の演出
+    itemPop(x, y, z, color) {
+      this.shockwave(x, y, z, color);
+      this.burst(x, y, z, color, 10, 7);
+    }
+    // スター取得の虹バースト
+    starBurst(x, y, z) {
+      const cols = [0xff5d5d, 0xffba4d, 0xfff04d, 0x5dff8a, 0x5db9ff, 0xc45dff];
+      this.shockwave(x, y, z, 0xffffff);
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * U.TAU; const sp = U.randRange(5, 13);
+        this.spawn({ x, y: y + 0.6, z, vx: Math.cos(a) * sp, vy: U.randRange(2, 9), vz: Math.sin(a) * sp, gravity: -12, drag: 0.9, life: U.randRange(0.4, 0.85), size: U.randRange(0.6, 1.3), sizeEnd: 0.05, color: cols[i % cols.length], fadePow: 1.2 });
+      }
+    }
+    // こうらの軌跡
+    shellTrail(x, y, z, color) {
+      this.spawn({ x, y: y + 0.2, z, vy: U.randRange(0, 1), drag: 2, life: 0.22, size: 0.5, sizeEnd: 0.05, color: color != null ? color : 0x7affa0, opacity: 0.8, fadePow: 1.4 });
+    }
+    // 落雷の着弾フラッシュ
+    boltFlash(x, y, z) {
+      this.spawn({ x, y, z, life: 0.3, size: 1, sizeEnd: 6, color: 0xc9a0ff, fadePow: 2.0, opacity: 1 });
+      this.burst(x, y, z, 0xe0c0ff, 14, 10);
+    }
   }
 
   MK.ParticleSystem = ParticleSystem;

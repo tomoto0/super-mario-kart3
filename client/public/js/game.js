@@ -41,6 +41,7 @@ window.MK = window.MK || {};
       this.countTimer = 0;
       this.lastCountShown = -1;
       this.finishDelay = 0;
+      this._starMusicOn = false;
 
       U.initTmp();
       this._initRendererTargets();
@@ -63,7 +64,7 @@ window.MK = window.MK || {};
     /* ---- world インターフェース ---- */
     onLightning(owner) {
       if (MK.hud) MK.hud.lightningFlash();
-      if (this.player && this.player !== owner) this.cameraCtrl.shake(0.5);
+      this.cameraCtrl.shake(this.player && this.player !== owner ? 0.95 : 0.4);
     }
     shake(a) { this.cameraCtrl.shake(a); }
 
@@ -171,7 +172,8 @@ window.MK = window.MK || {};
 
       MK.input.attach();
       MK.audio.startEngine();
-      if (MK.audio.musicOn) MK.audio.startMusic();
+      MK.audio.playCourseMusic(course);
+      this._starMusicOn = false;
 
       MK.ui.hideAll();
       this.state = 'countdown';
@@ -184,6 +186,7 @@ window.MK = window.MK || {};
 
     cleanupRace() {
       MK.audio.stopEngine();
+      this._starMusicOn = false;
       if (this.items) this.items.reset();
       if (this.scenery) this.scenery.reset();
       if (this.hazards) this.hazards.reset();
@@ -306,6 +309,8 @@ window.MK = window.MK || {};
       MK.hud.setItem(p.rouletteTime > 0 ? null : p.item, p.itemCount, p.rouletteTime > 0);
       // エンジン音
       MK.audio.setEngine(U.clamp(Math.abs(p.speed) / p.derived.maxSpeed, 0, 1.2), p.controls.throttle > 0);
+      // スター無敵中は BGM をスター曲へ
+      this._updateStarMusic();
 
       // ゴール判定
       if (p.finished && this.finishDelay <= 0) {
@@ -330,14 +335,28 @@ window.MK = window.MK || {};
       this.cameraCtrl.update(dt);
       MK.hud.update(dt, this);
       MK.audio.setEngine(U.clamp(Math.abs(this.player.speed) / this.player.derived.maxSpeed, 0, 1.2), false);
+      this._updateStarMusic();
 
       this.finishDelay -= dt;
       if (this.finishDelay <= 0) this._showResults();
     }
 
+    // プレイヤーのスター状態に合わせて BGM を切り替える
+    _updateStarMusic() {
+      const p = this.player;
+      if (!p) return;
+      if (p.hasStar()) {
+        if (!this._starMusicOn) { MK.audio.playStarMusic(); this._starMusicOn = true; }
+      } else if (this._starMusicOn) {
+        MK.audio.endStarMusic(); this._starMusicOn = false;
+      }
+    }
+
     _showResults() {
       this.state = 'results';
       MK.audio.stopEngine();
+      this._starMusicOn = false;
+      MK.audio.playMenuMusic('results');
       MK.hud.show(false);
       MK.input.showTouch(false);
       const sorted = this._sortedKarts();
@@ -385,11 +404,11 @@ window.MK = window.MK || {};
             const pushB = overlap * (wa / total);
             a.group.position.x -= nx * pushA; a.group.position.z -= nz * pushA;
             b.group.position.x += nx * pushB; b.group.position.z += nz * pushB;
-            // 速度を少し交換（体当たり）
+            // 体当たり：横に弾くだけで、ほぼ失速させない
             const relPush = 2.5;
-            a.speed *= 0.96; b.speed *= 0.96;
-            a.group.position.x -= nx * relPush * (wb / total) * dt;
-            b.group.position.x += nx * relPush * (wa / total) * dt;
+            a.speed *= 0.99; b.speed *= 0.99;
+            a.group.position.x -= nx * relPush * (wb / total) * dt; a.group.position.z -= nz * relPush * (wb / total) * dt;
+            b.group.position.x += nx * relPush * (wa / total) * dt; b.group.position.z += nz * relPush * (wa / total) * dt;
             if (a.isPlayer || b.isPlayer) {
               if (Math.abs(a.speed) + Math.abs(b.speed) > 20 && Math.random() < 0.3) MK.audio.bump();
             }
@@ -403,7 +422,7 @@ window.MK = window.MK || {};
         this._resumeState = this.state;
         this.state = 'paused';
         MK.audio.stopEngine();
-        MK.audio.stopMusic();
+        MK.audio.pauseMusic();
         MK.ui.showPause();
       } else if (this.state === 'paused') {
         this.resume();
@@ -414,7 +433,7 @@ window.MK = window.MK || {};
       MK.ui.hidePause();
       this.state = this._resumeState || 'racing';
       MK.audio.startEngine();
-      if (MK.audio.musicOn) MK.audio.startMusic();
+      MK.audio.resumeMusic();
       this.clock.getDelta(); // dt リセット
     }
     restart() {

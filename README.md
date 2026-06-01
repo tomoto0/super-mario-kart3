@@ -10,7 +10,7 @@ A fully-featured 3D kart racing game built with Three.js, inspired by the classi
 - **4+ Themed Courses**: Race through Grassland, Snow, Castle, and Rainbow Road environments
 - **AI Opponents**: Intelligent computer-controlled racers with configurable difficulty
 - **Power-up System**: Use items like missiles, shields, boosts, and course-specific abilities
-- **Course Hazards**: Themed enemies that crash your kart — Goombas & Piranha Plants (Mario Circuit), sliding Penguins (Sherbet Land), slamming Thwomps & rotating Fire Bars (Bowser's Castle), and lunging Chain Chomps (Rainbow Road). A Star makes you immune; they appear as red markers on the minimap, and the AI tries to dodge them too.
+- **Course Hazards**: A themed roster of enemies that crash your kart — Goombas, Koopa Troopas, Piranha Plants & Monty Moles (Mario Circuit); sliding Penguins, rolling Snowballs & falling Icicles (Sherbet Land); slamming Thwomps, rotating Fire Bars, leaping Podoboos & Flame Jets (Bowser's Castle); and lunging Chain Chomps, drifting Comets & spinning Star Bars (Rainbow Road). A Star makes you immune; they appear as red markers on the minimap, and the AI tries to dodge them too.
 - **Lap Racing**: Complete 3-lap races with position tracking and timing
 
 ### Advanced Systems
@@ -84,11 +84,13 @@ npx serve client/public          # or:  python3 -m http.server -d client/public 
 
 Courses are defined in JSON format for easy customization. The game includes several themed environments with unique features and challenges.
 
+All courses now feature **rolling elevation** (hills and dips), and each plays its own background music.
+
 ### Available Courses
-- **🌱 Grassland Circuit**: Beginner-friendly with gentle curves
-- **❄️ Sherbet Land**: Icy tracks with slippery surfaces
-- **🏰 Bowser's Castle**: Challenging course with lava and obstacles  
-- **🌈 Rainbow Road**: Expert-level floating track in space
+- **🌱 Mario Circuit**: Beginner-friendly, gentle rolling grassland curves
+- **❄️ Sherbet Land**: Slippery ice over frozen, undulating hills
+- **🏰 Bowser's Castle**: Indoor stone walkways winding over a sea of lava, with angular right-angle (90°) corners
+- **🌈 Rainbow Road**: Expert-level floating track high in space
 
 ## 🛠️ Development
 
