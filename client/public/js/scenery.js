@@ -10,6 +10,36 @@ window.MK = window.MK || {};
   function M(color, o) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.8, metalness: 0.02, flatShading: true }, o || {})); }
   function basic(color, o) { return new THREE.MeshBasicMaterial(Object.assign({ color }, o || {})); }
 
+  // スタート/ゴール旗に書くメッセージのテクスチャ（mirror=true で左右反転＝裏面用）
+  function bannerTexture(message, bg, mirror) {
+    const w = 1024, h = 192;
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d');
+    if (mirror) { ctx.translate(w, 0); ctx.scale(-1, 1); }
+    // 旗の布（テーマ色）
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, bg); grad.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+    // 上下のチェッカー帯（スタート/ゴールの象徴）
+    const cs = Math.round(h * 0.16);
+    for (let i = 0; i * cs < w; i++) {
+      ctx.fillStyle = (i % 2 === 0) ? '#ffffff' : '#1a1a1a';
+      ctx.fillRect(i * cs, 0, cs, cs);
+      ctx.fillRect(i * cs, h - cs, cs, cs);
+    }
+    // メッセージ（白＋濃い縁取りでどのテーマでも視認可）
+    ctx.font = '900 76px "Trebuchet MS", Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+    ctx.strokeText(message, w / 2, h / 2 + 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(message, w / 2, h / 2 + 2);
+    const tex = new THREE.CanvasTexture(cv);
+    if ('anisotropy' in tex) tex.anisotropy = 4;
+    return tex;
+  }
+
   /* ---- 個別ビルダ ---- */
   const Build = {
     pipe(h) {
@@ -253,18 +283,47 @@ window.MK = window.MK || {};
       g.userData.lamps = lamps;
       return g;
     },
-    startGate(theme) {
+    // スタート/ゴールのゲート。ポールは路面の左右端に立ち、上部の旗にコース別メッセージ。
+    // 配置時 rotation.y=接線角 → ローカル +X が路面の法線(横方向)に一致するので、
+    // x=±(roadHalf+margin) で道の左右両側にポールが立つ。
+    startGate(roadHalf, theme, message) {
       const g = new THREE.Group();
-      const postMat = M(0xf2f2f2);
+      const W = roadHalf + 1.3;            // 路肩(縁石)の少し外側
+      const postH = 10.5;
+      const isCastle = theme.props === 'castle';
+      const isRainbow = theme.props === 'rainbow';
+      const postCol = isCastle ? 0x4a4550 : isRainbow ? 0xffffff : 0xf3f3f3;
+      const trimCol = isCastle ? 0x2a2630 : isRainbow ? 0x66ccff : 0xe23b2e;
+      const postMat = M(postCol, { roughness: 0.5, metalness: 0.2 });
+      const trimMat = isRainbow ? M(trimCol, { emissive: trimCol, emissiveIntensity: 0.8 }) : M(trimCol, { roughness: 0.5 });
       for (const s of [-1, 1]) {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 9, 10), postMat);
-        post.position.set(s, 4.5, 0); g.add(post);
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 0.7, 14), postMat);
+        base.position.set(s * W, 0.35, 0); g.add(base);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.52, postH, 14), postMat);
+        post.position.set(s * W, postH / 2 + 0.4, 0); g.add(post);
+        // 赤白のしましま（マリオらしい支柱）
+        for (let i = 0; i < 5; i++) {
+          const band = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.7, 14), trimMat);
+          band.position.set(s * W, 1.2 + i * 1.9, 0); g.add(band);
+        }
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.72, 14, 12), trimMat);
+        cap.position.set(s * W, postH + 0.7, 0); g.add(cap);
       }
-      const tex = U.checkerTexture(10, '#ffffff', '#1a1a1a');
-      tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(3, 1);
-      const banner = new THREE.Mesh(new THREE.BoxGeometry(2, 1.4, 0.2),
-        new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }));
-      banner.position.y = 9; g.add(banner);
+      // 上の横梁（旗を吊る構造材）
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(W * 2 + 1.4, 0.55, 0.55), postMat);
+      beam.position.set(0, postH + 0.5, 0); g.add(beam);
+
+      // メッセージ旗（前後どちらからでも正しく読めるよう、表＝通常／裏＝反転テクスチャ）
+      const bw = W * 2 - 0.6, bh = 2.9, bg = theme.bannerColor || '#1b2350';
+      const banner = new THREE.Group();
+      const geo = new THREE.PlaneGeometry(bw, bh);
+      const front = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: bannerTexture(message, bg, false), transparent: true }));
+      front.position.z = 0.06;
+      const back = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: bannerTexture(message, bg, true), transparent: true }));
+      back.rotation.y = Math.PI; back.position.z = -0.06;
+      banner.add(front); banner.add(back);
+      banner.position.set(0, postH - 1.5, 0);
+      g.add(banner);
       g.userData.banner = banner;
       return g;
     },
@@ -462,11 +521,11 @@ window.MK = window.MK || {};
 
     _buildStartArea() {
       const sm = this.track.samples[2];
-      const gate = Build.startGate(this.course.theme);
+      const message = this.course.banner || 'START / FINISH';
+      const gate = Build.startGate(this.track.roadHalf, this.course.theme, message);
       const ang = Math.atan2(sm.tangent.x, sm.tangent.z);
       gate.position.set(sm.point.x, sm.point.y, sm.point.z);
       gate.rotation.y = ang;
-      gate.scale.x = this.track.roadHalf / 9;
       this.root.add(gate);
       this.banners.push(gate.userData.banner);
 

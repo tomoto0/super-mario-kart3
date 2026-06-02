@@ -206,13 +206,16 @@ window.MK = window.MK || {};
     }
 
     explodeAt(pos, radius, owner) {
-      this.world.particles.explosion(pos.x, pos.y, pos.z, 0xffd24a);
-      this.world.particles.shockwave(pos.x, pos.y + 0.5, pos.z, 0xffc090);
+      const R = radius * 1.5;          // 爆発の当たり判定を 1.5 倍に拡大
+      const vis = R / 7;               // 半径に応じて爆風の見た目もスケール
+      this.world.particles.explosion(pos.x, pos.y, pos.z, 0xffd24a, vis);
+      this.world.particles.shockwave(pos.x, pos.y + 0.5, pos.z, 0xffc090, vis);
       MK.audio.explosion();
       if (this.world.shake) this.world.shake(0.9);
       for (const k of this.world.karts) {
+        if (k === owner) continue;     // 自分が投げたボムでは自爆しない（他カートのみに影響）
         const d = k.group.position.distanceTo(pos);
-        if (d < radius && k.isHittable()) k.launch();
+        if (d < R && k.isHittable()) k.launch();
       }
     }
 
@@ -463,7 +466,10 @@ window.MK = window.MK || {};
         // カートへの命中
         if (!remove) {
           for (const k of karts) {
-            if (k === pr.owner && pr.grace > 0) continue;
+            if (k === pr.owner) {
+              // ボムは投げ主には決して当たらない（自爆しない）。他の弾は短いグレース後に当たる
+              if (pr.type === 'bomb' || pr.grace > 0) continue;
+            }
             if (!k.isHittable()) continue;
             const d = k.group.position.distanceTo(m.position);
             if (d < C.itemHitRadius + 0.4) {

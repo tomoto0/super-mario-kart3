@@ -88,15 +88,16 @@ window.MK = window.MK || {};
       return `
       <!-- TITLE -->
       <section id="screen-title" class="screen">
-        <div class="title-bg"></div>
-        <div class="title-emojis">🍄⭐🏎️🌈🐢🍌💣👑</div>
-        <h1 class="game-logo"><span class="l1">SUPER</span><span class="l2">KART</span></h1>
-        <p class="game-sub">3D Mario Kart-style Racing</p>
-        <button id="btn-start" class="big-btn">▶ START</button>
-        <div class="title-controls">
-          <b>Controls:</b> ↑↓←→ / WASD = Drive &amp; Steer ｜ Shift = Drift ｜ Space = Item ｜ R = Reverse ｜ C = Camera ｜ P = Pause ｜ M = Sound
+        <img class="title-art" src="assets/title-art.svg" alt="" draggable="false" />
+        <div class="title-scrim"></div>
+        <div class="title-inner">
+          <h1 class="smk-logo">
+            <span class="smk-super">SUPER MARIO</span>
+            <span class="smk-kart">KART<span class="smk-two">2</span></span>
+          </h1>
+          <button id="btn-start" class="big-btn">▶ START</button>
+          <div class="title-press">Press START / Enter</div>
         </div>
-        <div class="title-credit">Built with Three.js · Runs in any browser</div>
       </section>
 
       <!-- CHARACTER SELECT -->
@@ -157,6 +158,7 @@ window.MK = window.MK || {};
           <div class="pause-toggles">
             <button id="btn-mute" class="toggle-btn">🔊 SOUND</button>
           </div>
+          <div class="pause-help">↑↓←→ / WASD Drive · Shift Drift · Space Item · R Reverse · C Camera · P Pause · M Sound · B Music</div>
         </div>
       </section>
 

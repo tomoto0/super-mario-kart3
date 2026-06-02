@@ -131,15 +131,16 @@ window.MK = window.MK || {};
       }
     }
 
-    explosion(x, y, z, color) {
+    explosion(x, y, z, color, scale) {
+      const sc = scale || 1;
       // 中心フラッシュ
-      this.spawn({ x, y: y + 0.6, z, vx: 0, vy: 1, vz: 0, life: 0.32, size: 1, sizeEnd: 9, color: color || 0xffd24a, fadePow: 1.6 });
+      this.spawn({ x, y: y + 0.6, z, vx: 0, vy: 1, vz: 0, life: 0.32, size: 1, sizeEnd: 9 * sc, color: color || 0xffd24a, fadePow: 1.6 });
       for (let i = 0; i < 26; i++) {
         const a = Math.random() * U.TAU;
-        const sp = U.randRange(6, 18);
+        const sp = U.randRange(6, 18) * sc;
         this.spawn({
           x, y: y + 0.6, z,
-          vx: Math.cos(a) * sp, vy: U.randRange(2, 12), vz: Math.sin(a) * sp,
+          vx: Math.cos(a) * sp, vy: U.randRange(2, 12) * sc, vz: Math.sin(a) * sp,
           gravity: -16, drag: 0.8,
           life: U.randRange(0.4, 0.8), size: U.randRange(0.8, 1.8), sizeEnd: 0.1,
           color: i % 3 === 0 ? 0xffffff : (i % 3 === 1 ? 0xff7a1f : 0xffd24a), fadePow: 1.3,
@@ -148,10 +149,10 @@ window.MK = window.MK || {};
       // 煙
       for (let i = 0; i < 8; i++) {
         this.spawn({
-          x: x + U.randRange(-1, 1), y: y + 0.6, z: z + U.randRange(-1, 1),
+          x: x + U.randRange(-1, 1) * sc, y: y + 0.6, z: z + U.randRange(-1, 1) * sc,
           vx: U.randRange(-2, 2), vy: U.randRange(1, 3), vz: U.randRange(-2, 2),
           gravity: 1, drag: 1.2,
-          life: U.randRange(0.6, 1.0), size: 1.5, sizeEnd: 5,
+          life: U.randRange(0.6, 1.0), size: 1.5, sizeEnd: 5 * sc,
           color: 0x555555, opacity: 0.5, blending: THREE.NormalBlending, fadePow: 1.4,
         });
       }
@@ -195,8 +196,8 @@ window.MK = window.MK || {};
     }
 
     // 拡大して消える閃光リング（衝撃波）
-    shockwave(x, y, z, color) {
-      this.spawn({ x, y: y + 0.5, z, life: 0.34, size: 0.6, sizeEnd: 7, color: color != null ? color : 0xffffff, fadePow: 2.0, opacity: 0.9 });
+    shockwave(x, y, z, color, scale) {
+      this.spawn({ x, y: y + 0.5, z, life: 0.34, size: 0.6, sizeEnd: 7 * (scale || 1), color: color != null ? color : 0xffffff, fadePow: 2.0, opacity: 0.9 });
     }
     // 放射状バースト
     burst(x, y, z, color, n, speed) {

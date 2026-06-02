@@ -14,6 +14,7 @@ window.MK = window.MK || {};
       name: 'MARIO CIRCUIT',
       jp: 'マリオサーキット',
       blurb: 'Gentle rolling hills — perfect for beginners',
+      banner: "LET'S-A-GO!",
       music: 'music/02_Moo_Moo_Farm.mp3',
       difficulty: 1,
       emoji: '🌱',
@@ -33,7 +34,7 @@ window.MK = window.MK || {};
         sky: ['#5fb0ff', '#cdeeff'], ground: 0x69bf3e, fog: 0xc4e8ff,
         fogNear: 130, fogFar: 640, light: 1.05,
         hemiSky: 0xbfe6ff, hemiGround: 0x4a7a2a,
-        road: '#5b616d', wall: 0xc9b793, props: 'grass',
+        road: '#5b616d', wall: 0xc9b793, props: 'grass', bannerColor: '#2e8b35',
       },
     },
     {
@@ -41,6 +42,7 @@ window.MK = window.MK || {};
       name: 'SHERBET LAND',
       jp: 'シャーベットランド',
       blurb: 'Slippery ice over frozen, undulating hills',
+      banner: 'KEEP IT COOL!',
       music: 'music/03_Frappe_Snowland.mp3',
       difficulty: 2,
       emoji: '❄️',
@@ -60,7 +62,7 @@ window.MK = window.MK || {};
         sky: ['#bfe3ff', '#ffffff'], ground: 0xe9f4ff, fog: 0xeaf6ff,
         fogNear: 110, fogFar: 560, light: 1.0,
         hemiSky: 0xeaf6ff, hemiGround: 0x9fc0d8,
-        road: '#a7c2d4', wall: 0xdfeefc, props: 'snow',
+        road: '#a7c2d4', wall: 0xdfeefc, props: 'snow', bannerColor: '#2f6fb0',
       },
     },
     {
@@ -68,6 +70,7 @@ window.MK = window.MK || {};
       name: "BOWSER'S CASTLE",
       jp: 'クッパキャッスル',
       blurb: 'Indoor stone walkways winding over a sea of lava',
+      banner: 'ENTER IF YOU DARE!',
       music: 'music/04_Bowser_Castle.mp3',
       difficulty: 3,
       emoji: '🏰',
@@ -76,25 +79,23 @@ window.MK = window.MK || {};
       hasWalls: true,
       voidRespawn: false,
       shoulder: 3,
-      tension: 0.42,           // 角を立てて 90 度に近い屈曲にする
+      tension: 0.5,            // 直角コーナーをきれいに丸める（路面・壁が破綻しない半径）
       boxesPerRow: 3,
       itemBoxFractions: [0.14, 0.34, 0.52, 0.7, 0.88],
-      // 角ばった 90 度コーナーで折れ曲がる、溶岩上の城内回廊（面取り点で直角を作る）
+      // 溶岩の海に浮かぶ城内アリーナ：直角に折れる回廊を、半径>wallHalf を保って閉ループ化。
+      // 各コーナーは面取り＋直線中点で接線を整え、路肩の壁が交差(破綻)しないよう検証済み。
+      // 中点(0,*)は長い直線、(±66,*)はコーナー入口、(±92,*)は壁沿いの縦回廊。
       points: [
-        [-81, 12, 92], [81, 13, 92],            // 下の回廊（スタート直線）→
-        [95, 15, 78], [95, 17, 50],             // 右上へ ↑
-        [81, 18, 36], [-36, 15, 36],            // 中段の回廊 ←
-        [-50, 13, 22], [-50, 9, -6],            // 短い縦路 ↑
-        [-36, 8, -20], [81, 13, -20],           // 回廊 →
-        [95, 16, -34], [95, 12, -78],           // 右を上へ ↑
-        [81, 10, -92], [-81, 12, -92],          // 上の回廊 ←
-        [-95, 14, -78], [-95, 13, 78],          // 左の壁沿いを下りてスタートへ ↓
+        [-66, 12, 104], [0, 12, 104], [66, 13, 104],   // 下の回廊（スタート/フィニッシュ直線）→
+        [92, 14, 78], [92, 15, 0], [92, 14, -78],       // 右の壁沿いを下る ↓
+        [66, 13, -104], [0, 11, -104], [-66, 10, -104], // 上の回廊 ←
+        [-92, 9, -78], [-92, 10, 0], [-92, 11, 78],     // 左の壁沿いを上ってスタートへ ↑
       ],
       theme: {
         sky: ['#1c0a06', '#52160c'], ground: 0x1a1014, fog: 0x35100a,
         fogNear: 70, fogFar: 360, light: 0.72,
         hemiSky: 0x6e2410, hemiGround: 0x140a08,
-        road: '#3f3a47', wall: 0x4a4550, props: 'castle',
+        road: '#3f3a47', wall: 0x4a4550, props: 'castle', bannerColor: '#7a1f0c',
         lava: true,
       },
     },
@@ -103,6 +104,7 @@ window.MK = window.MK || {};
       name: 'RAINBOW ROAD',
       jp: 'レインボーロード',
       blurb: 'The ultimate floating track high in space',
+      banner: 'RIDE THE RAINBOW!',
       music: 'music/12_Rainbow_Road.mp3',
       difficulty: 4,
       emoji: '🌈',
@@ -122,7 +124,7 @@ window.MK = window.MK || {};
         sky: ['#05050e', '#11113a'], ground: 0x05050e, fog: 0x11113a,
         fogNear: 170, fogFar: 720, light: 1.1,
         hemiSky: 0x6a6aff, hemiGround: 0x201040,
-        road: '#888', props: 'rainbow', roadTransparent: true,
+        road: '#888', props: 'rainbow', roadTransparent: true, bannerColor: '#3a1f6b',
       },
     },
   ];
