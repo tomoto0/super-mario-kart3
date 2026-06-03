@@ -341,6 +341,27 @@ window.MK = window.MK || {};
     U.tmpV3 = new THREE.Vector3();
   };
 
+  // シーンから外したオブジェクト木を完全に解放する。
+  // ジオメトリ・マテリアルに加えて、マテリアルが抱える全テクスチャ(map/emissiveMap…)も dispose する。
+  // （material.dispose() はテクスチャを解放しないため、これを怠ると毎レース GPU メモリが漏れる）
+  U.disposeObject = function (root) {
+    if (!root || !root.traverse) return;
+    root.traverse((o) => {
+      if (o.geometry && o.geometry.dispose) o.geometry.dispose();
+      const m = o.material;
+      if (!m) return;
+      const mats = Array.isArray(m) ? m : [m];
+      for (const mat of mats) {
+        if (!mat) continue;
+        for (const key in mat) {
+          const v = mat[key];
+          if (v && v.isTexture && v.dispose) v.dispose();
+        }
+        if (mat.dispose) mat.dispose();
+      }
+    });
+  };
+
   MK.U = U;
 
 })(window.MK);

@@ -1,6 +1,6 @@
 /* ============================================================================
- *  characters.js — キャラクターのロー�ポリ造形
- *  進行方向（前方）= -Z。各 build* は Group を返す（座席原点 y=0）。
+ *  characters.js — キャラクターのローポリ造形（マリオらしさ重視のチビ体型）
+ *  進行方向（前方）= -Z。各 build* は Group を返す（座席原点 y=0、頭は上方）。
  * ==========================================================================*/
 window.MK = window.MK || {};
 
@@ -11,29 +11,30 @@ window.MK = window.MK || {};
   /* ---- メッシュ生成ヘルパ ---- */
   function mat(color, opts) {
     return new THREE.MeshStandardMaterial(Object.assign({
-      color, roughness: 0.72, metalness: 0.04, flatShading: true,
+      color, roughness: 0.66, metalness: 0.05, flatShading: true,
     }, opts || {}));
   }
   function box(w, h, d, color, opts) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, opts)); }
   function sph(r, color, seg, opts) { return new THREE.Mesh(new THREE.SphereGeometry(r, seg || 16, seg || 12), mat(color, opts)); }
   function cyl(rt, rb, h, color, seg, opts) { return new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 16), mat(color, opts)); }
   function cone(r, h, color, seg, opts) { return new THREE.Mesh(new THREE.ConeGeometry(r, h, seg || 16), mat(color, opts)); }
-
+  // 上半球ドーム
+  function dome(r, color, opts) { return new THREE.Mesh(new THREE.SphereGeometry(r, 20, 14, 0, U.TAU, 0, Math.PI / 2), mat(color, opts)); }
   function place(m, x, y, z) { m.position.set(x, y, z); return m; }
 
   // 白目＋黒目（-Z向き）。x を左右に符号付きで。
   function eye(x, y, z, scaleY, look) {
     const g = new THREE.Group();
-    const white = sph(0.13, 0xffffff, 12);
-    white.scale.set(0.85, scaleY || 1.25, 0.7);
+    const white = sph(0.14, 0xffffff, 12);
+    white.scale.set(0.9, scaleY || 1.3, 0.72);
     g.add(white);
-    const pupil = sph(0.06, 0x20232a, 10);
-    pupil.position.set((look || 0) * 0.04, -0.01, -0.1);
-    pupil.scale.set(0.9, 1.3, 0.6);
+    const pupil = sph(0.07, 0x20232a, 10);
+    pupil.position.set((look || 0) * 0.04, -0.01, -0.11);
+    pupil.scale.set(0.9, 1.35, 0.6);
     g.add(pupil);
-    // 瞳のハイライト（生き生きとした表情に）
-    const shine = sph(0.022, 0xffffff, 6);
-    shine.position.set((look || 0) * 0.04 - 0.03, 0.045, -0.155);
+    // 瞳のハイライト
+    const shine = sph(0.025, 0xffffff, 6);
+    shine.position.set((look || 0) * 0.04 - 0.035, 0.05, -0.16);
     g.add(shine);
     g.position.set(x, y, z);
     return g;
@@ -43,122 +44,103 @@ window.MK = window.MK || {};
   function emblem(letter, bg, fg) {
     const tex = U.makeCanvasTexture(128, (ctx, s) => {
       ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(s / 2, s / 2, s / 2 - 4, 0, U.TAU); ctx.fill();
-      ctx.fillStyle = fg; ctx.font = 'bold 90px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = fg; ctx.font = 'bold 92px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(letter, s / 2, s / 2 + 6);
     });
-    const m = new THREE.Mesh(new THREE.CircleGeometry(0.17, 20),
-      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }));
+    const m = new THREE.Mesh(new THREE.CircleGeometry(0.18, 20),
+      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55 }));
     return m;
   }
 
-  // 帽子（半球＋つば）。col=帽子色。letter があればエンブレム付き。
+  // 帽子（丸いドーム＋前方へ突き出す半円のつば）。letter があればエンブレム付き。
   function cap(col, letter, fg) {
     const g = new THREE.Group();
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.46, 18, 12, 0, U.TAU, 0, Math.PI / 2), mat(col));
-    dome.position.y = 0.02;
-    g.add(dome);
-    const brim = new THREE.Mesh(new THREE.CircleGeometry(0.5, 20), mat(col));
-    brim.rotation.x = -Math.PI / 2 + 0.32;
-    brim.position.set(0, 0.0, -0.34);
-    brim.scale.set(0.9, 1.25, 1);
-    g.add(brim);
+    const d = dome(0.52, col); d.scale.set(1.04, 0.96, 1.08); d.position.y = 0.0; g.add(d);
+    // つば（半円の板を前へ）
+    const brim = new THREE.Mesh(new THREE.CircleGeometry(0.54, 20, 0, Math.PI), mat(col));
+    brim.rotation.x = -Math.PI / 2; brim.position.set(0, 0.02, -0.04); brim.scale.set(1, 1.15, 1); g.add(brim);
+    const brimLip = new THREE.Mesh(new THREE.TorusGeometry(0.54, 0.03, 6, 20, Math.PI), mat(col));
+    brimLip.rotation.x = -Math.PI / 2; brimLip.position.set(0, 0.02, -0.04); brimLip.scale.set(1, 1.15, 1); g.add(brimLip);
     if (letter) {
       const e = emblem(letter, '#ffffff', fg || '#e52521');
-      e.position.set(0, 0.16, -0.45);
-      e.rotation.x = -0.15;
-      g.add(e);
+      e.position.set(0, 0.2, -0.5); e.rotation.x = -0.2; g.add(e);
     }
     return g;
   }
 
-  // 口ひげ（マリオ／ワリオ）
-  function mustache(col) {
+  // 口ひげ。pointed=true でワリオのとがったジグザグ髭。
+  function mustache(col, pointed) {
     const g = new THREE.Group();
-    const c = box(0.5, 0.13, 0.16, col || 0x5a3210);
-    g.add(c);
-    const l = box(0.16, 0.11, 0.14, col || 0x5a3210); place(l, -0.27, -0.04, 0);
-    const r = box(0.16, 0.11, 0.14, col || 0x5a3210); place(r, 0.27, -0.04, 0);
-    g.add(l); g.add(r);
+    col = col || 0x5a3210;
+    if (pointed) {
+      for (const s of [-1, 1]) {
+        const lobe = box(0.24, 0.12, 0.15, col); lobe.rotation.z = s * 0.5; place(lobe, s * 0.15, 0, 0); g.add(lobe);
+        const tip = cone(0.07, 0.2, col, 6); tip.rotation.z = s * Math.PI / 2; place(tip, s * 0.32, 0.07, 0); g.add(tip);
+      }
+    } else {
+      const c = sph(0.15, col, 10); c.scale.set(1.5, 0.78, 0.95); g.add(c);
+      for (const s of [-1, 1]) { const lobe = sph(0.16, col, 10); lobe.scale.set(1, 0.85, 0.9); place(lobe, s * 0.24, -0.04, 0); g.add(lobe); }
+    }
     return g;
   }
 
-  // 共通：座って腕をハンドルへ伸ばす人型胴体
+  // 共通：座ってハンドルを握る人型（マリオ／ルイージ／ワリオ）。チビ体型で頭が大きい。
   function humanoidBody(c, opts) {
     opts = opts || {};
     const g = new THREE.Group();
     const shirt = c.primary, overalls = c.secondary, skin = c.skin || 0xffc9a0;
 
-    // 胴（シャツ）
-    const torso = cyl(0.34, 0.42, 0.7, shirt, 14); place(torso, 0, 0.55, 0);
-    g.add(torso);
-    // オーバーオール（前当て）
+    // 胴（丸みのあるシャツ）＋腰
+    const torso = sph(0.4, shirt, 16); torso.scale.set(1.05, 1.05, 0.95); place(torso, 0, 0.58, 0); g.add(torso);
+    const hips = cyl(0.34, 0.3, 0.3, opts.overalls === false ? shirt : overalls, 14); place(hips, 0, 0.28, 0); g.add(hips);
+
+    // オーバーオール（前当て＋肩ひも＋金ボタン）
     if (opts.overalls !== false) {
-      const bib = box(0.5, 0.45, 0.2, overalls); place(bib, 0, 0.5, -0.32); g.add(bib);
-      const strapL = box(0.1, 0.5, 0.1, overalls); place(strapL, -0.2, 0.62, -0.28); g.add(strapL);
-      const strapR = box(0.1, 0.5, 0.1, overalls); place(strapR, 0.2, 0.62, -0.28); g.add(strapR);
-      // 金ボタン
-      [-0.16, 0.16].forEach((x) => { const b = sph(0.05, 0xffd24a, 8); place(b, x, 0.4, -0.42); g.add(b); });
+      const bib = box(0.46, 0.5, 0.16, overalls); place(bib, 0, 0.54, -0.34); g.add(bib);
+      for (const s of [-1, 1]) {
+        const strap = box(0.09, 0.5, 0.1, overalls); place(strap, s * 0.22, 0.72, -0.3); g.add(strap);
+        const btn = sph(0.05, 0xffd24a, 8, { metalness: 0.5, roughness: 0.3 }); place(btn, s * 0.16, 0.46, -0.42); g.add(btn);
+      }
     }
 
-    // 腕（前方のハンドルへ）
-    const armColor = shirt;
+    // 腕（ハンドルへ）＋白手袋
     for (const s of [-1, 1]) {
-      const shoulder = sph(0.17, shirt, 10); shoulder.position.set(s * 0.36, 0.8, 0); g.add(shoulder);
-      const arm = cyl(0.1, 0.12, 0.5, armColor, 10);
-      arm.position.set(s * 0.34, 0.55, -0.25);
-      arm.rotation.x = 1.15; arm.rotation.z = s * 0.18;
-      g.add(arm);
-      const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.04, 6, 12), mat(opts.glove || 0xffffff)); cuff.position.set(s * 0.31, 0.42, -0.5); cuff.rotation.x = 1.15; g.add(cuff);
-      const glove = sph(0.14, opts.glove || 0xffffff, 12);
-      glove.position.set(s * 0.30, 0.36, -0.55);
-      g.add(glove);
+      const shoulder = sph(0.18, shirt, 12); shoulder.position.set(s * 0.38, 0.78, 0); g.add(shoulder);
+      const arm = cyl(0.1, 0.13, 0.5, shirt, 10); arm.position.set(s * 0.36, 0.55, -0.26); arm.rotation.x = 1.18; arm.rotation.z = s * 0.16; g.add(arm);
+      const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.045, 6, 12), mat(opts.glove || 0xffffff)); cuff.position.set(s * 0.33, 0.44, -0.5); cuff.rotation.x = 1.18; g.add(cuff);
+      const glove = sph(0.15, opts.glove || 0xffffff, 12); glove.position.set(s * 0.32, 0.37, -0.57); g.add(glove);
     }
     // 首
-    const neck = cyl(0.17, 0.19, 0.2, skin, 10); place(neck, 0, 1.0, 0); g.add(neck);
-
-    // 脚・靴（ペダルへ伸ばす）
+    const neck = cyl(0.16, 0.18, 0.16, skin, 10); place(neck, 0, 0.98, 0); g.add(neck);
+    // 脚・靴（茶色）
     for (const s of [-1, 1]) {
-      const shin = cyl(0.1, 0.12, 0.34, overalls, 8); shin.position.set(s * 0.2, 0.18, -0.34); shin.rotation.x = 1.2; g.add(shin);
-      const shoe = box(0.26, 0.2, 0.46, opts.shoe || 0x5a3210); place(shoe, s * 0.2, 0.06, -0.6); g.add(shoe);
+      const shin = cyl(0.11, 0.13, 0.32, overalls, 8); shin.position.set(s * 0.2, 0.16, -0.34); shin.rotation.x = 1.2; g.add(shin);
+      const shoe = sph(0.2, opts.shoe || 0x5a3210, 12); shoe.scale.set(1, 0.7, 1.5); place(shoe, s * 0.2, 0.06, -0.62); g.add(shoe);
     }
 
-    // 頭
+    // 頭（大きめ＝チビ体型）
     const head = new THREE.Group();
-    const face = sph(0.5, skin, 18); head.add(face);
-    // 耳
-    for (const s of [-1, 1]) { const ear = sph(0.13, skin, 10); place(ear, s * 0.48, 0.0, 0.02); head.add(ear); }
-    // 鼻
-    const nose = sph(opts.noseR || 0.17, skin, 12); place(nose, 0, -0.05, -0.46); nose.scale.set(1.1, 0.9, 1.1); head.add(nose);
+    const face = sph(0.52, skin, 20); head.add(face);
+    for (const s of [-1, 1]) { const ear = sph(0.14, skin, 10); place(ear, s * 0.5, 0.0, 0.04); head.add(ear); }
+    // 大きな丸い鼻
+    const nose = sph(opts.noseR || 0.2, opts.noseColor || skin, 14); nose.scale.set(1.05, 0.95, 1.12); place(nose, 0, -0.06, -0.5); head.add(nose);
     // 目
-    head.add(eye(-0.2, 0.16, -0.42, 1.3, 1));
-    head.add(eye(0.2, 0.16, -0.42, 1.3, -1));
+    head.add(eye(-0.2, 0.18, -0.45, 1.35, 1));
+    head.add(eye(0.2, 0.18, -0.45, 1.35, -1));
     // 眉
-    if (opts.brow) {
-      for (const s of [-1, 1]) { const b = box(0.16, 0.05, 0.05, opts.hair || 0x3a2410); place(b, s * 0.2, 0.34, -0.46); head.add(b); }
-    }
+    if (opts.brow) { for (const s of [-1, 1]) { const b = box(0.18, 0.06, 0.07, opts.hair || 0x3a2410); place(b, s * 0.2, 0.37, -0.48); head.add(b); } }
     // 口ひげ
-    if (opts.mustache) { const m = mustache(opts.hair || 0x5a3210); m.position.set(0, -0.16, -0.44); head.add(m); }
-    // もみあげ/髪
+    if (opts.mustache) { const m = mustache(opts.hair || 0x5a3210, opts.wario); m.position.set(0, -0.2, -0.47); head.add(m); }
+    // もみあげ/後ろ髪
     if (opts.hair && opts.sideburns !== false) {
-      for (const s of [-1, 1]) { const sb = box(0.12, 0.3, 0.22, opts.hair); place(sb, s * 0.4, 0.05, 0.05); head.add(sb); }
-      const back = sph(0.5, opts.hair, 14, {}); back.scale.set(1.0, 1.0, 0.6); place(back, 0, 0.08, 0.22); head.add(back);
+      for (const s of [-1, 1]) { const sb = box(0.13, 0.32, 0.24, opts.hair); place(sb, s * 0.42, 0.04, 0.06); head.add(sb); }
+      const back = sph(0.52, opts.hair, 14); back.scale.set(1.0, 1.0, 0.62); place(back, 0, 0.1, 0.24); head.add(back);
     }
     // 帽子
-    if (opts.cap) { const cp = cap(opts.capColor || shirt, opts.letter, opts.letterColor); cp.position.set(0, 0.34, 0.04); head.add(cp); }
-    // 髪（ピーチ等の長い髪）
-    if (opts.longHair) {
-      const h = sph(0.55, opts.longHair, 14); h.scale.set(1.05, 1.0, 0.9); place(h, 0, 0.18, 0.18); head.add(h);
-      const pony = cyl(0.16, 0.1, 0.7, opts.longHair, 10); place(pony, 0, 0.0, 0.5); pony.rotation.x = -0.4; head.add(pony);
-    }
-    // 王冠
-    if (opts.crown) {
-      const cr = cyl(0.24, 0.26, 0.16, 0xffd24a, 8); place(cr, 0, 0.5, 0.06); head.add(cr);
-      for (let i = 0; i < 5; i++) { const sp = cone(0.05, 0.12, 0xffd24a, 6); const a = (i / 5) * U.TAU; place(sp, Math.cos(a) * 0.22, 0.62, 0.06 + Math.sin(a) * 0.22); head.add(sp); }
-      const gem = sph(0.06, 0x59b6ff, 8); place(gem, 0, 0.5, -0.2); head.add(gem);
-    }
+    if (opts.cap) { const cp = cap(opts.capColor || shirt, opts.letter, opts.letterColor); cp.position.set(0, 0.36, 0.04); head.add(cp); }
 
-    head.position.set(0, 1.25, 0);
-    head.scale.setScalar(opts.headScale || 1);
+    head.position.set(0, 1.24, 0);
+    head.scale.setScalar(opts.headScale || 1.15);
     g.add(head);
     g.userData.head = head;
     return g;
@@ -166,149 +148,193 @@ window.MK = window.MK || {};
 
   /* ---- 各キャラ ---- */
   function buildMario(c) {
-    return humanoidBody(c, { cap: true, letter: 'M', letterColor: '#e52521', capColor: c.primary, mustache: true, hair: 0x4a2c10, brow: true, glove: 0xffffff });
+    return humanoidBody(c, { cap: true, letter: 'M', letterColor: '#e52521', capColor: c.primary, mustache: true, hair: 0x3a2410, brow: true, glove: 0xffffff, shoe: 0x5a3210, noseR: 0.21 });
   }
   function buildLuigi(c) {
-    const g = humanoidBody(c, { cap: true, letter: 'L', letterColor: '#1fa12f', capColor: c.primary, mustache: true, hair: 0x4a2c10, brow: true, glove: 0xffffff });
-    g.scale.y = 1.08; // ルイージは少し背が高い
+    const g = humanoidBody(c, { cap: true, letter: 'L', letterColor: '#1fa12f', capColor: c.primary, mustache: true, hair: 0x3a2410, brow: true, glove: 0xffffff, shoe: 0x4a2c10, noseR: 0.21, headScale: 1.12 });
+    g.scale.set(0.96, 1.12, 0.96); // ルイージは細長い
     return g;
   }
   function buildWario(c) {
-    const g = humanoidBody(c, { cap: true, letter: 'W', letterColor: '#7a3b9a', capColor: c.primary, mustache: true, hair: 0x6a4a18, brow: true, noseR: 0.24, glove: 0xffd24a });
-    // ピンクの大きな鼻に
-    const head = g.userData.head;
-    head.children.forEach((m) => { if (m.geometry && m.geometry.type === 'SphereGeometry' && m.position.z < -0.4 && Math.abs(m.position.x) < 0.05) m.material.color.setHex(0xffb0a0); });
-    g.scale.set(1.12, 1.0, 1.12);
+    // 黄シャツ＋紫オーバーオール＋黄帽子。大きなピンクの鼻＆とがった髭。
+    const g = humanoidBody(c, { cap: true, letter: 'W', letterColor: '#2c2cae', capColor: c.primary, mustache: true, wario: true, hair: 0x6a4a18, brow: true, noseR: 0.27, noseColor: 0xffb6a6, glove: 0xffd24a, shoe: 0x1f7a3a, headScale: 1.2 });
+    g.scale.set(1.16, 0.98, 1.16); // がっしり
     return g;
   }
   function buildPeach(c) {
-    return humanoidBody(c, { overalls: false, longHair: 0xffe28a, crown: true, glove: 0xffffff, skin: 0xffdcb6, headScale: 1.0, sideburns: false });
+    const g = new THREE.Group();
+    const skin = c.skin || 0xffdcb6, dress = c.primary, trim = c.secondary || 0xf6a5c0, hair = 0xffe28a, glove = 0xffffff;
+    // ボディス＋ふくらんだスカート
+    const bodice = cyl(0.3, 0.4, 0.5, dress, 16); place(bodice, 0, 0.62, 0); g.add(bodice);
+    const skirt = cone(0.66, 0.78, dress, 22); place(skirt, 0, 0.3, 0); g.add(skirt);
+    const skirtTrim = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.07, 8, 24), mat(trim)); skirtTrim.rotation.x = Math.PI / 2; place(skirtTrim, 0, 0.0, 0); g.add(skirtTrim);
+    // 胸元の青い宝石
+    const gem = sph(0.08, 0x59b6ff, 10, { emissive: 0x1a3a6a, emissiveIntensity: 0.4 }); place(gem, 0, 0.82, -0.3); g.add(gem);
+    // パフスリーブ＋腕＋長手袋
+    for (const s of [-1, 1]) {
+      const puff = sph(0.17, dress, 12); place(puff, s * 0.34, 0.8, 0); g.add(puff);
+      const arm = cyl(0.08, 0.1, 0.4, glove, 10); arm.position.set(s * 0.34, 0.56, -0.24); arm.rotation.x = 1.16; g.add(arm);
+      const hand = sph(0.11, glove, 10); hand.position.set(s * 0.31, 0.4, -0.5); g.add(hand);
+    }
+    // 首
+    const neck = cyl(0.12, 0.14, 0.16, skin, 10); place(neck, 0, 0.96, 0); g.add(neck);
+    // 頭
+    const head = new THREE.Group();
+    const face = sph(0.48, skin, 20); head.add(face);
+    const nose = sph(0.08, skin, 10); place(nose, 0, -0.04, -0.46); head.add(nose);
+    head.add(eye(-0.18, 0.08, -0.42, 1.5, 1));
+    head.add(eye(0.18, 0.08, -0.42, 1.5, -1));
+    // ブロンドの髪（前髪ドーム＋後ろ＋サイド＋ロングポニー）
+    const bangs = dome(0.5, hair); bangs.scale.set(1.06, 0.95, 1.0); place(bangs, 0, 0.1, 0.02); head.add(bangs);
+    const back = sph(0.5, hair, 16); back.scale.set(1.12, 1.1, 0.92); place(back, 0, 0.06, 0.2); head.add(back);
+    for (const s of [-1, 1]) { const side = cyl(0.1, 0.13, 0.52, hair, 10); place(side, s * 0.44, -0.1, 0.12); head.add(side); }
+    const pony = cyl(0.2, 0.09, 0.85, hair, 12); place(pony, 0, -0.12, 0.52); pony.rotation.x = -0.32; head.add(pony);
+    // 王冠（金＋赤宝石）
+    const band = cyl(0.26, 0.28, 0.14, 0xffd24a, 18, { metalness: 0.6, roughness: 0.3 }); place(band, 0, 0.48, 0.02); head.add(band);
+    for (let i = 0; i < 5; i++) { const sp = cone(0.05, 0.14, 0xffd24a, 6, { metalness: 0.6, roughness: 0.3 }); const a = (i / 5) * U.TAU; place(sp, Math.cos(a) * 0.24, 0.6, 0.02 + Math.sin(a) * 0.24); head.add(sp); }
+    const cgem = sph(0.06, 0xe23b6a, 8, { emissive: 0x6a0a2a, emissiveIntensity: 0.5 }); place(cgem, 0, 0.48, -0.24); head.add(cgem);
+    head.position.set(0, 1.16, 0);
+    head.scale.setScalar(1.08);
+    g.add(head); g.userData.head = head;
+    return g;
   }
   function buildToad(c) {
     const g = new THREE.Group();
-    const skin = 0xffe0c0;
-    // ずんぐり体（ベスト）
-    const torso = cyl(0.34, 0.42, 0.55, c.secondary, 14); place(torso, 0, 0.5, 0); g.add(torso);
-    const vest = box(0.2, 0.4, 0.46, 0xffffff); place(vest, 0, 0.5, -0.16); g.add(vest);
+    const skin = 0xffe8d0, vest = c.secondary || 0xe52521;
+    // ずんぐり体（白ズボン＋ベスト）
+    const torso = sph(0.34, 0xffffff, 14); torso.scale.set(1, 1.1, 1); place(torso, 0, 0.42, 0); g.add(torso);
+    const vestM = cyl(0.3, 0.36, 0.42, vest, 14); place(vestM, 0, 0.52, 0); g.add(vestM);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 6, 16), mat(0xffffff)); collar.rotation.x = Math.PI / 2; place(collar, 0, 0.7, 0); g.add(collar);
     // 腕
     for (const s of [-1, 1]) {
-      const arm = cyl(0.09, 0.11, 0.42, c.secondary, 10); arm.position.set(s * 0.32, 0.5, -0.22); arm.rotation.x = 1.15; g.add(arm);
-      const glove = sph(0.12, 0xffffff, 12); glove.position.set(s * 0.28, 0.34, -0.5); g.add(glove);
+      const arm = cyl(0.08, 0.1, 0.36, skin, 10); arm.position.set(s * 0.3, 0.48, -0.2); arm.rotation.x = 1.15; g.add(arm);
+      const hand = sph(0.11, 0xffffff, 12); hand.position.set(s * 0.27, 0.34, -0.46); g.add(hand);
     }
-    // 頭（きのこ）
+    // 足
+    for (const s of [-1, 1]) { const shoe = sph(0.16, 0xf0e0c0, 12); shoe.scale.set(1, 0.7, 1.4); place(shoe, s * 0.16, 0.08, -0.4); g.add(shoe); }
+    // 大きな頭（きのこ）
     const head = new THREE.Group();
-    const facePart = sph(0.42, skin, 16); facePart.scale.set(1, 0.85, 1); head.add(facePart);
-    head.add(eye(-0.16, 0.0, -0.36, 2.0, 1));
-    head.add(eye(0.16, 0.0, -0.36, 2.0, -1));
-    // ほっぺ
-    for (const s of [-1, 1]) { const ch = sph(0.07, 0xffb0b0, 8); place(ch, s * 0.26, -0.1, -0.32); head.add(ch); }
-    // きのこ傘
-    const capMesh = new THREE.Mesh(new THREE.SphereGeometry(0.62, 20, 12, 0, U.TAU, 0, Math.PI / 1.7), mat(0xffffff));
-    capMesh.scale.set(1, 0.7, 1); place(capMesh, 0, 0.34, 0); head.add(capMesh);
-    // 赤い斑点
-    const spots = [[0, 0.5, -0.5], [-0.42, 0.45, -0.1], [0.42, 0.45, -0.1], [-0.3, 0.4, 0.42], [0.3, 0.4, 0.42]];
-    spots.forEach((p) => { const sp = sph(0.16, 0xe52521, 12); sp.scale.set(1, 0.5, 1); place(sp, p[0], p[1], p[2]); head.add(sp); });
-    head.position.set(0, 1.15, 0);
+    const facePart = sph(0.44, skin, 18); facePart.scale.set(1.06, 0.9, 1); head.add(facePart);
+    head.add(eye(-0.17, -0.02, -0.4, 2.3, 1));
+    head.add(eye(0.17, -0.02, -0.4, 2.3, -1));
+    for (const s of [-1, 1]) { const ch = sph(0.08, 0xffb0b0, 10); place(ch, s * 0.28, -0.12, -0.34); head.add(ch); }
+    // きのこ傘（大きいドーム）＋赤い斑
+    const capMesh = dome(0.66, 0xfdfdfd); capMesh.scale.set(1.18, 0.82, 1.18); place(capMesh, 0, 0.26, 0); head.add(capMesh);
+    const spots = [[0, 0.56, -0.56], [-0.52, 0.42, -0.04], [0.52, 0.42, -0.04], [-0.34, 0.4, 0.48], [0.34, 0.4, 0.48]];
+    spots.forEach((p) => { const sp = sph(0.19, 0xe52521, 14); sp.scale.set(1.1, 0.5, 1.1); place(sp, p[0], p[1], p[2]); head.add(sp); });
+    head.position.set(0, 1.02, 0);
     g.add(head); g.userData.head = head;
     return g;
   }
   function buildYoshi(c) {
     const g = new THREE.Group();
-    const green = 0x4fd33d, belly = 0xffffff, saddle = 0xd13b2e, boots = 0xc8102e;
-    // 胴
-    const torso = sph(0.5, green, 18); torso.scale.set(1, 1.15, 1.1); place(torso, 0, 0.55, 0); g.add(torso);
-    const bel = sph(0.4, belly, 16); bel.scale.set(0.8, 1.0, 0.6); place(bel, 0, 0.45, -0.34); g.add(bel);
-    // サドル
-    const sd = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 10, 0, U.TAU, 0, Math.PI / 2), mat(saddle));
-    place(sd, 0, 0.78, 0.12); g.add(sd);
+    const green = 0x5cd246, belly = 0xfff6e0, saddle = 0xe2402e, shoe = 0xff7a2a;
+    // ふっくら胴＋白い腹
+    const torso = sph(0.5, green, 18); torso.scale.set(1, 1.2, 1.05); place(torso, 0, 0.55, 0); g.add(torso);
+    const bel = sph(0.4, belly, 16); bel.scale.set(0.82, 1.05, 0.6); place(bel, 0, 0.45, -0.34); g.add(bel);
+    // 背中の赤いサドル＋白フチ
+    const sd = dome(0.42, saddle); place(sd, 0, 0.74, 0.16); g.add(sd);
+    const sdRim = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.06, 8, 20), mat(0xffffff)); sdRim.rotation.x = Math.PI / 2; place(sdRim, 0, 0.5, 0.16); g.add(sdRim);
     // 腕
     for (const s of [-1, 1]) {
-      const arm = cyl(0.1, 0.12, 0.4, green, 10); arm.position.set(s * 0.34, 0.55, -0.22); arm.rotation.x = 1.1; g.add(arm);
-      const glove = sph(0.13, 0xffffff, 12); glove.position.set(s * 0.3, 0.4, -0.5); g.add(glove);
+      const arm = cyl(0.1, 0.12, 0.4, green, 10); arm.position.set(s * 0.36, 0.55, -0.22); arm.rotation.x = 1.1; g.add(arm);
+      const hand = sph(0.13, 0xffffff, 12); hand.position.set(s * 0.32, 0.4, -0.5); g.add(hand);
     }
-    // 頭
+    // 脚＋大きなオレンジ靴
+    for (const s of [-1, 1]) { const leg = cyl(0.12, 0.14, 0.3, green, 10); leg.position.set(s * 0.2, 0.16, -0.3); leg.rotation.x = 1.2; g.add(leg); const shoeM = sph(0.21, shoe, 12); shoeM.scale.set(1, 0.7, 1.6); place(shoeM, s * 0.2, 0.06, -0.58); g.add(shoeM); }
+    // 頭（大きな丸頭＋でかい鼻先）
     const head = new THREE.Group();
-    const face = sph(0.46, green, 18); head.add(face);
-    // 大きな鼻（口先）
-    const snout = sph(0.34, green, 16); snout.scale.set(1.2, 0.85, 1.2); place(snout, 0, -0.18, -0.42); head.add(snout);
-    const nl = sph(0.06, 0x2f7a25, 8); place(nl, -0.13, -0.05, -0.72); head.add(nl);
-    const nr = sph(0.06, 0x2f7a25, 8); place(nr, 0.13, -0.05, -0.72); head.add(nr);
-    // 目（上方の大きな白目）
-    const el = eye(-0.18, 0.4, -0.28, 1.6, 1); el.scale.setScalar(1.3); head.add(el);
-    const er = eye(0.18, 0.4, -0.28, 1.6, -1); er.scale.setScalar(1.3); head.add(er);
-    // 頭の赤い突起
-    const spike = box(0.12, 0.34, 0.5, saddle); place(spike, 0, 0.5, 0.2); spike.rotation.x = 0.5; head.add(spike);
-    head.position.set(0, 1.2, 0);
+    const face = sph(0.46, green, 18); face.scale.set(1, 1.05, 1); head.add(face);
+    const snout = sph(0.37, green, 16); snout.scale.set(1.18, 0.92, 1.28); place(snout, 0, -0.14, -0.46); head.add(snout);
+    for (const s of [-1, 1]) { const nl = sph(0.055, 0x2f7a25, 8); place(nl, s * 0.14, 0.0, -0.84); head.add(nl); }
+    // 大きな白目（頭の上で近接）＋黒目
+    for (const s of [-1, 1]) {
+      const wsock = sph(0.21, 0xffffff, 14); wsock.scale.set(0.92, 1.4, 0.82); place(wsock, s * 0.16, 0.44, -0.18); head.add(wsock);
+      const pup = sph(0.085, 0x20232a, 10); pup.scale.set(0.9, 1.35, 0.7); place(pup, s * 0.16, 0.4, -0.34); head.add(pup);
+    }
+    // 頭頂の赤いとさか
+    const crest = box(0.1, 0.32, 0.48, saddle); place(crest, 0, 0.54, 0.18); crest.rotation.x = 0.4; head.add(crest);
+    // 頬の張り出し
+    for (const s of [-1, 1]) { const cheek = sph(0.18, green, 12); place(cheek, s * 0.4, -0.04, -0.06); head.add(cheek); }
+    head.position.set(0, 1.18, 0);
     g.add(head); g.userData.head = head;
     return g;
   }
   function buildDK(c) {
     const g = new THREE.Group();
-    const fur = 0x7a4a23, face = 0xc99a5b, chest = 0xd9b483;
-    const torso = cyl(0.44, 0.5, 0.7, fur, 14); place(torso, 0, 0.55, 0); g.add(torso);
-    const ch = sph(0.42, chest, 14); ch.scale.set(1.0, 0.9, 0.6); place(ch, 0, 0.6, -0.32); g.add(ch);
-    // ネクタイ
-    const tie = box(0.18, 0.4, 0.06, 0xc8102e); place(tie, 0, 0.55, -0.5); g.add(tie);
-    const tieKnot = box(0.14, 0.12, 0.06, 0xc8102e); place(tieKnot, 0, 0.78, -0.5); g.add(tieKnot);
-    // "DK" エンブレム風
-    const dk = emblem('DK', '#ffe14d', '#7a3b12'); dk.scale.setScalar(0.8); place(dk, 0, 0.5, -0.54); g.add(dk);
-    // 腕
+    const fur = 0x6e3f1c, face = 0xcfa06a, chest = 0xe0bd92, tie = 0xc8102e;
+    // でかい胴＋胸
+    const torso = sph(0.5, fur, 16); torso.scale.set(1.18, 1.0, 0.95); place(torso, 0, 0.55, 0); g.add(torso);
+    const ch = sph(0.44, chest, 14); ch.scale.set(1.05, 0.95, 0.6); place(ch, 0, 0.58, -0.34); g.add(ch);
+    // 赤ネクタイ＋DK
+    const tieKnot = box(0.16, 0.14, 0.06, tie); place(tieKnot, 0, 0.78, -0.52); g.add(tieKnot);
+    const tieBody = box(0.2, 0.4, 0.06, tie); place(tieBody, 0, 0.5, -0.52); g.add(tieBody);
+    const dk = emblem('DK', '#ffe14d', '#7a3b12'); dk.scale.setScalar(0.68); place(dk, 0, 0.5, -0.56); g.add(dk);
+    // 太い腕
     for (const s of [-1, 1]) {
-      const arm = cyl(0.14, 0.16, 0.55, fur, 10); arm.position.set(s * 0.44, 0.55, -0.2); arm.rotation.x = 1.05; g.add(arm);
-      const hand = sph(0.18, fur, 12); hand.position.set(s * 0.4, 0.36, -0.52); g.add(hand);
+      const arm = cyl(0.16, 0.2, 0.6, fur, 12); arm.position.set(s * 0.5, 0.5, -0.18); arm.rotation.x = 1.0; g.add(arm);
+      const hand = sph(0.2, fur, 12); hand.position.set(s * 0.46, 0.32, -0.5); g.add(hand);
     }
     // 頭
     const head = new THREE.Group();
-    const skull = sph(0.5, fur, 18); head.add(skull);
-    const muzzle = sph(0.36, face, 16); muzzle.scale.set(1.1, 0.85, 1.0); place(muzzle, 0, -0.16, -0.4); head.add(muzzle);
-    // 鼻孔
-    for (const s of [-1, 1]) { const n = sph(0.05, 0x3a2410, 8); place(n, s * 0.1, -0.05, -0.74); head.add(n); }
-    // 眉（張り出し）
-    const brow = box(0.6, 0.16, 0.2, fur); place(brow, 0, 0.22, -0.42); head.add(brow);
-    head.add(eye(-0.16, 0.1, -0.4, 1.3, 1));
-    head.add(eye(0.16, 0.1, -0.4, 1.3, -1));
+    const skull = sph(0.5, fur, 18); skull.scale.set(1, 1.05, 1); head.add(skull);
+    const muzzle = sph(0.39, face, 16); muzzle.scale.set(1.16, 0.8, 1.0); place(muzzle, 0, -0.14, -0.4); head.add(muzzle);
+    for (const s of [-1, 1]) { const n = sph(0.05, 0x2a1808, 8); place(n, s * 0.11, -0.04, -0.76); head.add(n); }
+    // 大きな眉＋目
+    const brow = box(0.62, 0.18, 0.22, fur); place(brow, 0, 0.22, -0.42); head.add(brow);
+    head.add(eye(-0.16, 0.08, -0.42, 1.2, 1));
+    head.add(eye(0.16, 0.08, -0.42, 1.2, -1));
+    // 耳（内側付き）
+    for (const s of [-1, 1]) { const ear = sph(0.14, fur, 10); place(ear, s * 0.5, 0.05, 0.06); head.add(ear); const inner = sph(0.08, face, 8); place(inner, s * 0.53, 0.05, 0.0); head.add(inner); }
     head.position.set(0, 1.28, 0);
     g.add(head); g.userData.head = head;
+    g.scale.setScalar(1.05);
     return g;
   }
   function buildBowser(c) {
     const g = new THREE.Group();
-    const skin = 0xd7e34a, shell = 0x2c9d44, shellRim = 0xf3c800, horn = 0xf2ead2, hair = 0xd2401f;
-    // 体
-    const torso = cyl(0.46, 0.54, 0.7, skin, 14); place(torso, 0, 0.55, 0); g.add(torso);
-    const belly = sph(0.42, 0xf2e7a0, 14); belly.scale.set(1, 0.95, 0.6); place(belly, 0, 0.55, -0.34); g.add(belly);
-    // 甲羅（背中）
-    const shellMesh = sph(0.55, shell, 16); shellMesh.scale.set(1.05, 1.0, 0.8); place(shellMesh, 0, 0.6, 0.32); g.add(shellMesh);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 8, 18), mat(shellRim)); rim.rotation.x = Math.PI / 2 - 0.3; place(rim, 0, 0.55, 0.3); g.add(rim);
-    // 背中のトゲ
-    const spikes = [[0, 1.0, 0.4], [-0.34, 0.7, 0.55], [0.34, 0.7, 0.55], [0, 0.5, 0.7]];
-    spikes.forEach((p) => { const sp = cone(0.12, 0.28, horn, 8); place(sp, p[0], p[1], p[2]); sp.rotation.x = -0.6; g.add(sp); });
-    // 腕＋トゲ付きリストバンド
+    const skin = 0xd9e84a, shell = 0x2c9d44, shellRim = 0xf3c800, horn = 0xf2ead2, mane = 0xe2401f, plate = 0xf2e7a0;
+    // 体＋腹板
+    const torso = cyl(0.48, 0.56, 0.7, skin, 16); place(torso, 0, 0.55, 0); g.add(torso);
+    const belly = sph(0.44, plate, 16); belly.scale.set(1, 0.95, 0.6); place(belly, 0, 0.55, -0.36); g.add(belly);
+    for (let i = 0; i < 3; i++) { const ln = box(0.46 - i * 0.05, 0.04, 0.02, 0xcaa83a); place(ln, 0, 0.4 + i * 0.16, -0.66); g.add(ln); }
+    // 甲羅＋黄フチ
+    const shellMesh = sph(0.58, shell, 18); shellMesh.scale.set(1.08, 1.05, 0.82); place(shellMesh, 0, 0.62, 0.34); g.add(shellMesh);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.54, 0.1, 8, 20), mat(shellRim)); rim.rotation.x = Math.PI / 2 - 0.28; place(rim, 0, 0.56, 0.3); g.add(rim);
+    // 甲羅のトゲ（白い土台＋トゲ）
+    const spikes = [[0, 1.05, 0.42], [-0.36, 0.74, 0.58], [0.36, 0.74, 0.58], [0, 0.5, 0.74], [-0.5, 0.52, 0.4], [0.5, 0.52, 0.4]];
+    spikes.forEach((p) => {
+      const ringB = cyl(0.1, 0.13, 0.08, 0xffffff, 8); place(ringB, p[0], p[1], p[2]); ringB.rotation.x = -0.6; g.add(ringB);
+      const sp = cone(0.1, 0.26, horn, 8); place(sp, p[0], p[1] + 0.06, p[2] - 0.04); sp.rotation.x = -0.6; g.add(sp);
+    });
+    // 腕＋爪＋トゲ付きリストバンド
     for (const s of [-1, 1]) {
-      const arm = cyl(0.15, 0.17, 0.5, skin, 10); arm.position.set(s * 0.46, 0.55, -0.2); arm.rotation.x = 1.05; g.add(arm);
-      const hand = sph(0.17, skin, 12); hand.position.set(s * 0.42, 0.38, -0.5); g.add(hand);
-      const band = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.06, 6, 12), mat(0x222831)); band.position.set(s * 0.45, 0.5, -0.32); band.rotation.y = Math.PI / 2; g.add(band);
-      for (let i = 0; i < 4; i++) { const sp = cone(0.04, 0.1, horn, 6); const a = (i / 4) * U.TAU; place(sp, s * 0.45 + Math.cos(a) * 0.16, 0.5 + Math.sin(a) * 0.16, -0.32); sp.rotation.z = a; g.add(sp); }
+      const arm = cyl(0.16, 0.18, 0.5, skin, 12); arm.position.set(s * 0.5, 0.55, -0.2); arm.rotation.x = 1.05; g.add(arm);
+      const hand = sph(0.18, skin, 12); hand.position.set(s * 0.45, 0.38, -0.5); g.add(hand);
+      for (let i = -1; i <= 1; i++) { const claw = cone(0.04, 0.13, 0xffffff, 6); place(claw, s * 0.45 + i * 0.09, 0.3, -0.62); claw.rotation.x = -1.4; g.add(claw); }
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.07, 6, 14), mat(0x222831)); band.position.set(s * 0.48, 0.5, -0.3); band.rotation.y = Math.PI / 2; g.add(band);
+      for (let i = 0; i < 4; i++) { const sp = cone(0.05, 0.14, 0xffffff, 6); const a = (i / 4) * U.TAU; place(sp, s * 0.48 + Math.cos(a) * 0.18, 0.5 + Math.sin(a) * 0.18, -0.3); sp.rotation.x = s * Math.PI / 2; g.add(sp); }
     }
     // 頭
     const head = new THREE.Group();
-    const skull = sph(0.5, skin, 18); head.add(skull);
-    const snout = sph(0.36, skin, 16); snout.scale.set(1.1, 0.8, 1.1); place(snout, 0, -0.18, -0.4); head.add(snout);
+    const skull = sph(0.52, skin, 18); head.add(skull);
+    const snout = sph(0.4, skin, 16); snout.scale.set(1.12, 0.78, 1.05); place(snout, 0, -0.2, -0.4); head.add(snout);
+    for (const s of [-1, 1]) { const n = sph(0.05, 0x6a7a10, 8); place(n, s * 0.12, -0.08, -0.74); head.add(n); }
     // 牙
-    for (const s of [-1, 1]) { const t = cone(0.05, 0.16, horn, 6); place(t, s * 0.16, -0.32, -0.5); t.rotation.x = Math.PI; head.add(t); }
+    for (const s of [-1, 1]) { const t = cone(0.06, 0.2, 0xffffff, 6); place(t, s * 0.18, -0.34, -0.52); head.add(t); }
     // 角
-    for (const s of [-1, 1]) { const hn = cone(0.08, 0.26, horn, 8); place(hn, s * 0.34, 0.36, -0.05); hn.rotation.z = s * -0.4; head.add(hn); }
-    // 赤い髪
-    const hairTuft = sph(0.4, hair, 12); hairTuft.scale.set(1.0, 0.9, 0.8); place(hairTuft, 0, 0.34, 0.26); head.add(hairTuft);
-    for (let i = 0; i < 5; i++) { const sp = cone(0.06, 0.22, hair, 6); place(sp, (i - 2) * 0.16, 0.5, 0.2); sp.rotation.x = 0.6; head.add(sp); }
+    for (const s of [-1, 1]) { const hn = cone(0.09, 0.3, horn, 8); place(hn, s * 0.36, 0.4, -0.02); hn.rotation.z = s * -0.5; hn.rotation.x = -0.3; head.add(hn); }
+    // 赤いたてがみ
+    const maneBack = sph(0.42, mane, 12); maneBack.scale.set(1.12, 1.0, 0.8); place(maneBack, 0, 0.32, 0.28); head.add(maneBack);
+    for (let i = 0; i < 6; i++) { const sp = cone(0.07, 0.3, mane, 6); place(sp, (i - 2.5) * 0.16, 0.52, 0.18); sp.rotation.x = 0.5; head.add(sp); }
     // 眉＋目
-    const brow = box(0.6, 0.12, 0.16, 0x9a3010); place(brow, 0, 0.24, -0.42); head.add(brow);
-    head.add(eye(-0.18, 0.12, -0.42, 1.2, 1));
-    head.add(eye(0.18, 0.12, -0.42, 1.2, -1));
-    head.position.set(0, 1.32, 0);
-    head.scale.setScalar(1.05);
+    const brow = box(0.62, 0.13, 0.18, 0x8a2810); place(brow, 0, 0.26, -0.44); head.add(brow);
+    head.add(eye(-0.19, 0.14, -0.44, 1.2, 1));
+    head.add(eye(0.19, 0.14, -0.44, 1.2, -1));
+    head.position.set(0, 1.34, 0);
+    head.scale.setScalar(1.08);
     g.add(head); g.userData.head = head;
-    g.scale.setScalar(1.12);
+    g.scale.setScalar(1.14);
     return g;
   }
 

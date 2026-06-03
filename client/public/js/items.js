@@ -178,20 +178,28 @@ window.MK = window.MK || {};
         type: homing ? 'redShell' : 'greenShell',
         mesh, vel: new THREE.Vector3(fwd.x * speed, 0, fwd.z * speed),
         life: homing ? 8 : 7, owner: kart, grace: 0.15, bounces: 0,
-        spin: U.randRange(-3, 3),
+        spin: U.randRange(-3, 3), _si: kart.sampleIndex,
       });
     }
     _spawnBanana(kart, fwd, gp) {
       const mesh = buildBanana();
       mesh.position.set(gp.x - fwd.x * 2.6, gp.y + 0.4, gp.z - fwd.z * 2.6);
       this.scene.add(mesh);
-      this.projectiles.push({ type: 'banana', mesh, vel: new THREE.Vector3(), life: 28, owner: kart, grace: 0.7, spin: 0.6 });
+      this.projectiles.push({ type: 'banana', mesh, vel: new THREE.Vector3(), life: 28, owner: kart, grace: 0.7, spin: 0.6, _si: kart.sampleIndex });
     }
     _spawnBomb(kart, fwd, gp) {
       const mesh = buildBomb();
-      mesh.position.set(gp.x + fwd.x * 2.4, gp.y + 0.5, gp.z + fwd.z * 2.4);
+      // 高めの位置から前方へ放り投げる：上向き初速＋重力で弧を描いて遠くへ着弾する
+      mesh.position.set(gp.x + fwd.x * 2.6, gp.y + 1.1, gp.z + fwd.z * 2.6);
       this.scene.add(mesh);
-      this.projectiles.push({ type: 'bomb', mesh, vel: new THREE.Vector3(fwd.x * 30, 0, fwd.z * 30), life: 1.5, owner: kart, grace: 0.1, spin: 2 });
+      const speed = 50;                       // 前方への投擲速度（速いほど遠くへ）
+      this.projectiles.push({
+        type: 'bomb', mesh,
+        vel: new THREE.Vector3(fwd.x * speed, 0, fwd.z * speed),
+        vy: 19, gravity: 40,                  // 上向き初速＋重力＝アーチ軌道
+        arc: true,
+        life: 4.0, owner: kart, grace: 0.1, spin: 3, _si: kart.sampleIndex,
+      });
     }
     _castLightning(owner) {
       for (const k of this.world.karts) {
@@ -246,7 +254,7 @@ window.MK = window.MK || {};
       this.scene.add(mesh);
       this.projectiles.push({
         type: 'greenShell', mesh, vel: new THREE.Vector3(fwd.x * 54, 0, fwd.z * 54),
-        life: 7, owner: kart, grace: 0.15, bounces: 0, spin: U.randRange(-3, 3),
+        life: 7, owner: kart, grace: 0.15, bounces: 0, spin: U.randRange(-3, 3), _si: kart.sampleIndex,
       });
       MK.audio.shellFire();
       kart.itemCount = orb.shells.length;
@@ -436,16 +444,31 @@ window.MK = window.MK || {};
           m.position.x += pr.vel.x * dt;
           m.position.z += pr.vel.z * dt;
         }
-        // 路面追従
-        const info = track.project(m.position);
-        m.position.y = info.point.y + (pr.type === 'bomb' ? 0.5 : 0.6);
-        m.rotation.y += pr.spin * dt * 4;
+        // 路面追従 / ボムの弧
+        let info;
+        if (pr.type === 'bomb' && pr.arc) {
+          // 弾道：上昇→落下。地面に着いた瞬間に起爆する（壁は飛び越える）
+          pr.vy -= pr.gravity * dt;
+          m.position.y += pr.vy * dt;
+          info = track.project(m.position, pr._si); pr._si = info.index;
+          m.rotation.x += pr.spin * dt * 2.5; m.rotation.y += pr.spin * dt * 1.5;
+          const groundY = info.point.y + 0.5;
+          if (pr.vy <= 0 && m.position.y <= groundY) {
+            m.position.y = groundY;
+            this.explodeAt(m.position, 7, pr.owner);
+            remove = true;
+          }
+        } else {
+          info = track.project(m.position, pr._si); pr._si = info.index;
+          m.position.y = info.point.y + (pr.type === 'bomb' ? 0.5 : 0.6);
+          m.rotation.y += pr.spin * dt * 4;
+        }
         if ((pr.type === 'greenShell' || pr.type === 'redShell') && this.world.particles && Math.random() < 0.5) {
           this.world.particles.shellTrail(m.position.x, m.position.y, m.position.z, pr.type === 'redShell' ? 0xff8a7a : 0x7affa0);
         }
 
-        // 壁で反射 / 落下消滅
-        if (pr.type === 'greenShell' || pr.type === 'redShell' || pr.type === 'bomb') {
+        // 壁で反射 / 落下消滅（空中を飛ぶ弧ボムは壁を越えるので除外）
+        if (!remove && (pr.type === 'greenShell' || pr.type === 'redShell' || (pr.type === 'bomb' && !pr.arc))) {
           if (Math.abs(info.lateral) > track.wallHalf) {
             if (track.course.voidRespawn) { remove = true; }
             else {
@@ -517,18 +540,20 @@ window.MK = window.MK || {};
       return best;
     }
 
-    _disposeMesh(m) {
-      m.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) { if (Array.isArray(o.material)) o.material.forEach((x) => x.dispose()); else o.material.dispose(); }
-      });
-    }
+    _disposeMesh(m) { U.disposeObject(m); }
 
     reset() {
-      for (const b of this.boxes) this.scene.remove(b.mesh);
-      for (const pr of this.projectiles) this.scene.remove(pr.mesh);
-      for (const orb of this.orbiters) { for (const sh of orb.shells) this.scene.remove(sh.mesh); if (orb.owner) orb.owner._orbiter = null; }
-      for (const bl of this.bolts) this.scene.remove(bl.group);
+      for (const b of this.boxes) { this.scene.remove(b.mesh); this._disposeMesh(b.mesh); }
+      for (const pr of this.projectiles) { this.scene.remove(pr.mesh); this._disposeMesh(pr.mesh); }
+      for (const orb of this.orbiters) {
+        for (const sh of orb.shells) { this.scene.remove(sh.mesh); this._disposeMesh(sh.mesh); }
+        if (orb.owner) orb.owner._orbiter = null;
+      }
+      for (const bl of this.bolts) {
+        this.scene.remove(bl.group);
+        bl.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+        if (bl.mat && bl.mat.dispose) bl.mat.dispose();
+      }
       this.boxes = []; this.projectiles = []; this.orbiters = []; this.bolts = [];
     }
   }

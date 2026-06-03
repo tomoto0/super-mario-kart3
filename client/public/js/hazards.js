@@ -239,7 +239,7 @@ window.MK = window.MK || {};
         kind, side, sample, t: Math.random() * 10, phase: Math.random() * 10,
         dangerous: false, radius: 1.6, effect: 'spin',
         hitPoints: [], markerPos: new THREE.Vector3(), lateral: 0, _p: new THREE.Vector3(),
-        _prevDown: false,
+        _prevDown: false, _baseIndex: idx,
       };
 
       if (kind === 'goomba') {
@@ -348,8 +348,8 @@ window.MK = window.MK || {};
       for (const hz of this.hazards) {
         hz.t += dt;
         this._animate(hz, dt);
-        // markerPos の横ずれをキャッシュ（AI回避用）
-        const pr = this.track.project(hz.markerPos);
+        // markerPos の横ずれをキャッシュ（AI回避用）。基準サンプル付近のみ探索＝高速
+        const pr = this.track.project(hz.markerPos, hz._baseIndex);
         hz.lateral = pr.lateral;
         // 当たり判定
         if (hz.dangerous) this._collide(hz, karts);
@@ -599,10 +599,7 @@ window.MK = window.MK || {};
 
     reset() {
       this.scene.remove(this.root);
-      this.root.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) { if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose()); else o.material.dispose(); }
-      });
+      U.disposeObject(this.root);
       this.hazards = [];
     }
   }

@@ -85,28 +85,46 @@ window.MK = window.MK || {};
 
     /* ---- 効果プリセット ---- */
     driftSpark(x, y, z, color, backx, backz) {
-      const n = 2;
+      const n = 3;
       for (let i = 0; i < n; i++) {
+        const white = Math.random() < 0.3;
         this.spawn({
-          x: x + U.randRange(-0.3, 0.3), y: y + U.randRange(0, 0.3), z: z + U.randRange(-0.3, 0.3),
-          vx: backx * U.randRange(2, 6) + U.randRange(-3, 3),
-          vy: U.randRange(2, 6),
-          vz: backz * U.randRange(2, 6) + U.randRange(-3, 3),
+          x: x + U.randRange(-0.35, 0.35), y: y + U.randRange(0, 0.35), z: z + U.randRange(-0.35, 0.35),
+          vx: backx * U.randRange(2, 7) + U.randRange(-4, 4),
+          vy: U.randRange(2, 8),
+          vz: backz * U.randRange(2, 7) + U.randRange(-4, 4),
           gravity: -16, drag: 1.5,
-          life: U.randRange(0.18, 0.36), size: U.randRange(0.5, 0.9), sizeEnd: 0.05,
-          color, fadePow: 1.4,
+          life: U.randRange(0.2, 0.42), size: U.randRange(0.6, 1.2), sizeEnd: 0.05,
+          color: white ? 0xffffff : color, fadePow: 1.4,
         });
       }
     }
 
     boostFlame(x, y, z, color) {
       this.spawn({
-        x: x + U.randRange(-0.3, 0.3), y: y + U.randRange(0, 0.4), z: z + U.randRange(-0.3, 0.3),
-        vx: U.randRange(-2, 2), vy: U.randRange(1, 4), vz: U.randRange(-2, 2),
-        gravity: 6, drag: 2,
-        life: U.randRange(0.2, 0.4), size: U.randRange(0.8, 1.5), sizeEnd: 0.1,
+        x: x + U.randRange(-0.35, 0.35), y: y + U.randRange(0, 0.45), z: z + U.randRange(-0.35, 0.35),
+        vx: U.randRange(-2.5, 2.5), vy: U.randRange(1, 5), vz: U.randRange(-2.5, 2.5),
+        gravity: 7, drag: 2,
+        life: U.randRange(0.22, 0.46), size: U.randRange(1.0, 2.0), sizeEnd: 0.1,
         color: color || 0xffa531, fadePow: 1.2,
       });
+      // 白熱コア
+      this.spawn({ x, y: y + 0.1, z, vy: U.randRange(1, 3), life: 0.2, size: U.randRange(0.5, 0.9), sizeEnd: 0.05, color: 0xfff3c0, fadePow: 1.5 });
+    }
+
+    // ブースト点火時の派手なリング＋放射バースト
+    boostRing(x, y, z, color) {
+      this.spawn({ x, y: y + 0.4, z, life: 0.4, size: 1.2, sizeEnd: 10, color: 0xffffff, fadePow: 2.2, opacity: 0.95 });
+      this.spawn({ x, y: y + 0.4, z, life: 0.46, size: 0.8, sizeEnd: 8.5, color: color || 0xffd24a, fadePow: 2.0, opacity: 0.9 });
+      for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * U.TAU, sp = U.randRange(7, 13);
+        this.spawn({
+          x, y: y + 0.3, z,
+          vx: Math.cos(a) * sp, vy: U.randRange(1, 4), vz: Math.sin(a) * sp,
+          gravity: -10, drag: 1.0, life: U.randRange(0.3, 0.55), size: U.randRange(0.6, 1.2), sizeEnd: 0.05,
+          color: i % 2 ? (color || 0xffd24a) : 0xffffff, fadePow: 1.3,
+        });
+      }
     }
 
     dust(x, y, z) {
@@ -133,40 +151,41 @@ window.MK = window.MK || {};
 
     explosion(x, y, z, color, scale) {
       const sc = scale || 1;
-      // 中心フラッシュ
-      this.spawn({ x, y: y + 0.6, z, vx: 0, vy: 1, vz: 0, life: 0.32, size: 1, sizeEnd: 9 * sc, color: color || 0xffd24a, fadePow: 1.6 });
-      for (let i = 0; i < 26; i++) {
+      // 中心フラッシュ（白熱コア＋色付き）
+      this.spawn({ x, y: y + 0.6, z, vy: 1, life: 0.36, size: 1.5, sizeEnd: 13 * sc, color: 0xffffff, fadePow: 1.8 });
+      this.spawn({ x, y: y + 0.6, z, vy: 1, life: 0.42, size: 1, sizeEnd: 10 * sc, color: color || 0xffd24a, fadePow: 1.6 });
+      for (let i = 0; i < 40; i++) {
         const a = Math.random() * U.TAU;
-        const sp = U.randRange(6, 18) * sc;
+        const sp = U.randRange(8, 22) * sc;
         this.spawn({
           x, y: y + 0.6, z,
-          vx: Math.cos(a) * sp, vy: U.randRange(2, 12) * sc, vz: Math.sin(a) * sp,
+          vx: Math.cos(a) * sp, vy: U.randRange(2, 14) * sc, vz: Math.sin(a) * sp,
           gravity: -16, drag: 0.8,
-          life: U.randRange(0.4, 0.8), size: U.randRange(0.8, 1.8), sizeEnd: 0.1,
+          life: U.randRange(0.4, 0.9), size: U.randRange(0.9, 2.0), sizeEnd: 0.1,
           color: i % 3 === 0 ? 0xffffff : (i % 3 === 1 ? 0xff7a1f : 0xffd24a), fadePow: 1.3,
         });
       }
       // 煙
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 12; i++) {
         this.spawn({
           x: x + U.randRange(-1, 1) * sc, y: y + 0.6, z: z + U.randRange(-1, 1) * sc,
-          vx: U.randRange(-2, 2), vy: U.randRange(1, 3), vz: U.randRange(-2, 2),
+          vx: U.randRange(-2, 2), vy: U.randRange(1, 3.5), vz: U.randRange(-2, 2),
           gravity: 1, drag: 1.2,
-          life: U.randRange(0.6, 1.0), size: 1.5, sizeEnd: 5 * sc,
+          life: U.randRange(0.6, 1.1), size: 1.6, sizeEnd: 6 * sc,
           color: 0x555555, opacity: 0.5, blending: THREE.NormalBlending, fadePow: 1.4,
         });
       }
     }
 
     sparkle(x, y, z, color) {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 14; i++) {
         const a = Math.random() * U.TAU;
-        const sp = U.randRange(2, 8);
+        const sp = U.randRange(2, 9);
         this.spawn({
-          x, y: y + U.randRange(0, 1.5), z,
-          vx: Math.cos(a) * sp, vy: U.randRange(2, 6), vz: Math.sin(a) * sp,
+          x, y: y + U.randRange(0, 1.6), z,
+          vx: Math.cos(a) * sp, vy: U.randRange(2, 7), vz: Math.sin(a) * sp,
           gravity: -14, drag: 1,
-          life: U.randRange(0.3, 0.6), size: U.randRange(0.4, 0.8), sizeEnd: 0.05,
+          life: U.randRange(0.3, 0.65), size: U.randRange(0.5, 1.0), sizeEnd: 0.05,
           color: color || 0xfff04d, fadePow: 1.2,
         });
       }
@@ -174,11 +193,11 @@ window.MK = window.MK || {};
 
     starTrail(x, y, z) {
       const cols = [0xff5d5d, 0xffba4d, 0xfff04d, 0x5dff8a, 0x5db9ff, 0xc45dff];
-      this.spawn({
-        x: x + U.randRange(-0.6, 0.6), y: y + U.randRange(0, 1.2), z: z + U.randRange(-0.6, 0.6),
-        vx: U.randRange(-1, 1), vy: U.randRange(0, 2), vz: U.randRange(-1, 1),
+      for (let i = 0; i < 2; i++) this.spawn({
+        x: x + U.randRange(-0.7, 0.7), y: y + U.randRange(0, 1.3), z: z + U.randRange(-0.7, 0.7),
+        vx: U.randRange(-1.5, 1.5), vy: U.randRange(0, 2.5), vz: U.randRange(-1.5, 1.5),
         gravity: -4, drag: 1,
-        life: U.randRange(0.3, 0.55), size: U.randRange(0.5, 1), sizeEnd: 0.05,
+        life: U.randRange(0.3, 0.6), size: U.randRange(0.6, 1.2), sizeEnd: 0.05,
         color: cols[(Math.random() * cols.length) | 0], fadePow: 1.2,
       });
     }
@@ -214,16 +233,17 @@ window.MK = window.MK || {};
     }
     // アイテム発動の演出
     itemPop(x, y, z, color) {
+      this.shockwave(x, y, z, 0xffffff, 1.2);
       this.shockwave(x, y, z, color);
-      this.burst(x, y, z, color, 10, 7);
+      this.burst(x, y, z, color, 14, 8);
     }
     // スター取得の虹バースト
     starBurst(x, y, z) {
       const cols = [0xff5d5d, 0xffba4d, 0xfff04d, 0x5dff8a, 0x5db9ff, 0xc45dff];
-      this.shockwave(x, y, z, 0xffffff);
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * U.TAU; const sp = U.randRange(5, 13);
-        this.spawn({ x, y: y + 0.6, z, vx: Math.cos(a) * sp, vy: U.randRange(2, 9), vz: Math.sin(a) * sp, gravity: -12, drag: 0.9, life: U.randRange(0.4, 0.85), size: U.randRange(0.6, 1.3), sizeEnd: 0.05, color: cols[i % cols.length], fadePow: 1.2 });
+      this.shockwave(x, y, z, 0xffffff, 1.5);
+      for (let i = 0; i < 34; i++) {
+        const a = (i / 34) * U.TAU; const sp = U.randRange(6, 15);
+        this.spawn({ x, y: y + 0.6, z, vx: Math.cos(a) * sp, vy: U.randRange(2, 10), vz: Math.sin(a) * sp, gravity: -12, drag: 0.9, life: U.randRange(0.4, 0.95), size: U.randRange(0.7, 1.5), sizeEnd: 0.05, color: cols[i % cols.length], fadePow: 1.2 });
       }
     }
     // こうらの軌跡
@@ -234,6 +254,16 @@ window.MK = window.MK || {};
     boltFlash(x, y, z) {
       this.spawn({ x, y, z, life: 0.3, size: 1, sizeEnd: 6, color: 0xc9a0ff, fadePow: 2.0, opacity: 1 });
       this.burst(x, y, z, 0xe0c0ff, 14, 10);
+    }
+
+    // レース終了時の解放：プール全スプライトのマテリアルと共有テクスチャを破棄
+    dispose() {
+      for (const s of this.pool) {
+        this.scene.remove(s);
+        if (s.material && s.material.dispose) s.material.dispose();
+      }
+      if (this.tex && this.tex.dispose) this.tex.dispose();
+      this.pool = []; this.free = [];
     }
   }
 

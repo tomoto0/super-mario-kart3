@@ -9,98 +9,94 @@ window.MK = window.MK || {};
   const U = MK.U;
   const C = MK.CONFIG;
 
-  /* ---- カートのシャシー造形 ---- */
+  /* ---- カートのシャシー造形（親しみやすいゴーカート風）---- */
   function buildChassis(color, accent) {
     accent = accent != null ? accent : 0xffffff;
     const g = new THREE.Group();
-    const M = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.5, metalness: 0.3, flatShading: true }, o || {}));
+    const M = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.42, metalness: 0.3, flatShading: true }, o || {}));
+    const dark = 0x2a2d34, chrome = 0xc8ccd4;
 
-    // メインフレーム
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.5, 2.5), M(color));
-    body.position.y = 0.5; g.add(body);
-    // ボンネットのアクセントストライプ
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 2.3), M(accent, { metalness: 0.4 }));
-    stripe.position.set(0, 0.77, -0.05); g.add(stripe);
-    // 前方を絞ったノーズ
-    const nose = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.4, 0.7), M(color));
-    nose.position.set(0, 0.45, -1.4); g.add(nose);
-    // 前スプリッター
-    const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.5), M(0x2a2d34));
-    splitter.position.set(0, 0.27, -1.7); g.add(splitter);
-    // 下回り（黒）
-    const under = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 2.6), M(0x2a2d34));
-    under.position.y = 0.28; g.add(under);
-    // サイドポンツーン（アクセント）
+    // 黒い下回り（シャシー）
+    const under = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.3, 2.7), M(dark, { metalness: 0.2, roughness: 0.6 }));
+    under.position.y = 0.3; g.add(under);
+    // 丸みのある本体タブ
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 2.1), M(color));
+    body.position.y = 0.6; g.add(body);
+    // 丸い肩（左右のふくらみ）
     for (const s of [-1, 1]) {
-      const pod = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 1.5), M(accent, { metalness: 0.35 }));
-      pod.position.set(s * 0.96, 0.45, 0.1); g.add(pod);
+      const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 2.0, 14), M(color));
+      sh.rotation.x = Math.PI / 2; sh.position.set(s * 0.76, 0.62, 0.0); g.add(sh);
     }
-    // 座席
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.25, 0.9), M(0x33363d));
-    seat.position.set(0, 0.66, 0.35); g.add(seat);
-    const seatback = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.7, 0.22), M(0x33363d));
-    seatback.position.set(0, 0.95, 0.78); g.add(seatback);
-    // ステアリング
-    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), M(0x202327));
-    column.position.set(0, 0.8, -0.55); column.rotation.x = 0.7; g.add(column);
-    const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 8, 16), M(0x202327));
-    wheel.position.set(0, 0.98, -0.7); wheel.rotation.x = 1.1; g.add(wheel);
-    // 排気管
-    for (const s of [-1, 1]) {
-      const ex = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.5, 8), M(0xb8bcc4, { metalness: 0.7, roughness: 0.3 }));
-      ex.position.set(s * 0.4, 0.7, 1.35); ex.rotation.x = Math.PI / 2; g.add(ex);
-    }
-    // フロントバンパー
-    const bumper = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.4, 8), M(0xf2f2f2, { metalness: 0.6, roughness: 0.3 }));
-    bumper.rotation.z = Math.PI / 2; bumper.position.set(0, 0.4, -1.75); g.add(bumper);
+    // 前方の丸いカウル（ボンネット）
+    const cowl = new THREE.Mesh(new THREE.SphereGeometry(0.78, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2), M(color));
+    cowl.scale.set(1.05, 0.72, 1.15); cowl.position.set(0, 0.58, -0.85); g.add(cowl);
+    // 丸いノーズ先端
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), M(color));
+    nose.scale.set(1.2, 0.6, 0.95); nose.position.set(0, 0.5, -1.4); g.add(nose);
+    // フロントリップ（アクセント）
+    const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.5, 10), M(accent, { metalness: 0.45 }));
+    lip.rotation.z = Math.PI / 2; lip.position.set(0, 0.33, -1.5); g.add(lip);
     // ヘッドライト
     for (const s of [-1, 1]) {
-      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), M(0xfff6c0, { emissive: 0x554400, emissiveIntensity: 0.4 }));
-      hl.position.set(s * 0.45, 0.5, -1.72); g.add(hl);
+      const hl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), M(0xfff6c0, { emissive: 0xffe49a, emissiveIntensity: 0.55 }));
+      hl.scale.set(1, 0.85, 0.6); hl.position.set(s * 0.4, 0.6, -1.52); g.add(hl);
     }
-    // フロントグリル
-    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.26, 0.08), M(0x15171b));
-    grille.position.set(0, 0.45, -1.78); g.add(grille);
-    for (let i = -1; i <= 1; i++) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.26, 0.12), M(0x9aa0aa, { metalness: 0.7, roughness: 0.3 })); bar.position.set(i * 0.28, 0.45, -1.8); g.add(bar); }
     // ボンネットのナンバー丸
-    const roundel = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 16), M(0xffffff, { roughness: 0.4 }));
-    roundel.rotation.x = -Math.PI / 2 + 0.05; roundel.position.set(0, 0.8, -0.5); g.add(roundel);
-    const rring = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.04, 8, 18), M(accent, { metalness: 0.4 }));
-    rring.rotation.x = -Math.PI / 2 + 0.05; rring.position.set(0, 0.81, -0.5); g.add(rring);
-    // サイドミラー
+    const roundel = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.06, 18), M(0xffffff, { roughness: 0.4 }));
+    roundel.rotation.x = -Math.PI / 2 + 0.08; roundel.position.set(0, 0.78, -0.72); g.add(roundel);
+    const rring = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.04, 8, 20), M(accent, { metalness: 0.4 }));
+    rring.rotation.x = -Math.PI / 2 + 0.08; rring.position.set(0, 0.79, -0.72); g.add(rring);
+    // コックピットの縁（アクセント）
+    const cockpit = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 10, 22), M(accent, { metalness: 0.4 }));
+    cockpit.rotation.x = -Math.PI / 2; cockpit.scale.set(1.0, 1.25, 1); cockpit.position.set(0, 0.85, 0.3); g.add(cockpit);
+    // 座席
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.2, 0.78), M(0x33363d));
+    seat.position.set(0, 0.74, 0.42); g.add(seat);
+    const seatback = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.58, 0.2), M(0x33363d));
+    seatback.position.set(0, 1.0, 0.8); g.add(seatback);
+    // ロールフープ
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 16, Math.PI), M(chrome, { metalness: 0.7, roughness: 0.3 }));
+    hoop.position.set(0, 1.08, 0.86); g.add(hoop);
+    // ステアリング
+    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), M(0x202327));
+    column.position.set(0, 0.85, -0.5); column.rotation.x = 0.8; g.add(column);
+    const steerWheel = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.05, 8, 16), M(0x202327));
+    steerWheel.position.set(0, 1.02, -0.66); steerWheel.rotation.x = 1.0; g.add(steerWheel);
+    // 背後に立ち上がるツインマフラー（クロム）— マリオカートらしさ
     for (const s of [-1, 1]) {
-      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6), M(0x202327)); stalk.position.set(s * 0.72, 0.88, -0.45); stalk.rotation.z = s * 0.6; g.add(stalk);
-      const mir = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.05), M(0x9fdcff, { metalness: 0.6, roughness: 0.2, emissive: 0x183040, emissiveIntensity: 0.3 })); mir.position.set(s * 0.86, 0.98, -0.45); g.add(mir);
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 10), M(chrome, { metalness: 0.8, roughness: 0.25 }));
+      pipe.position.set(s * 0.42, 0.82, 1.24); pipe.rotation.x = -0.35; g.add(pipe);
+      const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.1, 0.16, 10), M(0x33363d));
+      tip.position.set(s * 0.46, 1.12, 1.31); tip.rotation.x = -0.35; g.add(tip);
+      const tipGlow = new THREE.Mesh(new THREE.CircleGeometry(0.09, 10), new THREE.MeshBasicMaterial({ color: 0xff8a3a }));
+      tipGlow.position.set(s * 0.47, 1.17, 1.35); tipGlow.rotation.x = Math.PI - 0.35; g.add(tipGlow);
     }
-    // 排気口の赤熱
-    for (const s of [-1, 1]) { const tip = new THREE.Mesh(new THREE.CircleGeometry(0.085, 10), new THREE.MeshBasicMaterial({ color: 0xff8a3a })); tip.position.set(s * 0.4, 0.7, 1.61); g.add(tip); }
-    // ロールフープ（運転席後ろのアーチ）
-    const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.07, 8, 16, Math.PI), M(0x9aa0aa, { metalness: 0.6, roughness: 0.3 }));
-    hoop.position.set(0, 1.0, 0.92); g.add(hoop);
-    // リアウイング（スポイラー）
-    for (const s of [-1, 1]) { const stay = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.42, 0.1), M(0x2a2d34)); stay.position.set(s * 0.5, 1.02, 1.32); g.add(stay); }
-    const rearwing = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.08, 0.5), M(accent, { metalness: 0.4 }));
-    rearwing.position.set(0, 1.24, 1.34); rearwing.rotation.x = 0.18; g.add(rearwing);
+    // リアバンパー（アクセント）
+    const rear = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.3), M(accent, { metalness: 0.4 }));
+    rear.position.set(0, 0.5, 1.3); g.add(rear);
 
-    // ホイール（アクセント色の十字スポーク付き）
+    // ホイール（太いカートタイヤ＋アクセントのホイールキャップ）
     const wheels = [], steerPivots = [];
-    const tireMat = M(0x1a1c20, { metalness: 0.1, roughness: 0.85 });
-    const hubMat = M(0xe8e8e8, { metalness: 0.7, roughness: 0.25 });
-    const spokeMat = M(accent, { metalness: 0.5, roughness: 0.4 });
+    const tireMat = M(0x16181c, { metalness: 0.05, roughness: 0.9 });
+    const hubMat = M(0xeef0f4, { metalness: 0.7, roughness: 0.25 });
+    const capMat = M(accent, { metalness: 0.5, roughness: 0.35 });
     function makeWheel(big) {
       const wg = new THREE.Group();
-      const r = big ? 0.42 : 0.36;
-      const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.34, 16), tireMat);
+      const r = big ? 0.5 : 0.42, w = big ? 0.42 : 0.36;
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 18), tireMat);
       tire.rotation.z = Math.PI / 2; wg.add(tire);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.45, r * 0.45, 0.36, 8), hubMat);
+      // 外周を膨らませて極太タイヤに
+      const tread = new THREE.Mesh(new THREE.TorusGeometry(r, w * 0.5, 8, 20), tireMat);
+      tread.rotation.y = Math.PI / 2; wg.add(tread);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, w + 0.02, 12), hubMat);
       hub.rotation.z = Math.PI / 2; wg.add(hub);
-      const sp1 = new THREE.Mesh(new THREE.BoxGeometry(0.36, r * 1.7, 0.08), spokeMat); wg.add(sp1);
-      const sp2 = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.08, r * 1.7), spokeMat); wg.add(sp2);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.26, r * 0.26, w + 0.04, 10), capMat);
+      cap.rotation.z = Math.PI / 2; wg.add(cap);
       return wg;
     }
     const positions = [
-      [-0.95, 0.4, -1.0, false], [0.95, 0.4, -1.0, false], // 前
-      [-1.0, 0.45, 1.05, true], [1.0, 0.45, 1.05, true],    // 後（大）
+      [-0.92, 0.46, -1.02, false], [0.92, 0.46, -1.02, false], // 前
+      [-0.98, 0.5, 1.08, true], [0.98, 0.5, 1.08, true],        // 後（大）
     ];
     positions.forEach((p, i) => {
       const w = makeWheel(p[3]);
@@ -325,15 +321,16 @@ window.MK = window.MK || {};
         this.group.position.y += this.hopVel * dt;
         this.spinAngle += dt * 6;
         if (this.group.position.y < -25) {
-          const info = track.project(this.group.position);
+          const info = track.project(this.group.position); // 復帰位置は全探索で再取得
+          this.sampleIndex = info.index;                   // 以降のヒント探索を正しく種付け
           this.respawn(info.point, Math.atan2(-info.tangent.x, -info.tangent.z));
         }
         this._updateVisual(dt, true);
         return;
       }
 
-      // 路面情報
-      const info = track.project(this.group.position);
+      // 路面情報（前フレームの近傍だけ探索＝高速）
+      const info = track.project(this.group.position, this.sampleIndex);
       this.sampleIndex = info.index;
       this.lateral = info.lateral;
       const absLat = Math.abs(info.lateral);
@@ -399,7 +396,7 @@ window.MK = window.MK || {};
       gp.y = U.damp(gp.y, info.point.y, 12, dt);
 
       /* --- 壁 / 落下 判定 --- */
-      const after = track.project(gp);
+      const after = track.project(gp, this.sampleIndex);
       this.lateral = after.lateral;
       const absL = Math.abs(after.lateral);
       if (absL > track.wallHalf) {
@@ -492,17 +489,22 @@ window.MK = window.MK || {};
       this.applyBoost(t.boost, t.duration);
       this._boostColor = t.color;
       if (this.isPlayer) MK.audio.boost();
-      // 火花バースト
+      // 火花バースト＋点火リング
       const p = this.world.particles;
       const back = this.forward(new THREE.Vector3()).multiplyScalar(-1);
       const gp = this.group.position;
-      for (let i = 0; i < 10; i++) p.driftSpark(gp.x, gp.y + 0.3, gp.z, t.color, back.x, back.z);
+      if (p) {
+        for (let i = 0; i < 12; i++) p.driftSpark(gp.x, gp.y + 0.3, gp.z, t.color, back.x, back.z);
+        p.boostRing(gp.x, gp.y + 0.3, gp.z, t.color);
+      }
     }
 
     useMushroom() {
       this.applyBoost(C.mushroomBoost, C.mushroomDuration);
       this._boostColor = 0xff7a1f;
       if (this.isPlayer) MK.audio.boost();
+      const p = this.world.particles, gp = this.group.position;
+      if (p) p.boostRing(gp.x, gp.y + 0.3, gp.z, 0xff7a1f);
     }
 
     _updateProgress(track, info, raceTime) {
@@ -544,9 +546,12 @@ window.MK = window.MK || {};
           p.driftSpark(gp.x + back.x * 1.1 + ox, gp.y + 0.25, gp.z + back.z * 1.1 + oz, col, back.x, back.z);
         }
       }
-      // ブーストの炎
-      if (boosting && Math.random() < 0.95) {
-        p.boostFlame(gp.x + back.x * 1.4, gp.y + 0.5, gp.z + back.z * 1.4, this._boostColor || 0xffa531);
+      // ブーストの炎（ツインマフラーから二条）
+      if (boosting) {
+        const col = this._boostColor || 0xffa531;
+        const sidex = Math.cos(this.yaw) * 0.42, sidez = -Math.sin(this.yaw) * 0.42;
+        p.boostFlame(gp.x + back.x * 1.5 + sidex, gp.y + 0.5, gp.z + back.z * 1.5 + sidez, col);
+        p.boostFlame(gp.x + back.x * 1.5 - sidex, gp.y + 0.5, gp.z + back.z * 1.5 - sidez, col);
       }
       // オフロードの砂煙
       if (offRoad && Math.abs(this.speed) > 6 && Math.random() < 0.5) {
@@ -622,13 +627,7 @@ window.MK = window.MK || {};
 
     dispose() {
       this.scene.remove(this.group);
-      this.group.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) {
-          if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose());
-          else o.material.dispose();
-        }
-      });
+      U.disposeObject(this.group);
     }
   }
 

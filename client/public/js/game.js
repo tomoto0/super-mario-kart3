@@ -112,7 +112,7 @@ window.MK = window.MK || {};
       this.scenery.build();
 
       // パーティクル / アイテム
-      this.particles = new MK.ParticleSystem(scene, 460);
+      this.particles = new MK.ParticleSystem(scene, 760);
       this.items = new MK.ItemSystem(this);
       this.items.buildBoxes(this.track.itemBoxPositions);
 
@@ -191,7 +191,7 @@ window.MK = window.MK || {};
       if (this.scenery) this.scenery.reset();
       if (this.hazards) this.hazards.reset();
       for (const k of this.karts) k.dispose();
-      if (this.particles) { for (const s of this.particles.pool) this.scene.remove(s); }
+      if (this.particles) this.particles.dispose();
       if (this.track) this.track.reset();
       if (this.lights) this.scene.remove(this.lights);
       this.scene.fog = null;

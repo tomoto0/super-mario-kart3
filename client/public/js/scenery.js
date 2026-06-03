@@ -162,8 +162,9 @@ window.MK = window.MK || {};
       const tex = U.softCircleTexture('rgba(255,185,55,1)', 'rgba(255,70,0,0)');
       const flame = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffae33 }));
       flame.scale.set(2.6, 3.8, 1); flame.position.y = h / 2 + 2.4; g.add(flame);
-      const light = new THREE.PointLight(0xff8a2a, 1.1, 30); light.position.y = h / 2 + 2; g.add(light);
-      g.userData.flame = flame; g.userData.light = light; g.userData.flameBase = [2.6, 3.8];
+      // ※ 柱ごとに PointLight を持たせると城コースで光源が数十個になり激重化するため、
+      //   光源は持たせず加算発光の炎スプライトで「灯り」を表現する（溶岩面の点光源で全体を照らす）。
+      g.userData.flame = flame; g.userData.flameBase = [2.6, 3.8];
       return g;
     },
     // 草原の花
@@ -468,7 +469,7 @@ window.MK = window.MK || {};
       const N = samples.length;
       const step = Math.max(4, Math.floor(N / 90));
       const edge = this.track.wallHalf + 4;
-      const skip = t.props === 'castle' ? 0.72 : t.props === 'rainbow' ? 0.55 : 0.42;
+      const skip = t.props === 'castle' ? 0.8 : t.props === 'rainbow' ? 0.55 : 0.42;
       for (let i = 0; i < N; i += step) {
         const sm = samples[i];
         for (const side of [-1, 1]) {
@@ -643,10 +644,7 @@ window.MK = window.MK || {};
 
     reset() {
       this.scene.remove(this.root);
-      this.root.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) { if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose()); else o.material.dispose(); }
-      });
+      U.disposeObject(this.root);
     }
   }
 

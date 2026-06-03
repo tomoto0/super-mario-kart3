@@ -266,15 +266,29 @@ window.MK = window.MK || {};
       return g;
     }
 
-    /* ---- 投影：位置→(最寄りサンプル, 横ずれ) ---- */
-    project(pos) {
+    /* ---- 投影：位置→(最寄りサンプル, 横ずれ) ----
+     * hint を渡すと、その付近のサンプルだけを探索する（連続移動する物体向けの高速版）。
+     * カートは毎フレーム数 units しか動かない（サンプル間隔 3.0）ので ±WIN の窓で十分。
+     * hint 省略時は全サンプルを総当たり（初期配置・復帰・落下後の再取得用）。 */
+    project(pos, hint) {
       const N = this.sampleCount;
       let bestI = 0, bestD = Infinity;
-      for (let i = 0; i < N; i++) {
-        const sm = this.samples[i];
-        const dx = pos.x - sm.point.x, dz = pos.z - sm.point.z;
-        const d = dx * dx + dz * dz;
-        if (d < bestD) { bestD = d; bestI = i; }
+      if (hint != null && hint >= 0 && hint < N) {
+        const WIN = 40;
+        for (let o = -WIN; o <= WIN; o++) {
+          const i = ((hint + o) % N + N) % N;
+          const sm = this.samples[i];
+          const dx = pos.x - sm.point.x, dz = pos.z - sm.point.z;
+          const d = dx * dx + dz * dz;
+          if (d < bestD) { bestD = d; bestI = i; }
+        }
+      } else {
+        for (let i = 0; i < N; i++) {
+          const sm = this.samples[i];
+          const dx = pos.x - sm.point.x, dz = pos.z - sm.point.z;
+          const d = dx * dx + dz * dz;
+          if (d < bestD) { bestD = d; bestI = i; }
+        }
       }
       const sm = this.samples[bestI];
       const dx = pos.x - sm.point.x, dz = pos.z - sm.point.z;
@@ -316,10 +330,7 @@ window.MK = window.MK || {};
 
     reset() {
       this.scene.remove(this.root);
-      this.root.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        if (o.material) { if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose()); else o.material.dispose(); }
-      });
+      U.disposeObject(this.root);
     }
   }
 
