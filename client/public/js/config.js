@@ -112,7 +112,7 @@ window.MK = window.MK || {};
       id: 'toad', name: 'TOAD', jp: 'キノピオ',
       cls: 'LIGHT',
       stats: { speed: 2, accel: 5, handling: 4, weight: 1 },
-      colors: { primary: 0xffffff, secondary: 0xe52521, kart: 0xf1f1f1, skin: 0xffe0c0 },
+      colors: { primary: 0xffffff, secondary: 0x2b6fd6, kart: 0xf1f1f1, skin: 0xffe0c0 },
       blurb: 'Fastest acceleration, lightest weight',
     },
     {

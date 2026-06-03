@@ -162,6 +162,7 @@ window.MK = window.MK || {};
       MK.hud.reset();
       MK.hud.show(true);
       MK.input.showTouch(true);
+      MK.input.setTouchMode('race');
 
       // カメラ・イントロ
       this.cameraCtrl.startIntro(3.2);
@@ -399,18 +400,26 @@ window.MK = window.MK || {};
             const overlap = (minD - d);
             const wa = a.derived.weight, wb = b.derived.weight;
             const total = wa + wb;
-            // 重い方が押し勝つ
+            // めり込み解消（重い方が押し勝つ）
             const pushA = overlap * (wb / total);
             const pushB = overlap * (wa / total);
             a.group.position.x -= nx * pushA; a.group.position.z -= nz * pushA;
             b.group.position.x += nx * pushB; b.group.position.z += nz * pushB;
-            // 体当たり：横に弾くだけで、ほぼ失速させない
-            const relPush = 2.5;
-            a.speed *= 0.99; b.speed *= 0.99;
-            a.group.position.x -= nx * relPush * (wb / total) * dt; a.group.position.z -= nz * relPush * (wb / total) * dt;
-            b.group.position.x += nx * relPush * (wa / total) * dt; b.group.position.z += nz * relPush * (wa / total) * dt;
+            // 体当たりのノックバック：相対速度に応じて横へ弾く（押し合い・コースどり・妨害を楽しく）
+            const rel = Math.abs(a.speed) + Math.abs(b.speed);
+            const impulse = U.clamp(7 + rel * 0.28, 7, 34);
+            a.bumpVel.x -= nx * impulse * (wb / total); a.bumpVel.z -= nz * impulse * (wb / total);
+            b.bumpVel.x += nx * impulse * (wa / total); b.bumpVel.z += nz * impulse * (wa / total);
+            const cap = (k) => { const l = Math.hypot(k.bumpVel.x, k.bumpVel.z); if (l > 34) { k.bumpVel.x *= 34 / l; k.bumpVel.z *= 34 / l; } };
+            cap(a); cap(b);
+            // 軽く失速（軽い方ほど失速＝重い方が押し勝つ）
+            a.speed *= 1 - 0.05 * (wb / total); b.speed *= 1 - 0.05 * (wa / total);
             if (a.isPlayer || b.isPlayer) {
-              if (Math.abs(a.speed) + Math.abs(b.speed) > 20 && Math.random() < 0.3) MK.audio.bump();
+              if (rel > 14 && Math.random() < 0.5) MK.audio.bump();
+              if (this.particles && Math.random() < 0.4) {
+                const mx = (a.group.position.x + b.group.position.x) / 2, mz = (a.group.position.z + b.group.position.z) / 2;
+                this.particles.sparkle(mx, a.group.position.y + 0.5, mz, 0xfff0a0);
+              }
             }
           }
         }

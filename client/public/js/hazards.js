@@ -11,7 +11,7 @@ window.MK = window.MK || {};
   const U = MK.U;
   const C = MK.CONFIG;
 
-  function M(color, o) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.7, metalness: 0.05, flatShading: true }, o || {})); }
+  function M(color, o) { return new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.62, metalness: 0.04 }, o || {})); }
   function basic(color, o) { return new THREE.MeshBasicMaterial(Object.assign({ color }, o || {})); }
   function box(w, h, d, c, o) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); }
   function sph(r, c, seg, o) { return new THREE.Mesh(new THREE.SphereGeometry(r, seg || 14, seg || 10), M(c, o)); }
@@ -46,13 +46,21 @@ window.MK = window.MK || {};
       const stem = cyl(0.18, 0.22, 1.6, 0x3fa83f, 8); stem.position.y = 0.8; stalk.add(stem);
       for (const s of [-1, 1]) { const leaf = cone(0.3, 0.7, 0x4fd33d, 6); leaf.position.set(s * 0.4, 0.7, 0); leaf.rotation.z = s * 1.1; stalk.add(leaf); }
       const head = new THREE.Group(); head.position.y = 1.7; stalk.add(head);
-      const bulb = sph(0.62, 0xe23b2e, 14); bulb.scale.set(1, 0.95, 1); head.add(bulb);
-      // 白い水玉
-      for (let i = 0; i < 7; i++) { const sp = sph(0.1, 0xffffff, 8); const a = i / 7 * U.TAU; sp.position.set(Math.cos(a) * 0.45, Math.sin(a) * 0.35, -0.35); head.add(sp); }
-      // 口（白い歯のリング）＋暗い口内
-      const mouth = sph(0.4, 0x6b0f0a, 10); mouth.position.set(0, -0.05, -0.5); mouth.scale.set(1, 0.7, 0.6); head.add(mouth);
-      const lipT = box(0.7, 0.12, 0.2, 0xffffff); lipT.position.set(0, 0.18, -0.55); head.add(lipT);
-      const lipB = box(0.7, 0.12, 0.2, 0xffffff); lipB.position.set(0, -0.28, -0.55); head.add(lipB);
+      const bulb = sph(0.66, 0xe2342a, 18); bulb.scale.set(1.05, 1.0, 1.0); head.add(bulb);
+      // 白い水玉（前面の上半分にオーバル）
+      [[-0.34, 0.34], [0.34, 0.34], [0, 0.52], [-0.52, 0.04], [0.52, 0.04], [0, 0.0]].forEach((p) => {
+        const sp = sph(0.14, 0xffffff, 12); sp.scale.set(1.1, 0.85, 0.4); sp.position.set(p[0], p[1], -0.5); head.add(sp);
+      });
+      // 暗い口内
+      const mouth = sph(0.42, 0x6b0f0a, 14); mouth.position.set(0, -0.06, -0.46); mouth.scale.set(1.05, 0.78, 0.65); head.add(mouth);
+      // 白い唇（リング状）
+      const lips = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.12, 10, 22), M(0xffffff)); lips.position.set(0, -0.04, -0.52); lips.scale.set(1.05, 0.82, 0.7); head.add(lips);
+      // 白い牙（上下）
+      for (let i = 0; i < 5; i++) {
+        const x = (i - 2) * 0.17;
+        const tT = cone(0.055, 0.18, 0xffffff, 8); tT.rotation.x = Math.PI; tT.position.set(x, 0.12, -0.58); head.add(tT);
+        const tB = cone(0.055, 0.18, 0xffffff, 8); tB.position.set(x, -0.2, -0.58); head.add(tB);
+      }
       g.userData.stalk = stalk; g.userData.head = head;
       return g;
     },
@@ -72,15 +80,22 @@ window.MK = window.MK || {};
     },
     thwomp() {
       const g = new THREE.Group();
-      const block = box(2.0, 2.4, 1.5, 0x7f8bb0); block.position.y = 1.2; g.add(block);
-      const plate = box(1.7, 2.05, 0.12, 0x9aa6cc); plate.position.set(0, 1.2, -0.78); g.add(plate);
-      // スタッド
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) { const st = cone(0.16, 0.28, 0xc8d0e8, 4); st.position.set(sx * 0.78, 1.2 + sy * 0.85, -0.84); st.rotation.x = -Math.PI / 2; g.add(st); }
-      // 顔
-      eyes(g, 1.5, -0.82, 0.32, 1);
-      for (const s of [-1, 1]) { const brow = box(0.5, 0.12, 0.12, 0x3a4360); brow.position.set(s * 0.32, 1.72, -0.86); brow.rotation.z = -s * 0.5; g.add(brow); }
-      const mouth = box(1.2, 0.5, 0.12, 0xffffff); mouth.position.set(0, 0.8, -0.86); g.add(mouth);
-      for (let i = -1; i <= 1; i++) { const t = box(0.1, 0.5, 0.14, 0x4a5170); t.position.set(i * 0.35, 0.8, -0.9); g.add(t); }
+      const stone = 0x8a92b4, stoneD = 0x5b6488, face = 0x6f7aa0;
+      const block = box(2.0, 2.4, 1.5, stone); block.position.y = 1.2; g.add(block);
+      // 全周の石トゲ（上下左右の縁すべて）
+      const spike = (x, y, rz) => { const s = cone(0.2, 0.38, stoneD, 4); s.position.set(x, y, -0.08); s.rotation.z = rz; g.add(s); };
+      for (let i = 0; i < 4; i++) { const x = -0.78 + i * 0.52; spike(x, 2.48, 0); spike(x, -0.08, Math.PI); }
+      for (let i = 0; i < 3; i++) { const y = 0.5 + i * 0.7; spike(-1.07, y, Math.PI / 2); spike(1.07, y, -Math.PI / 2); }
+      // 凹んだ顔プレート（前面 -Z）
+      const plate = box(1.62, 1.9, 0.16, face); plate.position.set(0, 1.2, -0.78); g.add(plate);
+      // 怒り眉
+      for (const s of [-1, 1]) { const brow = box(0.64, 0.17, 0.16, stoneD); brow.position.set(s * 0.36, 1.72, -0.92); brow.rotation.z = -s * 0.62; g.add(brow); }
+      // 白目（怒り）＋黒目
+      eyes(g, 1.44, -0.9, 0.34, 1);
+      // 食いしばった歯（白い歯＋縦の歯間＋上下の境目）
+      const mouth = box(1.24, 0.58, 0.1, 0xffffff); mouth.position.set(0, 0.74, -0.9); g.add(mouth);
+      for (let i = -2; i <= 2; i++) { const t = box(0.07, 0.58, 0.13, 0x3a4264); t.position.set(i * 0.26, 0.74, -0.93); g.add(t); }
+      const midline = box(1.24, 0.08, 0.13, 0x3a4264); midline.position.set(0, 0.74, -0.93); g.add(midline);
       return g;
     },
     fireball() {
@@ -96,6 +111,14 @@ window.MK = window.MK || {};
       const teeth = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.16, 8, 16), M(0xffffff));
       teeth.position.set(0, -0.05, -0.62); g.add(teeth);
       const mouth = sph(0.5, 0x401015, 10); mouth.position.set(0, -0.05, -0.7); mouth.scale.set(1, 0.8, 0.5); g.add(mouth);
+      // ギザギザの白い歯（口の周りに放射状）
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * U.TAU;
+        const tooth = cone(0.11, 0.28, 0xffffff, 6);
+        tooth.position.set(Math.cos(a) * 0.52, -0.05 + Math.sin(a) * 0.52, -0.62);
+        tooth.rotation.z = a + Math.PI / 2;
+        g.add(tooth);
+      }
       eyes(g, 0.45, -0.66, 0.26, 1);
       // 留め金
       const bolt = sph(0.18, 0xb8bcc4, 8, { metalness: 0.7, roughness: 0.3 }); bolt.position.set(0, 0.7, 0.6); g.add(bolt);
@@ -126,14 +149,32 @@ window.MK = window.MK || {};
     // --- 草原：ノコノコ（左右に歩く）---
     koopa() {
       const g = new THREE.Group();
-      for (const s of [-1, 1]) { const leg = box(0.22, 0.32, 0.28, 0xf2cf3a); leg.position.set(s * 0.26, 0.16, 0.05); g.add(leg); const foot = box(0.26, 0.12, 0.4, 0xe88a20); foot.position.set(s * 0.26, 0.05, -0.05); g.add(foot); }
-      const shell = sph(0.64, 0x2fae4a, 14); shell.scale.set(1.08, 1.0, 0.92); shell.position.y = 0.92; g.add(shell);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.13, 8, 18), M(0xf2e3a8)); rim.rotation.x = Math.PI / 2 - 0.15; rim.position.y = 0.74; g.add(rim);
-      const belly = sph(0.5, 0xf2e3a8, 12); belly.scale.set(0.85, 0.9, 0.5); belly.position.set(0, 0.78, -0.34); g.add(belly);
-      const neck = cyl(0.18, 0.2, 0.4, 0xf2cf3a, 8); neck.position.set(0, 1.18, -0.12); g.add(neck);
-      const head = sph(0.36, 0xf2cf3a, 12); head.position.set(0, 1.45, -0.18); g.add(head);
-      const beak = cone(0.17, 0.3, 0xe88a20, 8); beak.position.set(0, 1.4, -0.52); beak.rotation.x = -Math.PI / 2; g.add(beak);
-      eyes(g, 1.56, -0.44, 0.15, 1);
+      const skin = 0xf3d24a, beakCol = 0xe88a20, boot = 0x2fae4a, shellG = 0x2fae4a, cream = 0xf3e6b0;
+      // 緑のブーツ＋脚
+      for (const s of [-1, 1]) {
+        const leg = cyl(0.17, 0.19, 0.34, skin, 10); leg.position.set(s * 0.27, 0.34, 0.04); g.add(leg);
+        const shoe = sph(0.26, boot, 12); shoe.scale.set(1.0, 0.7, 1.45); shoe.position.set(s * 0.27, 0.12, -0.06); g.add(shoe);
+      }
+      // クリーム色の腹甲
+      const belly = sph(0.52, cream, 16); belly.scale.set(0.92, 1.0, 0.62); belly.position.set(0, 0.84, -0.32); g.add(belly);
+      // 緑の甲羅（背中）＋クリームのリム
+      const shell = sph(0.66, shellG, 18); shell.scale.set(1.12, 1.06, 0.94); shell.position.set(0, 0.94, 0.16); g.add(shell);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.14, 10, 22), M(cream)); rim.rotation.x = Math.PI / 2 - 0.18; rim.position.set(0, 0.76, 0.14); g.add(rim);
+      // 甲羅の六角模様（濃緑）
+      const segMat = M(0x1c7a34);
+      const topHex = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.31, 0.08, 6), segMat); topHex.position.set(0, 1.24, 0.18); g.add(topHex);
+      for (let i = 0; i < 5; i++) { const a = i / 5 * U.TAU + 0.3; const hx = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.06, 6), segMat); hx.position.set(Math.cos(a) * 0.44, 1.02, Math.sin(a) * 0.4 + 0.18); g.add(hx); }
+      // 小さな腕
+      for (const s of [-1, 1]) { const arm = sph(0.16, skin, 10); arm.scale.set(1, 1.3, 1); arm.position.set(s * 0.56, 0.86, -0.18); g.add(arm); }
+      // 首・頭
+      const neck = cyl(0.19, 0.22, 0.34, skin, 10); neck.position.set(0, 1.2, -0.16); g.add(neck);
+      const head = sph(0.4, skin, 16); head.scale.set(1.0, 0.96, 1.05); head.position.set(0, 1.5, -0.2); g.add(head);
+      // くちばし（上下＋小さな鼻穴）
+      const beakT = cone(0.2, 0.34, beakCol, 12); beakT.position.set(0, 1.46, -0.56); beakT.rotation.x = -Math.PI / 2; g.add(beakT);
+      const beakB = box(0.26, 0.1, 0.22, beakCol); beakB.position.set(0, 1.36, -0.52); g.add(beakB);
+      eyes(g, 1.62, -0.46, 0.16, 1);
+      // 眉
+      for (const s of [-1, 1]) { const brow = box(0.2, 0.06, 0.08, 0x7a5a12); brow.position.set(s * 0.18, 1.78, -0.5); brow.rotation.z = -s * 0.25; g.add(brow); }
       g.userData.head = head;
       return g;
     },
@@ -187,13 +228,13 @@ window.MK = window.MK || {};
       g.userData.core = core; g.userData.tail = tail;
       return g;
     },
-    // --- 虹：回転するスター・バー（火柱の星版）---
-    starOrb() {
+    // --- 虹：回転するスター・バー（火柱の星版）。fill/outline/coreで色を指定 ---
+    starOrb(fill, outline, coreCol, em) {
       const g = new THREE.Group();
-      const tex = U.starTexture('#fff04d');
+      const tex = U.starTexture(fill || '#fff04d', outline);
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
       s.scale.set(1.5, 1.5, 1); g.add(s);
-      const core = sph(0.3, 0xfff7c0, 10, { emissive: 0xffe14d, emissiveIntensity: 1.0 }); g.add(core);
+      const core = sph(0.3, coreCol || 0xfff7c0, 10, { emissive: em != null ? em : 0xffe14d, emissiveIntensity: 1.0 }); g.add(core);
       return g;
     },
   };
@@ -211,11 +252,14 @@ window.MK = window.MK || {};
 
     build(course) {
       const props = course.theme.props;
+      this._spinBarN = 0;   // スターバーの色割り当てカウンタ（赤→青→緑）
+      this._spawnQueue = []; // ジュゲムが落とすノコノコの遅延スポーン待ち
+      this._needCull = false;
       const plans = {
         grass: [['goomba', 3], ['koopa', 2], ['piranha', 2], ['montyMole', 3]],
         snow: [['penguin', 4], ['snowball', 2], ['icicle', 3]],
         castle: [['thwomp', 2], ['firebar', 2], ['podoboo', 3], ['flameJet', 2]],
-        rainbow: [['chomp', 2], ['comet', 2], ['spinBar', 2]],
+        rainbow: [['chomp', 2], ['comet', 2], ['spinBar', 3]],
       }[props] || [];
 
       // 0.15〜0.95 の範囲に種類ごとへ均等配置
@@ -227,6 +271,9 @@ window.MK = window.MK || {};
           this._add(kind, f, (i % 2 === 0 ? 1 : -1));
         }
       }
+
+      // ジュゲム（ラキトゥ）— 各コースに1匹、上空を旋回しノコノコを落とす
+      this._addLakitu();
     }
 
     _baseIndex(f) { return Math.floor(f * this.track.sampleCount) % this.track.sampleCount; }
@@ -322,8 +369,15 @@ window.MK = window.MK || {};
         hz.lateral = U.randRange(-rh * 0.2, rh * 0.2); hz.radius = 1.3; hz.effect = 'spin';
         hz.pivot = new THREE.Group(); hz.group.add(hz.pivot);
         hz.balls = []; hz.dists = [2.4, 3.8, 5.2]; hz.rot = 1.05 * (side > 0 ? 1 : -1); hz._pts = [];
-        const hub2 = cyl(0.4, 0.5, 1.3, 0xffffff, 10); hub2.position.y = 1.6; hz.group.add(hub2);
-        for (const sgn of [1, -1]) for (const d of hz.dists) { const so = Build.starOrb(); so.position.set(sgn * d, 1.6, 0); hz.pivot.add(so); hz.balls.push(so); hz._pts.push(new THREE.Vector3()); }
+        // 赤／青／緑をバーごとに割り当て（各所で色が変わる）
+        const STARBAR = [
+          { fill: '#ff5d5d', out: '#9a1f1f', core: 0xffd6d6, em: 0xff3b3b, hub: 0xff7a7a },
+          { fill: '#5db9ff', out: '#1f5ba0', core: 0xd6ecff, em: 0x3b8bff, hub: 0x7ab8ff },
+          { fill: '#5dff8a', out: '#1f8a3f', core: 0xd6ffe0, em: 0x35dd5d, hub: 0x7aff9a },
+        ];
+        const col = STARBAR[((this._spinBarN = (this._spinBarN || 0) + 1) - 1) % STARBAR.length];
+        const hub2 = cyl(0.4, 0.5, 1.3, col.hub, 10); hub2.position.y = 1.6; hz.group.add(hub2);
+        for (const sgn of [1, -1]) for (const d of hz.dists) { const so = Build.starOrb(col.fill, col.out, col.core, col.em); so.position.set(sgn * d, 1.6, 0); hz.pivot.add(so); hz.balls.push(so); hz._pts.push(new THREE.Vector3()); }
         hz.hitPoints = hz._pts;
       }
 
@@ -342,6 +396,53 @@ window.MK = window.MK || {};
       if (hz.kind === 'firebar' || hz.kind === 'spinBar') hz.group.position.set(sm.point.x + sm.normal.x * hz.lateral, sm.point.y, sm.point.z + sm.normal.z * hz.lateral);
     }
 
+    // ジュゲム本体（上空を旋回し、定期的にノコノコを落とす）。各コースに1匹。
+    _addLakitu() {
+      const rh = this.track.roadHalf;
+      const f = 0.4 + Math.random() * 0.2;          // 中盤の見やすい位置
+      const idx = this._baseIndex(f);
+      const sm = this.track.samples[idx];
+      const center = new THREE.Vector3(sm.point.x, sm.point.y, sm.point.z);
+      const alt = sm.point.y + 13;
+      const hz = {
+        kind: 'lakitu', side: 1, sample: sm, t: 0, phase: Math.random() * U.TAU,
+        dangerous: false, radius: 1.5, effect: 'spin',
+        hitPoints: [], markerPos: center.clone(), lateral: 0, _p: new THREE.Vector3(), _baseIndex: idx,
+        center, alt, orbitR: Math.min(rh * 0.5, 6), orbitW: 0.65,
+        dropTimer: 1.8, dropEvery: 3.4, maxDrops: 3, _throw: 0,
+      };
+      hz.group = MK.SceneryBuild.lakitu();
+      hz.group.position.set(center.x, alt, center.z);
+      this.root.add(hz.group);
+      this.hazards.push(hz);
+    }
+
+    // ジュゲムが落としたノコノコを実体化（update のループ外で呼ぶ）
+    _createFallingKoopa(s) {
+      const idx = s.idx;
+      const groundY = this.track.samples[idx].point.y;
+      const koopa = Build.koopa(); koopa.scale.setScalar(0.92);
+      koopa.position.set(s.x, s.y, s.z);
+      this.root.add(koopa);
+      const shadow = blob(1.5); shadow.position.set(s.x, groundY + 0.06, s.z); this.root.add(shadow);
+      const hz = {
+        kind: 'fallingKoopa', side: 1, sample: this.track.samples[idx], t: 0, phase: 0,
+        dangerous: false, radius: 1.45, effect: 'spin',
+        hitPoints: [], markerPos: new THREE.Vector3(s.x, groundY, s.z), lateral: 0,
+        _p: new THREE.Vector3(s.x, s.y, s.z), _baseIndex: idx,
+        group: koopa, shadow, vy: 1.5, gravity: 30, groundY, _landed: false, life: 0,
+        _tumX: Math.random() * U.TAU, _tumZ: Math.random() * U.TAU,
+      };
+      hz.hitPoints = [hz._p];
+      this.hazards.push(hz);
+    }
+
+    _countFallingKoopas() {
+      let n = this._spawnQueue ? this._spawnQueue.length : 0;
+      for (const h of this.hazards) if (h.kind === 'fallingKoopa' && !h._remove) n++;
+      return n;
+    }
+
     /* ---- 更新 ---- */
     update(dt) {
       const karts = this.world.karts;
@@ -353,6 +454,22 @@ window.MK = window.MK || {};
         hz.lateral = pr.lateral;
         // 当たり判定
         if (hz.dangerous) this._collide(hz, karts);
+      }
+      // ジュゲムが落としたノコノコの遅延スポーン（ループ外で安全に追加）
+      if (this._spawnQueue && this._spawnQueue.length) {
+        for (const s of this._spawnQueue) this._createFallingKoopa(s);
+        this._spawnQueue.length = 0;
+      }
+      // 寿命切れハザードの除去（メッシュ＆テクスチャを解放）
+      if (this._needCull) {
+        this._needCull = false;
+        for (let i = this.hazards.length - 1; i >= 0; i--) {
+          const hz = this.hazards[i];
+          if (!hz._remove) continue;
+          if (hz.group) { this.root.remove(hz.group); U.disposeObject(hz.group); }
+          if (hz.shadow) { this.root.remove(hz.shadow); U.disposeObject(hz.shadow); }
+          this.hazards.splice(i, 1);
+        }
       }
     }
 
@@ -548,6 +665,63 @@ window.MK = window.MK || {};
           }
           hz.markerPos.set(cx, cy, cz);
           hz.dangerous = true; break;
+        }
+        case 'lakitu': {
+          // 上空を旋回しながら一定間隔でノコノコを投下
+          const a = hz.t * hz.orbitW + hz.phase;
+          const cx = hz.center.x + Math.cos(a) * hz.orbitR;
+          const cz = hz.center.z + Math.sin(a) * hz.orbitR;
+          const cy = hz.alt + Math.sin(hz.t * 1.5 + hz.phase) * 0.6;
+          hz.group.position.set(cx, cy, cz);
+          const vx = -Math.sin(a), vz = Math.cos(a);
+          hz.group.rotation.y = Math.atan2(-vx, -vz);  // 進行方向(-Z)へ向ける
+          // 投げモーション（乗り手が一瞬かがむ）
+          if (hz._throw > 0) { hz._throw -= dt; const rider = hz.group.userData.rider; if (rider) rider.rotation.x = -Math.max(0, hz._throw) / 0.3 * 0.5; }
+          // ノコノコ投下（同時上限 maxDrops）
+          hz.dropTimer -= dt;
+          if (hz.dropTimer <= 0) {
+            hz.dropTimer = hz.dropEvery;
+            if (this._countFallingKoopas() < hz.maxDrops) {
+              (this._spawnQueue || (this._spawnQueue = [])).push({ x: cx, y: cy - 0.7, z: cz, idx: hz._baseIndex });
+              hz._throw = 0.3;
+              if (MK.audio && MK.audio.bump) MK.audio.bump();
+            }
+          }
+          hz.markerPos.set(cx, hz.center.y, cz);
+          hz.dangerous = false; break;
+        }
+        case 'fallingKoopa': {
+          const groundY = hz.groundY;
+          if (!hz._landed) {
+            hz.vy -= hz.gravity * dt;
+            hz._p.y += hz.vy * dt;
+            hz._tumX += dt * 7; hz._tumZ += dt * 4;
+            hz.group.rotation.set(hz._tumX, 0, hz._tumZ);  // 落下中はくるくる回転
+            if (hz._p.y <= groundY) {
+              hz._p.y = groundY; hz._landed = true; hz.vy = 0; hz.life = 2.4;
+              hz.group.rotation.set(0, Math.random() * U.TAU, 0);
+              if (this.world.particles) for (let i = 0; i < 8; i++) this.world.particles.dust(hz._p.x + U.randRange(-1.2, 1.2), groundY, hz._p.z + U.randRange(-1.2, 1.2));
+              if (MK.audio && MK.audio.bump) MK.audio.bump();
+            }
+          } else {
+            hz.life -= dt;
+            hz.group.rotation.y += dt * 1.2;
+            if (hz.group.userData.head) hz.group.userData.head.rotation.z = Math.sin(hz.t * 7) * 0.14;
+            if (hz.life < 0.8) hz.group.visible = Math.sin(hz.t * 30) > -0.2;  // 退場間際は点滅
+            if (hz.life <= 0) { hz.group.visible = true; hz._remove = true; this._needCull = true; }
+          }
+          hz.group.position.copy(hz._p);
+          if (hz.shadow) {
+            const h = Math.max(0, hz._p.y - groundY);
+            const k = U.clamp(1 - h / 13, 0.15, 1);
+            hz.shadow.position.set(hz._p.x, groundY + 0.06, hz._p.z);
+            hz.shadow.scale.set(0.8 + k, 0.8 + k, 1);
+            hz.shadow.material.opacity = hz._landed ? 0.55 : 0.15 + k * 0.5;
+            hz.shadow.visible = hz.group.visible;
+          }
+          hz.markerPos.set(hz._p.x, groundY, hz._p.z);
+          hz.dangerous = (hz._p.y - groundY) < 2.6;  // 地面近くのみ危険
+          break;
         }
       }
     }

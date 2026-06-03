@@ -120,6 +120,7 @@ window.MK = window.MK || {};
             </div>
           </div>
         </div>
+        <div class="key-hint" style="opacity:.72;font-size:13px;margin:4px 0 2px;letter-spacing:.04em">↑ ↓ ← → Move · Enter Select · Esc Back</div>
         <div class="screen-nav">
           <button id="btn-char-back" class="nav-btn back">◀ BACK</button>
           <button id="btn-char-next" class="nav-btn go">SELECT ▶</button>
@@ -136,6 +137,7 @@ window.MK = window.MK || {};
           <button class="diff-btn active" data-diff="NORMAL">100cc · NORMAL</button>
           <button class="diff-btn" data-diff="HARD">150cc · HARD</button>
         </div>
+        <div class="key-hint" style="opacity:.72;font-size:13px;margin:4px 0 2px;letter-spacing:.04em">↑ ↓ ← → Move · Enter Start · Esc Back</div>
         <div class="screen-nav">
           <button id="btn-course-back" class="nav-btn back">◀ BACK</button>
           <button id="btn-course-go" class="nav-btn go">START RACE 🏁</button>
@@ -217,13 +219,79 @@ window.MK = window.MK || {};
         });
       });
 
-      // タイトルはクリック/Enterでも開始
-      this.screens.title.addEventListener('keydown', () => {});
-      window.addEventListener('keydown', (e) => {
-        if (this.screens.title && !this.screens.title.classList.contains('hidden')) {
-          if (e.code === 'Enter' || e.code === 'Space') { MK.audio.init(); this.showCharacterSelect(); }
-        }
-      });
+      // メニューのキーボード操作（方向キーで移動、Enterで決定、Escで戻る）
+      window.addEventListener('keydown', (e) => this._onMenuKey(e));
+      // モバイルのタッチボタンでもメニュー操作（◀▶＝カーソル移動、★＝決定/スタート）
+      MK.input.onTouch = (role, down) => this._onTouchButton(role, down);
+    }
+
+    _visible(name) { return this.screens[name] && !this.screens[name].classList.contains('hidden'); }
+
+    // グリッドの列数を推定（先頭行で offsetTop が同じカード数）
+    _gridColumns(cards) {
+      if (cards.length < 2) return 1;
+      const top = cards[0].offsetTop; let cols = 0;
+      for (const c of cards) { if (c.offsetTop === top) cols++; else break; }
+      return Math.max(1, cols);
+    }
+    _stepIndex(i, n, cols, code) {
+      if (code === 'ArrowLeft') return (i - 1 + n) % n;
+      if (code === 'ArrowRight') return (i + 1) % n;
+      if (code === 'ArrowUp') return i - cols < 0 ? i : i - cols;
+      if (code === 'ArrowDown') return i + cols >= n ? i : i + cols;
+      return i;
+    }
+    _navGrid(grid, code, selectFn) {
+      const cards = [...grid.querySelectorAll('button')];
+      if (!cards.length) return;
+      const cols = this._gridColumns(cards);
+      let i = cards.findIndex((x) => x.classList.contains('selected'));
+      if (i < 0) i = 0;
+      i = this._stepIndex(i, cards.length, cols, code);
+      const card = cards[i];
+      MK.audio.itemRouletteTick();
+      selectFn(card);
+      if (card.scrollIntoView) card.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+
+    _onMenuKey(e) {
+      const code = e.code;
+      const isArrow = code === 'ArrowLeft' || code === 'ArrowRight' || code === 'ArrowUp' || code === 'ArrowDown';
+      const isConfirm = code === 'Enter' || code === 'NumpadEnter' || code === 'Space';
+      const isBack = code === 'Escape' || code === 'Backspace';
+
+      if (this._visible('title')) {
+        if (isConfirm) { e.preventDefault(); MK.audio.init(); this.showCharacterSelect(); }
+        return;
+      }
+      if (this._visible('char')) {
+        if (isArrow) { e.preventDefault(); this._navGrid(this.charGrid, code, (card) => this._selectChar(card._char, card)); }
+        else if (isConfirm) { e.preventDefault(); MK.audio.init(); this.showCourseSelect(); }
+        else if (isBack) { e.preventDefault(); this.showTitle(); }
+        return;
+      }
+      if (this._visible('course')) {
+        if (isArrow) { e.preventDefault(); this._navGrid(this.courseGrid, code, (card) => this._selectCourse(card._course, card)); }
+        else if (isConfirm) { e.preventDefault(); if (this.cb.startRace) this.cb.startRace(this.selectedChar, this.selectedCourse, this.difficulty); }
+        else if (isBack) { e.preventDefault(); this.showCharacterSelect(); }
+        return;
+      }
+    }
+
+    // タッチボタン（◀▶＝カーソル移動、★＝決定）。押下時のみ反応。表示中のメニューに応じて動作。
+    _onTouchButton(role, down) {
+      if (!down) return;
+      if (this._visible('char')) {
+        if (role === 'left') this._navGrid(this.charGrid, 'ArrowLeft', (c) => this._selectChar(c._char, c));
+        else if (role === 'right') this._navGrid(this.charGrid, 'ArrowRight', (c) => this._selectChar(c._char, c));
+        else if (role === 'item') { MK.audio.init(); this.showCourseSelect(); }
+      } else if (this._visible('course')) {
+        if (role === 'left') this._navGrid(this.courseGrid, 'ArrowLeft', (c) => this._selectCourse(c._course, c));
+        else if (role === 'right') this._navGrid(this.courseGrid, 'ArrowRight', (c) => this._selectCourse(c._course, c));
+        else if (role === 'item') { if (this.cb.startRace) this.cb.startRace(this.selectedChar, this.selectedCourse, this.difficulty); }
+      } else if (this._visible('title')) {
+        if (role === 'item') { MK.audio.init(); this.showCharacterSelect(); }
+      }
     }
 
     _statPips(stat, value) {
@@ -244,6 +312,7 @@ window.MK = window.MK || {};
           <div class="char-card-en">${CLASS_LABEL[c.cls] || c.cls}</div>`;
         card.addEventListener('click', () => { MK.audio.init(); MK.audio.itemRouletteTick(); this._selectChar(c, card); });
         card._charId = c.id;
+        card._char = c;
         this.charGrid.appendChild(card);
       });
     }
@@ -275,6 +344,7 @@ window.MK = window.MK || {};
           <div class="course-diff">${stars}</div>
           <div class="course-blurb">${co.blurb}</div>`;
         card.addEventListener('click', () => { MK.audio.init(); MK.audio.itemRouletteTick(); this._selectCourse(co, card); });
+        card._course = co;
         this.courseGrid.appendChild(card);
       });
     }
@@ -292,9 +362,10 @@ window.MK = window.MK || {};
       });
     }
 
-    showTitle() { this._stopPreview(); this._show('title'); MK.audio.playMenuMusic('title'); }
+    showTitle() { this._stopPreview(); this._show('title'); MK.input.showTouch(false); MK.audio.playMenuMusic('title'); }
     showCharacterSelect() {
       this._show('char');
+      MK.input.showTouch(true); MK.input.setTouchMode('menu');   // モバイル：◀▶でカーソル、★で決定
       MK.audio.playMenuMusic('select');
       if (!this.preview) { this.preview = new CharacterPreview(this.previewCanvas); }
       setTimeout(() => { this.preview._resize(); this.preview.start(); }, 30);
@@ -302,8 +373,8 @@ window.MK = window.MK || {};
       const firstCard = this.charGrid.querySelector('.char-card');
       this._selectChar(this.selectedChar, [...this.charGrid.children].find((x) => x._charId === this.selectedChar.id) || firstCard);
     }
-    showCourseSelect() { this._stopPreview(); this._show('course'); MK.audio.playMenuMusic('select'); if (!this.courseGrid.querySelector('.selected')) this._selectCourse(this.selectedCourse, this.courseGrid.firstChild); }
-    showLoading(p) { this._show('loading'); if (this.loadingFill) this.loadingFill.style.width = Math.round((p || 0) * 100) + '%'; }
+    showCourseSelect() { this._stopPreview(); this._show('course'); MK.input.showTouch(true); MK.input.setTouchMode('menu'); MK.audio.playMenuMusic('select'); if (!this.courseGrid.querySelector('.selected')) this._selectCourse(this.selectedCourse, this.courseGrid.firstChild); }
+    showLoading(p) { this._show('loading'); MK.input.showTouch(false); if (this.loadingFill) this.loadingFill.style.width = Math.round((p || 0) * 100) + '%'; }
     hideAll() { this._stopPreview(); Object.values(this.screens).forEach((s) => s && s.classList.add('hidden')); }
     showPause() { this.screens.pause.classList.remove('hidden'); }
     hidePause() { this.screens.pause.classList.add('hidden'); }
@@ -311,6 +382,7 @@ window.MK = window.MK || {};
 
     showResults(standings, playerKart) {
       this._show('results');
+      MK.input.showTouch(false);
       this.resultsList.innerHTML = '';
       standings.forEach((s, i) => {
         const li = document.createElement('li');

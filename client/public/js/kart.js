@@ -13,7 +13,8 @@ window.MK = window.MK || {};
   function buildChassis(color, accent) {
     accent = accent != null ? accent : 0xffffff;
     const g = new THREE.Group();
-    const M = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.42, metalness: 0.3, flatShading: true }, o || {}));
+    // スムーズシェーディング（コンセプトアートのなめらかなカートに合わせる）
+    const M = (col, o) => new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: 0.4, metalness: 0.28 }, o || {}));
     const dark = 0x2a2d34, chrome = 0xc8ccd4;
 
     // 黒い下回り（シャシー）
@@ -24,14 +25,14 @@ window.MK = window.MK || {};
     body.position.y = 0.6; g.add(body);
     // 丸い肩（左右のふくらみ）
     for (const s of [-1, 1]) {
-      const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 2.0, 14), M(color));
+      const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 2.0, 20), M(color));
       sh.rotation.x = Math.PI / 2; sh.position.set(s * 0.76, 0.62, 0.0); g.add(sh);
     }
     // 前方の丸いカウル（ボンネット）
-    const cowl = new THREE.Mesh(new THREE.SphereGeometry(0.78, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2), M(color));
+    const cowl = new THREE.Mesh(new THREE.SphereGeometry(0.78, 26, 18, 0, Math.PI * 2, 0, Math.PI / 2), M(color));
     cowl.scale.set(1.05, 0.72, 1.15); cowl.position.set(0, 0.58, -0.85); g.add(cowl);
     // 丸いノーズ先端
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 12), M(color));
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.6, 22, 16), M(color));
     nose.scale.set(1.2, 0.6, 0.95); nose.position.set(0, 0.5, -1.4); g.add(nose);
     // フロントリップ（アクセント）
     const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.5, 10), M(accent, { metalness: 0.45 }));
@@ -40,7 +41,13 @@ window.MK = window.MK || {};
     for (const s of [-1, 1]) {
       const hl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), M(0xfff6c0, { emissive: 0xffe49a, emissiveIntensity: 0.55 }));
       hl.scale.set(1, 0.85, 0.6); hl.position.set(s * 0.4, 0.6, -1.52); g.add(hl);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.03, 6, 14), M(chrome, { metalness: 0.8, roughness: 0.25 }));
+      ring.position.set(s * 0.4, 0.6, -1.5); g.add(ring);
     }
+    // フロントグリル（暗いスリット＋クロムのバー）
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.16, 0.1), M(0x15171b));
+    grille.position.set(0, 0.42, -1.45); g.add(grille);
+    for (let i = -1; i <= 1; i++) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.12), M(chrome, { metalness: 0.7, roughness: 0.3 })); bar.position.set(i * 0.2, 0.42, -1.47); g.add(bar); }
     // ボンネットのナンバー丸
     const roundel = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.06, 18), M(0xffffff, { roughness: 0.4 }));
     roundel.rotation.x = -Math.PI / 2 + 0.08; roundel.position.set(0, 0.78, -0.72); g.add(roundel);
@@ -74,6 +81,13 @@ window.MK = window.MK || {};
     // リアバンパー（アクセント）
     const rear = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.3), M(accent, { metalness: 0.4 }));
     rear.position.set(0, 0.5, 1.3); g.add(rear);
+    // サイドのアクセントライン
+    for (const s of [-1, 1]) { const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 1.5), M(accent, { metalness: 0.4 })); stripe.position.set(s * 0.79, 0.66, 0.0); g.add(stripe); }
+    // リアのナンバープレート（白丸＋アクセント縁）
+    const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16), M(0xffffff, { roughness: 0.5 }));
+    plate.rotation.x = Math.PI / 2; plate.position.set(0, 0.66, 1.46); g.add(plate);
+    const plateRing = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 18), M(accent, { metalness: 0.4 }));
+    plateRing.rotation.x = Math.PI / 2; plateRing.position.set(0, 0.66, 1.47); g.add(plateRing);
 
     // ホイール（太いカートタイヤ＋アクセントのホイールキャップ）
     const wheels = [], steerPivots = [];
@@ -83,14 +97,14 @@ window.MK = window.MK || {};
     function makeWheel(big) {
       const wg = new THREE.Group();
       const r = big ? 0.5 : 0.42, w = big ? 0.42 : 0.36;
-      const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 18), tireMat);
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w, 24), tireMat);
       tire.rotation.z = Math.PI / 2; wg.add(tire);
       // 外周を膨らませて極太タイヤに
-      const tread = new THREE.Mesh(new THREE.TorusGeometry(r, w * 0.5, 8, 20), tireMat);
+      const tread = new THREE.Mesh(new THREE.TorusGeometry(r, w * 0.5, 12, 28), tireMat);
       tread.rotation.y = Math.PI / 2; wg.add(tread);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, w + 0.02, 12), hubMat);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, w + 0.02, 18), hubMat);
       hub.rotation.z = Math.PI / 2; wg.add(hub);
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.26, r * 0.26, w + 0.04, 10), capMat);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.26, r * 0.26, w + 0.04, 14), capMat);
       cap.rotation.z = Math.PI / 2; wg.add(cap);
       return wg;
     }
@@ -134,6 +148,7 @@ window.MK = window.MK || {};
       this.speed = 0;
       this.boostTimer = 0;
       this.boostPower = 0;
+      this.bumpVel = new THREE.Vector3();   // 体当たりの横ノックバック（_resolveCollisions が加算）
 
       // ドリフト
       this.drifting = false;
@@ -394,6 +409,15 @@ window.MK = window.MK || {};
       gp.x += fwd.x * this.speed * dt;
       gp.z += fwd.z * this.speed * dt;
       gp.y = U.damp(gp.y, info.point.y, 12, dt);
+
+      // 体当たりの弾き（横ノックバック）を加算して減衰
+      if (this.bumpVel.x !== 0 || this.bumpVel.z !== 0) {
+        gp.x += this.bumpVel.x * dt;
+        gp.z += this.bumpVel.z * dt;
+        this.bumpVel.x = U.damp(this.bumpVel.x, 0, 5.5, dt);
+        this.bumpVel.z = U.damp(this.bumpVel.z, 0, 5.5, dt);
+        if (Math.abs(this.bumpVel.x) < 0.05 && Math.abs(this.bumpVel.z) < 0.05) { this.bumpVel.x = 0; this.bumpVel.z = 0; }
+      }
 
       /* --- 壁 / 落下 判定 --- */
       const after = track.project(gp, this.sampleIndex);

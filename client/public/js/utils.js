@@ -142,9 +142,10 @@ window.MK = window.MK || {};
     });
   };
 
-  // 星形スプライト（スター用）
-  U.starTexture = function (color) {
+  // 星形スプライト（スター用）。outline で縁取り色を指定できる（赤/青/緑の星など）。
+  U.starTexture = function (color, outline) {
     color = color || '#fff04d';
+    outline = outline || '#caa400';
     return U.makeCanvasTexture(128, (ctx, s) => {
       ctx.translate(s / 2, s / 2);
       ctx.beginPath();
@@ -157,7 +158,7 @@ window.MK = window.MK || {};
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.lineWidth = 6; ctx.strokeStyle = '#caa400'; ctx.stroke();
+      ctx.lineWidth = 6; ctx.strokeStyle = outline; ctx.stroke();
       // 目
       ctx.fillStyle = '#1a1a1a';
       ctx.beginPath(); ctx.ellipse(-12, -2, 5, 9, 0, 0, U.TAU); ctx.fill();

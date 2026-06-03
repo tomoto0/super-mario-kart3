@@ -79,24 +79,27 @@ window.MK = window.MK || {};
     },
     goomba() {
       const g = new THREE.Group();
-      // 頭＋体（栗色のドーム）
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.92, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.64), M(0x875428));
-      body.scale.set(1.05, 0.9, 1); body.position.y = 0.82; g.add(body);
-      // 顔まわりの明るい帯
-      const cheeks = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 12, 0, Math.PI * 2, Math.PI * 0.34, Math.PI * 0.32), M(0xa9763a));
-      cheeks.scale.set(1.04, 0.9, 1); cheeks.position.y = 0.82; g.add(cheeks);
+      // 滑らかシェーディングのマッシュルーム体
+      const sm = (geo, color, o) => new THREE.Mesh(geo, M(color, Object.assign({ flatShading: false, roughness: 0.72 }, o || {})));
+      // 頭＋体（栗色のドーム・上が濃い茶）
+      const body = sm(new THREE.SphereGeometry(0.95, 24, 18), 0x8a5a2a);
+      body.scale.set(1.08, 0.94, 1.0); body.position.y = 0.9; g.add(body);
+      // 下半分の明るいフェイス帯
+      const faceBand = sm(new THREE.SphereGeometry(0.9, 24, 16, 0, Math.PI * 2, Math.PI * 0.42, Math.PI * 0.5), 0xc28a48);
+      faceBand.scale.set(1.06, 0.94, 1.0); faceBand.position.y = 0.9; g.add(faceBand);
       // 底（クリーム）
-      const under = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), M(0xf0d8b0));
-      under.position.y = 0.82; g.add(under);
+      const under = sm(new THREE.SphereGeometry(0.86, 22, 10, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45), 0xf0d8b0);
+      under.position.y = 0.9; g.add(under);
       for (const s of [-1, 1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), basic(0xffffff)); eye.position.set(s * 0.27, 0.96, -0.72); eye.scale.set(0.82, 1.25, 0.6); g.add(eye);
-        const p = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), basic(0x1a1a1a)); p.position.set(s * 0.3, 0.92, -0.84); g.add(p);
-        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.1, 0.1), M(0x32200e)); brow.position.set(s * 0.3, 1.15, -0.72); brow.rotation.z = -s * 0.52; g.add(brow);
-        const foot = new THREE.Mesh(new THREE.SphereGeometry(0.33, 12, 8), M(0x4a3014)); foot.scale.set(1, 0.5, 1.4); foot.position.set(s * 0.43, 0.12, 0.02); g.add(foot);
+        const eye = sm(new THREE.SphereGeometry(0.2, 16, 12), 0xffffff); eye.position.set(s * 0.26, 0.98, -0.74); eye.scale.set(0.8, 1.32, 0.55); g.add(eye);
+        const p = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 10), basic(0x141414)); p.position.set(s * 0.2, 0.94, -0.86); g.add(p);
+        // 怒り眉（内側に大きく傾斜）
+        const brow = sm(new THREE.BoxGeometry(0.44, 0.14, 0.12), 0x2a1a0a); brow.position.set(s * 0.28, 1.2, -0.76); brow.rotation.z = -s * 0.62; g.add(brow);
+        const foot = sm(new THREE.SphereGeometry(0.34, 14, 10), 0x3f280f); foot.scale.set(1, 0.5, 1.5); foot.position.set(s * 0.43, 0.12, 0.0); g.add(foot);
       }
-      // 口（への字）＋牙
-      const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.09, 0.08), M(0x2a1808)); mouth.position.set(0, 0.66, -0.87); g.add(mouth);
-      for (const s of [-1, 1]) { const fang = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 6), basic(0xffffff)); fang.position.set(s * 0.12, 0.61, -0.87); fang.rotation.x = Math.PI; g.add(fang); }
+      // 口（しかめっ面）＋中央の牙
+      for (const s of [-1, 1]) { const mh = sm(new THREE.BoxGeometry(0.36, 0.1, 0.09), 0x231405); mh.position.set(s * 0.17, 0.62, -0.9); mh.rotation.z = -s * 0.34; g.add(mh); }
+      for (const s of [-1, 1]) { const fang = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.17, 8), basic(0xffffff)); fang.position.set(s * 0.1, 0.55, -0.9); fang.rotation.x = Math.PI; g.add(fang); }
       return g;
     },
     tree(snow) {
@@ -263,12 +266,32 @@ window.MK = window.MK || {};
     },
     lakitu() {
       const g = new THREE.Group();
-      const cloud = Build.cloud(); cloud.scale.setScalar(1.0); g.add(cloud);
-      const body = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 10), M(0xf0e26a)); body.position.y = 1.0; g.add(body);
-      const shell = new THREE.Mesh(new THREE.SphereGeometry(0.6, 14, 10), M(0x36c957)); shell.scale.set(1, 1, 0.7); shell.position.set(0, 1.1, 0.4); g.add(shell);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), M(0xf0e26a)); head.position.set(0, 1.7, -0.1); g.add(head);
-      // メガネ
-      for (const s of [-1, 1]) { const gl = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.05, 6, 12), M(0x222222)); gl.position.set(s * 0.2, 1.75, -0.5); g.add(gl); const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), basic(0xffffff)); eye.position.set(s * 0.2, 1.75, -0.55); g.add(eye); }
+      const skin = 0xf3d24a, shellG = 0x2fae4a, cream = 0xf3e6b0;
+      const sm = (geo, color, o) => new THREE.Mesh(geo, M(color, Object.assign({ flatShading: false }, o || {})));
+      // 雲（顔つき）
+      const cloud = new THREE.Group();
+      const cmat = M(0xffffff, { flatShading: false, roughness: 0.95, metalness: 0 });
+      [[0, 0, 0, 1.5], [1.35, -0.12, 0, 1.05], [-1.35, -0.12, 0, 1.05], [0.8, 0.22, 0.7, 0.92], [-0.8, 0.22, -0.6, 0.92], [0, -0.05, 0.95, 0.86], [0, 0.12, -0.9, 0.86]]
+        .forEach((p) => { const s = new THREE.Mesh(new THREE.SphereGeometry(p[3], 16, 12), cmat); s.position.set(p[0], p[1], p[2]); s.scale.y = 0.78; cloud.add(s); });
+      for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), basic(0x33405a)); e.position.set(s * 0.3, 0.05, -1.42); cloud.add(e); }
+      const smile = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 8, 14, Math.PI), M(0x33405a, { flatShading: false })); smile.position.set(0, -0.12, -1.42); smile.rotation.z = Math.PI; cloud.add(smile);
+      g.add(cloud); g.userData.cloud = cloud;
+      // 乗り手（ジュゲム）— 緑甲羅＋黄土色の頭＋丸メガネ
+      const rider = new THREE.Group(); rider.position.y = 0.92; g.add(rider);
+      const body = sm(new THREE.SphereGeometry(0.5, 16, 14), skin); body.scale.set(1, 0.92, 1); body.position.y = 0.42; rider.add(body);
+      const shell = sm(new THREE.SphereGeometry(0.6, 18, 16), shellG); shell.scale.set(1.05, 1.05, 0.78); shell.position.set(0, 0.56, 0.34); rider.add(shell);
+      const shellRim = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 10, 20), M(cream, { flatShading: false })); shellRim.rotation.x = Math.PI / 2 - 0.2; shellRim.position.set(0, 0.4, 0.3); rider.add(shellRim);
+      const head = sm(new THREE.SphereGeometry(0.46, 16, 14), skin); head.position.set(0, 1.04, -0.06); rider.add(head);
+      const beak = sm(new THREE.ConeGeometry(0.17, 0.3, 12), 0xe8901f); beak.rotation.x = -Math.PI / 2; beak.position.set(0, 0.98, -0.5); rider.add(beak);
+      // 丸メガネ（オレンジ縁＋レンズ＋瞳）
+      for (const s of [-1, 1]) {
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.05, 8, 16), M(0xff9b2f, { flatShading: false })); rim.position.set(s * 0.21, 1.1, -0.42); rider.add(rim);
+        const lens = sm(new THREE.SphereGeometry(0.14, 12, 10), 0xeaf6ff); lens.scale.set(1, 1, 0.4); lens.position.set(s * 0.21, 1.1, -0.46); rider.add(lens);
+        const pup = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), basic(0x1a1a1a)); pup.position.set(s * 0.21, 1.1, -0.54); rider.add(pup);
+      }
+      // 腕
+      for (const s of [-1, 1]) { const arm = sm(new THREE.SphereGeometry(0.16, 10, 10), skin); arm.scale.set(1, 1.4, 1); arm.position.set(s * 0.52, 0.5, -0.18); arm.rotation.z = s * 0.5; rider.add(arm); }
+      g.userData.rider = rider;
       g.userData.bob = Math.random() * Math.PI * 2;
       return g;
     },
