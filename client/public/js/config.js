@@ -52,8 +52,8 @@ window.MK = window.MK || {};
     mushroomDuration: 1.4,
 
     // コイン：1枚取得するごとに最高速を恒久的に加算
-    // （HUD表示は内部速度×3.0なので 0.1km/h ＝ 0.1/3.0 units/s）
-    coinSpeedBonus: 0.1 / 3.0,
+    // （HUD表示は内部速度×3.0なので 0.2km/h ＝ 0.2/3.0 units/s）
+    coinSpeedBonus: 0.2 / 3.0,
 
     // 当たり判定
     kartRadius: 2.0,
