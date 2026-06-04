@@ -128,6 +128,18 @@ window.MK = window.MK || {};
       });
       return g;
     },
+    // 漂う熱気球（草原の遠景）
+    balloon(color) {
+      const g = new THREE.Group();
+      const env = new THREE.Mesh(new THREE.SphereGeometry(2.2, 18, 16), M(color, { roughness: 0.5 }));
+      env.scale.set(1, 1.18, 1); env.position.y = 2.7; g.add(env);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(2.16, 0.18, 8, 22), M(0xffffff, { roughness: 0.5 }));
+      band.rotation.x = Math.PI / 2; band.position.y = 2.7; g.add(band);
+      const nub = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 12), M(0xffe27a)); nub.rotation.x = Math.PI; nub.position.y = 0.55; g.add(nub);
+      const basket = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.85, 1.0), M(0x8a5a2a)); basket.position.y = -0.2; g.add(basket);
+      for (const s of [-1, 1]) for (const u of [-1, 1]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.5, 4), M(0x5a5a5a)); rope.position.set(s * 0.45, 0.55, u * 0.45); g.add(rope); }
+      return g;
+    },
     snowman() {
       const g = new THREE.Group();
       const mat = M(0xffffff);
@@ -368,6 +380,8 @@ window.MK = window.MK || {};
       this.lakitus = [];
       this.banners = [];
       this.goombas = [];
+      this.drifters = [];   // 漂う気球など（背景の動き）
+      this.snowfall = null; // 降雪（雪原の動き）
       this.signal = null;
       this.coinCounters = {}; // kartIndex -> count
     }
@@ -409,31 +423,9 @@ window.MK = window.MK || {};
         const saturn = Build.ringedPlanet(0xc9a0ff, 34); saturn.position.set(300, 130, -130); saturn.rotation.z = 0.35; this.root.add(saturn);
       }
 
-      // 遠景の山（grass/snow）
-      if (t.props === 'grass' || t.props === 'snow') {
-        const mtnColor = t.props === 'snow' ? 0xdfeaf6 : 0x6fae5a;
-        for (let i = 0; i < 14; i++) {
-          const a = (i / 14) * U.TAU;
-          const r = 360 + (i % 3) * 40;
-          const mtn = new THREE.Mesh(new THREE.ConeGeometry(60 + (i % 4) * 18, 90 + (i % 5) * 25, 6), M(mtnColor, { fog: true }));
-          mtn.position.set(Math.cos(a) * r, 20, Math.sin(a) * r);
-          this.root.add(mtn);
-          if (t.props === 'snow') { const cap = new THREE.Mesh(new THREE.ConeGeometry(22, 30, 6), M(0xffffff)); cap.position.set(mtn.position.x, 75, mtn.position.z); this.root.add(cap); }
-        }
-      }
-      // 草原：遠景にピーチ城
-      if (t.props === 'grass') {
-        const castle = Build.peachCastle();
-        castle.position.set(95, 0, -300); castle.rotation.y = -0.32; castle.scale.setScalar(2.4);
-        this.root.add(castle);
-      }
-      // 雪原：巨大な氷山
-      if (t.props === 'snow') {
-        for (const p of [[-185, -255, 1.3], [215, -175, 1.05], [-55, -325, 1.5]]) {
-          const berg = new THREE.Mesh(new THREE.ConeGeometry(40, 96, 5), M(0xeaf4ff, { roughness: 0.45 })); berg.position.set(p[0], 18, p[1]); berg.scale.setScalar(p[2]); this.root.add(berg);
-          const cap = new THREE.Mesh(new THREE.ConeGeometry(15, 30, 5), M(0xffffff)); cap.position.set(p[0], 18 + 33 * p[2], p[1]); cap.scale.setScalar(p[2]); this.root.add(cap);
-        }
-      }
+      // 遠景（コースのコンセプトに合わせて作り込んだ背景）
+      if (t.props === 'grass') this._buildGrassBackdrop();
+      else if (t.props === 'snow') this._buildSnowBackdrop();
       // 城コース：高架の通路の下に広がる溶岩の海
       if (t.props === 'castle') {
         const lavaTex = U.makeCanvasTexture(256, (ctx, s) => {
@@ -520,6 +512,79 @@ window.MK = window.MK || {};
         const a = (i / 12) * U.TAU;
         puff(Math.cos(a) * 470, 110 + Math.sin(a * 2) * 70, Math.sin(a) * 470, U.randRange(120, 200), palette[(Math.random() * palette.length) | 0], 0.045);
       }
+    }
+
+    // 草原（マリオサーキット）：連なる丘＋遠くの山＋ピーチ城＋漂う熱気球
+    _buildGrassBackdrop() {
+      // 連なる丸い丘（2層・奥ほど淡く＝奥行き）
+      const hillLayers = [
+        { r: 300, n: 20, col: 0x57a945, wMin: 45, wMax: 80, y: -4 },
+        { r: 410, n: 16, col: 0x7cb96a, wMin: 70, wMax: 120, y: -6 },
+      ];
+      for (const L of hillLayers) {
+        for (let i = 0; i < L.n; i++) {
+          const a = (i / L.n) * U.TAU + U.randRange(-0.08, 0.08), r = L.r + U.randRange(-30, 30);
+          const w = U.randRange(L.wMin, L.wMax);
+          const hill = new THREE.Mesh(new THREE.SphereGeometry(w, 16, 9, 0, U.TAU, 0, Math.PI * 0.5), M(L.col, { fog: true, roughness: 0.96 }));
+          hill.scale.y = U.randRange(0.45, 0.72); hill.position.set(Math.cos(a) * r, L.y, Math.sin(a) * r); this.root.add(hill);
+        }
+      }
+      // 遠くの山（丸み＋頂の明るい草）
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * U.TAU + 0.25, r = 480 + (i % 2) * 40, h = U.randRange(150, 230), rad = U.randRange(70, 100);
+        const mtn = new THREE.Mesh(new THREE.ConeGeometry(rad, h, 7), M(0x6a9e54, { fog: true })); mtn.position.set(Math.cos(a) * r, -6, Math.sin(a) * r); this.root.add(mtn);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(rad * 0.5, h * 0.34, 7), M(0x8fc070, { fog: true })); cap.position.set(mtn.position.x, -6 + h * 0.5, mtn.position.z); this.root.add(cap);
+      }
+      // 遠景のピーチ城
+      const castle = Build.peachCastle(); castle.position.set(95, 0, -300); castle.rotation.y = -0.32; castle.scale.setScalar(2.4); this.root.add(castle);
+      // 漂う熱気球（動きあり）
+      const cols = [0xe23b2e, 0x2b6fd6, 0xffd24a, 0x2fae4a, 0xf45ba5];
+      for (let i = 0; i < 5; i++) {
+        const b = Build.balloon(cols[i % cols.length]);
+        const a = U.randRange(0, U.TAU), r = U.randRange(150, 320);
+        b.position.set(Math.cos(a) * r, U.randRange(55, 110), Math.sin(a) * r); b.scale.setScalar(U.randRange(2.4, 4.0)); this.root.add(b);
+        this.drifters.push({ mesh: b, cx: b.position.x, cz: b.position.z, baseY: b.position.y, ang: a, rad: U.randRange(18, 40), spd: U.randRange(0.04, 0.1) * (Math.random() < 0.5 ? 1 : -1), bob: Math.random() * 10, bobAmp: U.randRange(2, 5) });
+      }
+    }
+
+    // 雪原（シャーベットランド）：連なる雪山＋遠くの針葉樹林＋氷山＋オーロラ
+    _buildSnowBackdrop() {
+      // 連なる雪山（手前は濃い氷青、奥は淡く＝淡い空でも輪郭が出る）＋白い雪冠
+      const layers = [
+        { r: 300, n: 16, col: 0x8fb4d4, hMin: 70, hMax: 120, rad: 60 },
+        { r: 425, n: 12, col: 0xb6d0e6, hMin: 130, hMax: 210, rad: 90 },
+      ];
+      for (const L of layers) {
+        for (let i = 0; i < L.n; i++) {
+          const a = (i / L.n) * U.TAU + U.randRange(-0.08, 0.08), r = L.r + U.randRange(-30, 30), h = U.randRange(L.hMin, L.hMax), rad = L.rad * U.randRange(0.7, 1.1);
+          const mtn = new THREE.Mesh(new THREE.ConeGeometry(rad, h, 7), M(L.col, { fog: true, roughness: 0.85 })); mtn.position.set(Math.cos(a) * r, -6, Math.sin(a) * r); this.root.add(mtn);
+          const cap = new THREE.Mesh(new THREE.ConeGeometry(rad * 0.55, h * 0.42, 7), M(0xfdfeff, { fog: true })); cap.position.set(mtn.position.x, -6 + h * 0.48, mtn.position.z); this.root.add(cap);
+        }
+      }
+      // 遠くの常緑樹林（緑＝淡い空でも"森"とわかる）
+      for (let i = 0; i < 34; i++) {
+        const a = (i / 34) * U.TAU + U.randRange(-0.05, 0.05), r = 245 + U.randRange(-20, 35);
+        const tree = Build.tree(false); tree.scale.setScalar(U.randRange(1.4, 2.6)); tree.position.set(Math.cos(a) * r, -2, Math.sin(a) * r); this.root.add(tree);
+      }
+      // 巨大な氷山
+      for (const p of [[-185, -255, 1.3], [215, -175, 1.05], [-55, -325, 1.5]]) {
+        const berg = new THREE.Mesh(new THREE.ConeGeometry(40, 96, 5), M(0xbfe0f2, { roughness: 0.4, metalness: 0.1 })); berg.position.set(p[0], 14, p[1]); berg.scale.setScalar(p[2]); this.root.add(berg);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(15, 30, 5), M(0xffffff)); cap.position.set(p[0], 14 + 33 * p[2], p[1]); cap.scale.setScalar(p[2]); this.root.add(cap);
+      }
+      this._buildSnowfall();
+    }
+
+    // 降雪（プレイヤー周辺に舞う雪。フレームごとに落下＆再循環）
+    _buildSnowfall() {
+      const N = 480, range = 80, top = 70;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) { pos[i * 3] = U.randRange(-range, range); pos[i * 3 + 1] = U.randRange(0, top); pos[i * 3 + 2] = U.randRange(-range, range); }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const tex = U.softCircleTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0)');
+      const mat = new THREE.PointsMaterial({ size: 1.5, map: tex, transparent: true, depthWrite: false, opacity: 0.9, sizeAttenuation: true, fog: false });
+      const pts = new THREE.Points(geo, mat); this.root.add(pts);
+      this.snowfall = { pts, geo, range, top, vy: 13 };
     }
 
     _scatterProps() {
@@ -649,6 +714,25 @@ window.MK = window.MK || {};
       const now = performance.now() * 0.001;
       // 星の瞬き（虹コース）
       if (this._twinkle) for (const w of this._twinkle) w.mat.opacity = U.clamp(w.base + Math.sin(now * 2.4 + w.ph) * w.amp, 0.15, 1);
+      // 漂う熱気球（草原）
+      if (this.drifters.length) for (const d of this.drifters) {
+        d.ang += d.spd * dt;
+        d.mesh.position.set(d.cx + Math.cos(d.ang) * d.rad, d.baseY + Math.sin(now * 0.5 + d.bob) * d.bobAmp, d.cz + Math.sin(d.ang) * d.rad);
+        d.mesh.rotation.y += dt * 0.1;
+      }
+      // 降雪（雪原）：プレイヤー周辺に追従して舞い落ちる
+      if (this.snowfall) {
+        const sf = this.snowfall;
+        const pl = karts && karts.find ? karts.find((k) => k.isPlayer) : null;
+        if (pl) sf.pts.position.set(pl.group.position.x, 0, pl.group.position.z);
+        const arr = sf.geo.attributes.position.array;
+        for (let i = 0; i < arr.length; i += 3) {
+          arr[i + 1] -= sf.vy * dt;
+          arr[i] += Math.sin((now + i) * 0.7) * 2 * dt;
+          if (arr[i + 1] < 0) { arr[i + 1] = sf.top; arr[i] = U.randRange(-sf.range, sf.range); arr[i + 2] = U.randRange(-sf.range, sf.range); }
+        }
+        sf.geo.attributes.position.needsUpdate = true;
+      }
       // コイン
       for (const c of this.coins) {
         if (c.active) {

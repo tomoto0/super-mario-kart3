@@ -91,12 +91,14 @@ window.MK = window.MK || {};
       // race-only はメニュー中は非表示（CSS）。
       root.innerHTML = `
         <div class="tc-left">
-          <button class="tc-btn tc-steer" data-key="_left" data-role="left">◀</button>
-          <button class="tc-btn tc-steer" data-key="_right" data-role="right">▶</button>
+          <button class="tc-btn tc-item" data-press="Space" data-role="item">★</button>
+          <div class="tc-steer-row">
+            <button class="tc-btn tc-steer" data-key="_left" data-role="left">◀</button>
+            <button class="tc-btn tc-steer" data-key="_right" data-role="right">▶</button>
+          </div>
         </div>
         <div class="tc-right">
           <button class="tc-btn tc-drift race-only" data-key="_drift" data-role="drift">DRIFT</button>
-          <button class="tc-btn tc-item" data-press="Space" data-role="item">★</button>
           <button class="tc-btn tc-accel race-only" data-key="ArrowUp" data-role="accel">ACCEL</button>
         </div>`;
       document.body.appendChild(root);

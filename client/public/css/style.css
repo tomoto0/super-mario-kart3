@@ -185,6 +185,8 @@ canvas{display:block;}
 #touch-controls{position:fixed;inset:0;z-index:30;pointer-events:none;display:none;}
 body.is-touch #touch-controls{display:flex;justify-content:space-between;align-items:flex-end;padding:0 18px 24px;}
 .tc-left,.tc-right{display:flex;gap:12px;align-items:flex-end;}
+.tc-left{flex-direction:column;align-items:center;}      /* ★ を ◀▶ の真上に重ねる */
+.tc-steer-row{display:flex;gap:12px;align-items:flex-end;}
 .tc-btn{pointer-events:auto;width:74px;height:74px;border-radius:50%;font-size:16px;font-weight:900;color:#fff;
   background:rgba(40,48,90,.6);border:3px solid rgba(255,255,255,.7);box-shadow:0 4px 10px rgba(0,0,0,.4);}
 .tc-btn.active{background:rgba(255,210,63,.7);transform:scale(.94);}

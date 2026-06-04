@@ -187,20 +187,49 @@ window.MK = window.MK || {};
       g.userData.head = head;
       return g;
     },
-    // --- 雪：転がる雪玉 ---
-    snowball() {
+    // --- 雪：練り歩く雪だるま ---
+    snowman() {
       const g = new THREE.Group();
-      const ball = sph(1.15, 0xffffff, 16, { roughness: 0.95 }); ball.position.y = 1.15; g.add(ball);
-      for (let i = 0; i < 7; i++) { const sp = sph(0.18, 0xdcebff, 8); const a = i / 7 * U.TAU; ball.add(sp); sp.position.set(Math.cos(a) * 0.75, Math.sin(a * 1.7) * 0.7, Math.sin(a) * 0.75); }
-      g.userData.ball = ball;
+      const snow = (r, y) => { const m = sph(r, 0xfbfdff, 18, { roughness: 0.92 }); m.position.y = y; g.add(m); return m; };
+      snow(0.85, 0.82);                    // 胴（下）
+      snow(0.6, 1.85);                     // 胴（上）
+      const head = snow(0.45, 2.7);        // 頭
+      // 目（炭）
+      for (const s of [-1, 1]) { const e = sph(0.075, 0x20242c, 10); e.position.set(s * 0.16, 2.8, -0.4); g.add(e); }
+      // にんじんの鼻
+      const nose = cone(0.1, 0.42, 0xff8a2a, 10); nose.rotation.x = -Math.PI / 2; nose.position.set(0, 2.68, -0.5); g.add(nose);
+      // 炭の口（弧）
+      for (let i = 0; i < 5; i++) { const a = -0.6 + i * 0.3; const m = sph(0.04, 0x20242c, 6); m.position.set(Math.sin(a) * 0.26, 2.54, -0.4); g.add(m); }
+      // ボタン（炭）
+      for (let i = 0; i < 3; i++) { const b = sph(0.06, 0x20242c, 8); b.position.set(0, 1.58 + i * 0.3, -0.58); g.add(b); }
+      // 枝の腕＋小枝
+      for (const s of [-1, 1]) {
+        const arm = cyl(0.04, 0.05, 1.0, 0x7a4a22, 6); arm.position.set(s * 0.62, 1.95, 0); arm.rotation.z = s * 1.0; g.add(arm);
+        const tw = cyl(0.03, 0.03, 0.32, 0x7a4a22, 6); tw.position.set(s * 1.02, 2.2, 0); tw.rotation.z = s * 0.5; g.add(tw);
+      }
+      // 赤いマフラー＋たれ
+      const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.13, 8, 18), M(0xe23b2e)); scarf.rotation.x = Math.PI / 2; scarf.position.y = 2.32; g.add(scarf);
+      const tailEnd = box(0.18, 0.5, 0.12, 0xe23b2e); tailEnd.position.set(0.3, 2.05, -0.22); tailEnd.rotation.z = 0.3; g.add(tailEnd);
+      // 黒いシルクハット＋赤帯
+      const brim = cyl(0.52, 0.52, 0.07, 0x232831, 18); brim.position.y = 3.12; g.add(brim);
+      const top = cyl(0.36, 0.38, 0.55, 0x232831, 18); top.position.y = 3.42; g.add(top);
+      const band = cyl(0.385, 0.385, 0.13, 0xe23b2e, 18); band.position.y = 3.2; g.add(band);
+      g.userData.head = head;
       return g;
     },
     // --- 雪：落ちてくるつらら ---
     icicle() {
       const g = new THREE.Group();
-      const iceMat = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, roughness: 0.2, metalness: 0.15, transparent: true, opacity: 0.88, flatShading: true });
-      const ice = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.4, 8), iceMat); ice.rotation.x = Math.PI; ice.position.y = -1.2; g.add(ice);
-      const hi = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.4, 6), new THREE.MeshStandardMaterial({ color: 0xeaf6ff, roughness: 0.1, transparent: true, opacity: 0.7 })); hi.rotation.x = Math.PI; hi.position.set(-0.12, -0.7, -0.12); g.add(hi);
+      const iceMat = new THREE.MeshStandardMaterial({ color: 0xa9dcff, roughness: 0.14, metalness: 0.22, transparent: true, opacity: 0.9 });
+      const iceLit = new THREE.MeshStandardMaterial({ color: 0xe9f7ff, roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.8 });
+      // 主体（大きく長い氷柱）
+      const ice = new THREE.Mesh(new THREE.ConeGeometry(0.78, 3.6, 8), iceMat); ice.rotation.x = Math.PI; ice.position.y = -1.8; g.add(ice);
+      // つららの節（段々）
+      for (let i = 0; i < 3; i++) { const r = 0.66 - i * 0.16; const seg = new THREE.Mesh(new THREE.ConeGeometry(r, 0.55, 8), iceMat); seg.rotation.x = Math.PI; seg.position.y = -0.45 - i * 0.78; g.add(seg); }
+      // 光るハイライト筋
+      const hi = new THREE.Mesh(new THREE.ConeGeometry(0.2, 2.6, 6), iceLit); hi.rotation.x = Math.PI; hi.position.set(-0.2, -1.4, -0.2); g.add(hi);
+      // 付け根の霜（天井に付く部分）
+      const frost = sph(0.6, 0xffffff, 14, { roughness: 0.95 }); frost.scale.set(1, 0.45, 1); frost.position.y = 0.12; g.add(frost);
       g.userData.ice = ice;
       return g;
     },
@@ -273,7 +302,7 @@ window.MK = window.MK || {};
       this._needCull = false;
       const plans = {
         grass: [['goomba', 3], ['koopa', 2], ['piranha', 2], ['montyMole', 3]],
-        snow: [['penguin', 4], ['snowball', 2], ['icicle', 3]],
+        snow: [['penguin', 4], ['snowman', 2], ['icicle', 3]],
         castle: [['thwomp', 2], ['firebar', 2], ['podoboo', 3], ['flameJet', 2]],
         rainbow: [['chomp', 2], ['comet', 2], ['spinBar', 3]],
       }[props] || [];
@@ -357,14 +386,14 @@ window.MK = window.MK || {};
         hz.lateral = U.randRange(-rh * 0.7, rh * 0.7); hz.radius = 1.5; hz.effect = 'spin';
         hz._yaw = Math.random() * U.TAU; hz.cycle = U.randRange(2.6, 3.8);
         hz.hitPoints = [hz._p];
-      } else if (kind === 'snowball') {
-        hz.group = Build.snowball();
-        hz.amp = rh * 0.92; hz.speed = 1.05; hz.radius = 1.75; hz.effect = 'spin';
+      } else if (kind === 'snowman') {
+        hz.group = Build.snowman(); hz.group.scale.setScalar(0.95);
+        hz.amp = rh * 0.78; hz.speed = 0.85; hz.radius = 1.7; hz.effect = 'spin';
         hz.hitPoints = [hz._p];
       } else if (kind === 'icicle') {
         hz.group = Build.icicle();
-        hz.lateral = U.randRange(-rh * 0.65, rh * 0.65); hz.radius = 1.4; hz.effect = 'spin';
-        hz.hangY = 6.5; hz.cycle = U.randRange(3.4, 4.6); hz.shadow = blob(1.5); this.root.add(hz.shadow);
+        hz.lateral = U.randRange(-rh * 0.65, rh * 0.65); hz.radius = 1.7; hz.effect = 'spin';
+        hz.hangY = 7.0; hz.cycle = U.randRange(3.4, 4.6); hz.shadow = blob(1.8); this.root.add(hz.shadow);
         hz.hitPoints = [hz._p];
       } else if (kind === 'podoboo') {
         hz.group = Build.podoboo();
@@ -378,9 +407,11 @@ window.MK = window.MK || {};
         hz.hitPoints = [hz._p];
       } else if (kind === 'comet') {
         hz.group = Build.comet();
-        hz.amp = rh * 0.6; hz.speed = 0.5;          // 路面内を緩く横移動
         hz.radius = 1.9; hz.effect = 'launch';
-        hz.bounceH = 8.5; hz.bounceFreq = 0.62;     // 大きな放物線で跳ねる
+        hz.bounceH = 8.0; hz.bounceFreq = 0.72;          // 大きな放物線で跳ねる
+        hz.travelSpeed = U.randRange(16, 24);             // コースに沿って移動
+        hz._f = idx;                                      // 現在のコース位置（サンプル）
+        hz._latCur = 0; hz._latTarget = U.randRange(-1, 1) * rh * 0.6;
         hz.shadow = blob(2.0); this.root.add(hz.shadow);
         hz._lastPhase = 0; hz._lastPos = new THREE.Vector3(sample.point.x, sample.point.y, sample.point.z);
         hz.hitPoints = [hz._p];
@@ -615,12 +646,16 @@ window.MK = window.MK || {};
           hz._p.set(cx, bp.y + 0.6, cz); hz.markerPos.set(cx, bp.y, cz);
           hz.dangerous = ext > 0.45; break;
         }
-        case 'snowball': {
+        case 'snowman': {
+          // 横に練り歩く（ワドル）＋上下に弾む
           const cyc = hz.t * hz.speed + hz.phase;
-          const lat = Math.cos(cyc) * hz.amp;
+          const lat = Math.sin(cyc) * hz.amp;
+          const vx = Math.cos(cyc);
+          const bob = Math.abs(Math.sin(hz.t * 3.4)) * 0.16;
           const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
-          hz.group.position.set(cx, bp.y, cz);
-          if (hz.group.userData.ball) hz.group.userData.ball.rotation.x += dt * (4 + Math.abs(Math.sin(cyc)) * 5);
+          hz.group.position.set(cx, bp.y + bob, cz);
+          hz.group.rotation.y = Math.atan2(-nrm.x * Math.sign(vx || 1), -nrm.z * Math.sign(vx || 1));
+          hz.group.rotation.z = Math.sin(hz.t * 6.5) * 0.13; // ワドルの傾き
           hz._p.set(cx, bp.y + 1.0, cz); hz.markerPos.set(cx, bp.y, cz);
           hz.dangerous = true; break;
         }
@@ -666,34 +701,43 @@ window.MK = window.MK || {};
           hz.dangerous = on; break;
         }
         case 'comet': {
-          // 路面内を緩く横移動しつつ、大きな放物線で跳ねる（這わずに飛び跳ねる）
-          const lat = Math.sin(hz.t * hz.speed + hz.phase) * hz.amp;
-          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
+          // コース上を移動しながら大きく跳ねる（着地ごとに進路をランダムに変える）
+          const N = this.track.sampleCount, samples = this.track.samples;
+          const spacing = this.track.length / N;
+          hz._f += (hz.travelSpeed * dt) / spacing;          // コースに沿って前進
+          const fi = ((hz._f % N) + N) % N;
+          const i0 = Math.floor(fi) % N, i1 = (i0 + 1) % N, tt = fi - Math.floor(fi);
+          const s0 = samples[i0].point, s1 = samples[i1].point, nr = samples[i0].normal;
+          const baseX = U.lerp(s0.x, s1.x, tt), baseY = U.lerp(s0.y, s1.y, tt), baseZ = U.lerp(s0.z, s1.z, tt);
           const ph = (((hz.t * hz.bounceFreq + hz.phase) % 1) + 1) % 1; // 0..1（0/1で接地）
           const hop = hz.bounceH * 4 * ph * (1 - ph);                   // 放物線（中央で頂点）
-          const cy = bp.y + 0.6 + hop;
+          hz._latCur = U.damp(hz._latCur, hz._latTarget, 2.2, dt);      // 横へなめらかに蛇行
+          const cx = baseX + nr.x * hz._latCur, cz = baseZ + nr.z * hz._latCur, cy = baseY + 0.6 + hop;
           hz.group.position.set(cx, cy, cz);
-          // 進行方向の逆へ尾をなびかせる（前フレームとの差分）
+          // 進行方向の逆へ尾をなびかせる
           const vx = cx - hz._lastPos.x, vy = cy - hz._lastPos.y, vz = cz - hz._lastPos.z;
           if (vx * vx + vy * vy + vz * vz > 1e-4) hz.group.lookAt(cx + vx, cy + vy, cz + vz);
           hz._lastPos.set(cx, cy, cz);
-          // 着地（位相が一周）→ 近くにいる時だけ演出
-          if (ph < hz._lastPhase && this._playerNear(cx, cz, 40)) {
-            if (this.world.particles) for (let k = 0; k < 6; k++) this.world.particles.starTrail(cx + U.randRange(-1.2, 1.2), bp.y + 0.3, cz + U.randRange(-1.2, 1.2));
-            MK.audio.bump();
-            if (this._playerNear(cx, cz, 16)) this.world.shake(0.3);
+          if (ph < hz._lastPhase) {                                     // 着地ごとに進路と速度をランダム更新
+            hz._latTarget = U.randRange(-1, 1) * this.track.roadHalf * 0.62;
+            hz.travelSpeed = U.randRange(15, 26);
+            if (this._playerNear(cx, cz, 40)) {
+              if (this.world.particles) for (let k = 0; k < 6; k++) this.world.particles.starTrail(cx + U.randRange(-1.2, 1.2), baseY + 0.3, cz + U.randRange(-1.2, 1.2));
+              MK.audio.bump();
+              if (this._playerNear(cx, cz, 16)) this.world.shake(0.3);
+            }
           }
           hz._lastPhase = ph;
-          // 影（着地点の目印）
+          hz._baseIndex = i0;                                           // 投影ヒントを移動に追従させる
           if (hz.shadow) {
             const k = U.clamp(1 - hop / hz.bounceH, 0.15, 1);
-            hz.shadow.position.set(cx, bp.y + 0.06, cz);
+            hz.shadow.position.set(cx, baseY + 0.06, cz);
             hz.shadow.scale.set(1.2 + k * 1.6, 1.2 + k * 1.6, 1);
             hz.shadow.material.opacity = 0.2 + k * 0.5;
           }
           if (this.world.particles && Math.random() < 0.5) this.world.particles.starTrail(cx, cy, cz);
-          hz._p.set(cx, cy, cz); hz.markerPos.set(cx, bp.y, cz);
-          hz.dangerous = hop < 2.6; // 低い時（着地付近）のみ危険＝高く跳ねている間はくぐれる
+          hz._p.set(cx, cy, cz); hz.markerPos.set(cx, baseY, cz);
+          hz.dangerous = hop < 2.6; // 低い時（着地付近）のみ危険
           break;
         }
         case 'spinBar': {

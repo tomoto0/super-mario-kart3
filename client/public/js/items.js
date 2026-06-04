@@ -230,11 +230,11 @@ window.MK = window.MK || {};
       // 高めの位置から前方へ放り投げる：上向き初速＋重力で弧を描いて遠くへ着弾する
       mesh.position.set(gp.x + fwd.x * 2.6, gp.y + 1.1, gp.z + fwd.z * 2.6);
       this.scene.add(mesh);
-      const speed = 50;                       // 前方への投擲速度（速いほど遠くへ）
+      const speed = 64;                       // 前方への投擲速度（速いほど遠くへ）
       this.projectiles.push({
         type: 'bomb', mesh,
         vel: new THREE.Vector3(fwd.x * speed, 0, fwd.z * speed),
-        vy: 19, gravity: 40,                  // 上向き初速＋重力＝アーチ軌道
+        vy: 21, gravity: 40,                  // 上向き初速＋重力＝アーチ軌道（少し高く遠くへ）
         arc: true,
         life: 4.0, owner: kart, grace: 0.1, spin: 3, _si: kart.sampleIndex,
       });
@@ -330,8 +330,8 @@ window.MK = window.MK || {};
     }
 
     explodeAt(pos, radius, owner) {
-      const R = radius * 1.5;          // 爆発の当たり判定を 1.5 倍に拡大
-      const vis = R / 7;               // 半径に応じて爆風の見た目もスケール
+      const R = radius * 1.8;          // 爆発の当たり判定（従来 1.5 倍 → さらに 1.2 倍に拡大）
+      const vis = R / 7;               // 半径に応じて爆風の見た目もスケール（当たり範囲とともに拡大）
       this.world.particles.explosion(pos.x, pos.y, pos.z, 0xffd24a, vis);
       this.world.particles.shockwave(pos.x, pos.y + 0.5, pos.z, 0xffc090, vis);
       MK.audio.explosion();
