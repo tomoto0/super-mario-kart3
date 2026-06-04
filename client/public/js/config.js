@@ -154,6 +154,7 @@ window.MK = window.MK || {};
     bomb:       { id: 'bomb',       name: 'Bob-omb',          emoji: '💣', type: 'bomb',        color: 0x222831 },
     star:       { id: 'star',       name: 'Star',             emoji: '⭐', type: 'star',        color: 0xffe14d },
     lightning:  { id: 'lightning',  name: 'Lightning',        emoji: '⚡', type: 'lightning',   color: 0xfff04d },
+    spiny:      { id: 'spiny',      name: 'Spiny Shell',      emoji: '🐚', type: 'spiny',       color: 0x9b30ff },
   };
 
   // 順位に応じた抽選テーブル（前方ほど弱い／後方ほど強いアイテム = ラバーバンド）
@@ -174,12 +175,12 @@ window.MK = window.MK || {};
     } else if (r < 0.8) {  // 中団後
       return [
         ['mushroom', 20], ['redShell', 16], ['triple', 14], ['tripleGreen', 12],
-        ['star', 14], ['bomb', 12], ['greenShell', 10], ['lightning', 8],
+        ['star', 14], ['bomb', 12], ['greenShell', 10], ['lightning', 8], ['spiny', 3],
       ];
-    } else {               // 後方
+    } else {               // 後方（トゲゾー甲羅は最後尾ほど出やすい・全体では稀）
       return [
         ['triple', 20], ['star', 22], ['mushroom', 16], ['tripleGreen', 10],
-        ['lightning', 16], ['redShell', 12], ['bomb', 10],
+        ['lightning', 16], ['redShell', 12], ['bomb', 10], ['spiny', 7],
       ];
     }
   }

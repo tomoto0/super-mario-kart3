@@ -399,16 +399,14 @@ window.MK = window.MK || {};
         ground.position.y = -0.5;
         this.root.add(ground);
       } else {
-        // 虹コース：星空
+        // 虹コース：美しい星空＋星雲
         this._buildStarfield();
+        this._buildNebula();
         // 遠景の惑星
         const planets = [[0x59b6ff, 40, -300, 120, -200], [0xff8ad6, 28, 250, 90, -260], [0xffd24a, 60, -120, 160, -420], [0x6affc0, 22, 330, 60, -120]];
         planets.forEach((p) => { const pl = Build.planet(p[0], p[1]); pl.position.set(p[2], p[3], p[4]); this.root.add(pl); });
         // 環のある惑星
         const saturn = Build.ringedPlanet(0xc9a0ff, 34); saturn.position.set(300, 130, -130); saturn.rotation.z = 0.35; this.root.add(saturn);
-        // 銀河の中心（淡く光るネビュラ）
-        const core = new THREE.Mesh(new THREE.SphereGeometry(95, 20, 16), new THREE.MeshBasicMaterial({ color: 0x6a4aff, transparent: true, opacity: 0.16, fog: false })); core.position.set(-170, 190, -470); this.root.add(core);
-        const core2 = new THREE.Mesh(new THREE.SphereGeometry(46, 18, 14), new THREE.MeshBasicMaterial({ color: 0xff8ad6, transparent: true, opacity: 0.22, fog: false })); core2.position.set(-170, 190, -470); this.root.add(core2);
       }
 
       // 遠景の山（grass/snow）
@@ -471,19 +469,57 @@ window.MK = window.MK || {};
     }
 
     _buildStarfield() {
-      const N = 600;
-      const geo = new THREE.BufferGeometry();
-      const pos = new Float32Array(N * 3);
-      for (let i = 0; i < N; i++) {
-        const a = Math.random() * U.TAU, b = Math.acos(2 * Math.random() - 1);
-        const r = 500;
-        pos[i * 3] = Math.sin(b) * Math.cos(a) * r;
-        pos[i * 3 + 1] = Math.abs(Math.cos(b)) * r * 0.8 + 20;
-        pos[i * 3 + 2] = Math.sin(b) * Math.sin(a) * r;
+      const starTex = U.softCircleTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0)'); // 丸くにじむ星
+      this._twinkle = [];
+      const mkLayer = (n, size, rMin, rMax, colorFn, twinklePhase) => {
+        const geo = new THREE.BufferGeometry();
+        const pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+        const c = new THREE.Color();
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * U.TAU, b = Math.acos(2 * Math.random() - 1), r = U.randRange(rMin, rMax);
+          pos[i * 3] = Math.sin(b) * Math.cos(a) * r;
+          pos[i * 3 + 1] = Math.abs(Math.cos(b)) * r * 0.82 + 30; // 地平線より上に寄せる
+          pos[i * 3 + 2] = Math.sin(b) * Math.sin(a) * r;
+          colorFn(c, Math.random()); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+        }
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        const mat = new THREE.PointsMaterial({ size, map: starTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false, fog: false });
+        this.root.add(new THREE.Points(geo, mat));
+        if (twinklePhase != null) this._twinkle.push({ mat, base: 0.7, amp: 0.32, ph: twinklePhase });
+        return mat;
+      };
+      // 微光の星を多数（白〜青みがかった白）
+      mkLayer(720, 2.4, 480, 520, (c, t) => c.setRGB(0.78 + 0.22 * t, 0.84 + 0.16 * t, 1.0));
+      // 明るい色付きの星（瞬く）— 2層を逆位相で配置
+      const palette = [0xffffff, 0xbcd2ff, 0xffd0e8, 0xfff0b0, 0xbafff0, 0xd9b3ff];
+      const pick = (c) => c.set(palette[(Math.random() * palette.length) | 0]);
+      mkLayer(110, 6.5, 470, 515, pick, 0);
+      mkLayer(110, 6.5, 470, 515, pick, Math.PI);
+    }
+
+    // 美しい星雲：重なり合う発光パフでクラスタ状の星雲を作る
+    _buildNebula() {
+      const tex = U.softCircleTexture('rgba(255,255,255,0.9)', 'rgba(255,255,255,0)');
+      const palette = [0x7a4dff, 0xb24dff, 0xff5db9, 0x4a86ff, 0x33d6ff, 0x6affd0];
+      const puff = (x, y, z, size, color, op) => {
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color, transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+        s.position.set(x, y, z); s.scale.set(size, size, 1); this.root.add(s);
+      };
+      const clusters = [[-235, 215, -445, 1.0], [285, 175, -415, 0.82], [60, 255, -485, 0.7]];
+      for (const cl of clusters) {
+        const cx = cl[0], cy = cl[1], cz = cl[2], sc = cl[3];
+        for (let i = 0; i < 8; i++) {
+          const color = palette[(Math.random() * palette.length) | 0];
+          puff(cx + U.randRange(-95, 95) * sc, cy + U.randRange(-65, 65) * sc, cz + U.randRange(-40, 40), U.randRange(120, 250) * sc, color, U.randRange(0.05, 0.13));
+        }
+        puff(cx, cy, cz, 95 * sc, 0xffffff, 0.1); // 明るいコア
       }
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 3, sizeAttenuation: false, fog: false });
-      this.root.add(new THREE.Points(geo, mat));
+      // 天の川風の淡い帯
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * U.TAU;
+        puff(Math.cos(a) * 470, 110 + Math.sin(a * 2) * 70, Math.sin(a) * 470, U.randRange(120, 200), palette[(Math.random() * palette.length) | 0], 0.045);
+      }
     }
 
     _scatterProps() {
@@ -507,8 +543,8 @@ window.MK = window.MK || {};
           this.root.add(prop);
         }
       }
-      // 雲
-      const cloudN = t.props === 'castle' ? 0 : 16;
+      // 雲（城＝なし、虹＝星空なので雲なし）
+      const cloudN = (t.props === 'castle' || t.props === 'rainbow') ? 0 : 16;
       for (let i = 0; i < cloudN; i++) {
         const a = Math.random() * U.TAU, r = U.randRange(120, 380);
         const c = Build.cloud();
@@ -611,6 +647,8 @@ window.MK = window.MK || {};
 
     update(dt, karts) {
       const now = performance.now() * 0.001;
+      // 星の瞬き（虹コース）
+      if (this._twinkle) for (const w of this._twinkle) w.mat.opacity = U.clamp(w.base + Math.sin(now * 2.4 + w.ph) * w.amp, 0.15, 1);
       // コイン
       for (const c of this.coins) {
         if (c.active) {

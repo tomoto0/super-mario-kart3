@@ -77,6 +77,40 @@ window.MK = window.MK || {};
     return g;
   }
 
+  // トゲゾー甲羅：紫のトゲトゲ甲羅（一位を自動追尾する特別なこうら）
+  function buildSpinyShell() {
+    const g = new THREE.Group();
+    const purple = 0x9b30ff, dark = 0x5e1b9e;
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.82, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.6),
+      new THREE.MeshStandardMaterial({ color: purple, roughness: 0.42, metalness: 0.18 }));
+    shell.scale.set(1, 0.86, 1); g.add(shell);
+    // 甲羅の暗い斑（六角）
+    const spotMat = new THREE.MeshStandardMaterial({ color: dark, roughness: 0.5 });
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.06, 6), spotMat); sp.position.set(Math.cos(a) * 0.4, 0.42, Math.sin(a) * 0.4); g.add(sp); }
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.8, 18, 10, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45),
+      new THREE.MeshStandardMaterial({ color: 0xfff0d0, roughness: 0.6 }));
+    g.add(belly);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.74, 0.13, 8, 20),
+      new THREE.MeshStandardMaterial({ color: 0xfff0d0, roughness: 0.6 }));
+    rim.rotation.x = Math.PI / 2; rim.position.y = 0.02; g.add(rim);
+    // 大きく目立つ白いトゲ（頂点＋放射状に7本、外向きに傾ける）
+    const spikeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+    const top = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.52, 8), spikeMat); top.position.set(0, 0.66, 0); g.add(top);
+    const ring = 7;
+    for (let i = 0; i < ring; i++) {
+      const a = (i / ring) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.44, 7), spikeMat);
+      sp.position.set(Math.cos(a) * 0.52, 0.34, Math.sin(a) * 0.52);
+      sp.rotation.z = -Math.cos(a) * 0.8; sp.rotation.x = Math.sin(a) * 0.8; // 外向きに開く
+      g.add(sp);
+    }
+    // 紫の発光オーラ
+    const auraTex = U.softCircleTexture('rgba(190,110,255,0.85)', 'rgba(150,60,255,0)');
+    const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: auraTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    aura.scale.set(3.6, 3.6, 1); g.add(aura);
+    return g;
+  }
+
   class ItemSystem {
     constructor(world) {
       this.world = world;
@@ -159,6 +193,10 @@ window.MK = window.MK || {};
         case 'star':
           kart.giveStar();
           break;
+        case 'spiny':
+          this._spawnSpiny(kart);
+          MK.audio.shellFire();
+          break;
         case 'lightning':
           this._castLightning(kart);
           break;
@@ -201,6 +239,84 @@ window.MK = window.MK || {};
         life: 4.0, owner: kart, grace: 0.1, spin: 3, _si: kart.sampleIndex,
       });
     }
+    /* ---- トゲゾー甲羅（一位を自動追尾する特別なこうら） ---- */
+    // コース中央（センターライン）を走り続け、常に現在の一位を狙う。
+    // 一位をクラッシュさせるまで消えない（無敵中は隣で待機）。
+    _spawnSpiny(kart) {
+      const gp = kart.group.position;
+      const mesh = buildSpinyShell();
+      mesh.position.set(gp.x, gp.y + 1.2, gp.z);
+      this.scene.add(mesh);
+      this.projectiles.push({
+        type: 'spiny', mesh, owner: kart,
+        _f: kart.progress * this.world.track.sampleCount, // 弧長（サンプル単位・周回考慮）
+        speed: 85, grace: 0.4, age: 0, _si: kart.sampleIndex,
+      });
+    }
+
+    // 戻り値 true で除去。位置・追尾・起爆をすべてここで処理する。
+    _updateSpiny(pr, dt) {
+      const track = this.world.track;
+      const karts = this.world.karts;
+      const N = track.sampleCount;
+      pr.age += dt;
+      pr.grace = Math.max(0, pr.grace - dt);
+      // 現在の一位（オーナー自身と未ゴール者を除く＝先頭の標的）
+      let leader = null, best = -Infinity;
+      for (const k of karts) {
+        if (k === pr.owner || k.finished) continue;
+        if (k.progress > best) { best = k.progress; leader = k; }
+      }
+      if (!leader) return true; // 標的がいない → 消滅
+      const spacing = track.length / N;
+      pr._f += (pr.speed * dt) / spacing;             // センターラインを前進
+      const leaderAbs = leader.progress * N;          // 一位の弧長位置
+      if (pr.grace <= 0 && pr._f >= leaderAbs) {       // 一位に追いついた
+        if (leader.isHittable()) { this._detonateSpiny(leader); return true; }
+        pr._f = leaderAbs;                             // 無敵中はクラッシュさせるまで隣で待機
+      }
+      // センターライン上の補間位置に配置（コースの真ん中）
+      const fi = ((pr._f % N) + N) % N;
+      const i0 = Math.floor(fi) % N, i1 = (i0 + 1) % N, t = fi - Math.floor(fi);
+      const p0 = track.samples[i0].point, p1 = track.samples[i1].point;
+      const m = pr.mesh;
+      m.position.set(U.lerp(p0.x, p1.x, t), U.lerp(p0.y, p1.y, t) + 0.8 + Math.sin(pr.age * 8) * 0.15, U.lerp(p0.z, p1.z, t));
+      m.rotation.y += dt * 7;
+      pr._si = i0;
+      // 道中で偶然ぶつかった「一位以外」のカートもクラッシュさせる（甲羅は消費されず走り続ける）。
+      // 被弾直後は isHittable()=false（launch の無敵）になるので同じカートを連打しない。
+      if (pr.grace <= 0) {
+        const hitR2 = (C.itemHitRadius + 1.2) * (C.itemHitRadius + 1.2);
+        for (const k of karts) {
+          if (k === pr.owner || k === leader || !k.isHittable()) continue;
+          const dx = k.group.position.x - m.position.x, dz = k.group.position.z - m.position.z;
+          if (dx * dx + dz * dz < hitR2) {
+            k.launch();
+            if (this.world.particles) this.world.particles.sparkle(k.group.position.x, k.group.position.y + 0.5, k.group.position.z, 0xb060ff);
+            MK.audio.hit();
+          }
+        }
+      }
+      if (this.world.particles && Math.random() < 0.7) this.world.particles.shellTrail(m.position.x, m.position.y, m.position.z, 0xb060ff);
+      if (pr.age > 60) return true; // 安全装置（万一追いつけない場合）
+      return false;
+    }
+
+    _detonateSpiny(leader) {
+      const pos = leader.group.position;
+      if (this.world.particles) {
+        this.world.particles.explosion(pos.x, pos.y, pos.z, 0xb060ff, 1.4);
+        this.world.particles.shockwave(pos.x, pos.y + 0.5, pos.z, 0xd0a0ff, 1.4);
+      }
+      MK.audio.explosion();
+      if (this.world.shake) this.world.shake(1.0);
+      if (leader.isHittable()) leader.launch();              // 一位を確実にクラッシュ
+      for (const k of this.world.karts) {                    // 近くのカートも巻き込む
+        if (k === leader) continue;
+        if (k.isHittable() && k.group.position.distanceTo(pos) < 6) k.launch();
+      }
+    }
+
     _castLightning(owner) {
       for (const k of this.world.karts) {
         if (k === owner) continue;
@@ -318,6 +434,7 @@ window.MK = window.MK || {};
           if (!orb.shells.some((s) => !s.dead)) break; // 残弾なし＝防げない
           const pr = this.projectiles[pi];
           if (pr.owner === owner) continue;
+          if (pr.type === 'spiny') continue; // トゲゾー甲羅はシールドで防げない（一位を必ず狙う）
           if (pr.mesh.position.distanceTo(gp) < shieldR) {
             if (this.world.particles) this.world.particles.burst(pr.mesh.position.x, pr.mesh.position.y, pr.mesh.position.z, 0x7affa0, 8, 6);
             if (pr.type === 'bomb') this.explodeAt(pr.mesh.position, 5, pr.owner);
@@ -425,6 +542,11 @@ window.MK = window.MK || {};
       const track = this.world.track;
       for (let i = this.projectiles.length - 1; i >= 0; i--) {
         const pr = this.projectiles[i];
+        // トゲゾー甲羅はセンターライン追尾の特別処理（通常の速度/壁/命中ロジックは通さない）
+        if (pr.type === 'spiny') {
+          if (this._updateSpiny(pr, dt)) { this.scene.remove(pr.mesh); this._disposeMesh(pr.mesh); this.projectiles.splice(i, 1); }
+          continue;
+        }
         pr.life -= dt; pr.grace = Math.max(0, pr.grace - dt);
         const m = pr.mesh;
         let remove = false;
@@ -564,5 +686,6 @@ window.MK = window.MK || {};
   MK.ItemSystem = ItemSystem;
   MK.buildShell = buildShell;
   MK.buildBanana = buildBanana;
+  MK.buildSpinyShell = buildSpinyShell;
 
 })(window.MK);

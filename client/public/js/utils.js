@@ -224,6 +224,19 @@ window.MK = window.MK || {};
     draw(s * 0.70, s * 0.64, 0.52);
     draw(s * 0.50, s * 0.36, 0.56);
   }
+  // トゲゾー甲羅：紫の甲羅＋上半分に白いトゲ
+  function _spiny(ctx, s, OUT) {
+    const cx = s / 2, cy = s * 0.5, R = s * 0.36;
+    ctx.fillStyle = '#f1e8ff'; ctx.strokeStyle = OUT; ctx.lineWidth = s * 0.035;
+    for (const f of [-0.55, -0.275, 0, 0.275, 0.55]) {
+      const a = -Math.PI / 2 + f * Math.PI;
+      const bx = cx + Math.cos(a) * R * 0.92, by = cy + Math.sin(a) * R * 0.92;
+      const tx = cx + Math.cos(a) * (R + s * 0.17), ty = cy + Math.sin(a) * (R + s * 0.17);
+      const px = -Math.sin(a) * s * 0.07, py = Math.cos(a) * s * 0.07;
+      ctx.beginPath(); ctx.moveTo(bx + px, by + py); ctx.lineTo(tx, ty); ctx.lineTo(bx - px, by - py); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    _shell(ctx, s, '#9b30ff', '#5e1b9e', OUT);
+  }
   function _banana(ctx, s, OUT) {
     const ccx = s / 2, ccy = s * 0.62, R = s * 0.34, a1 = Math.PI * 1.12, a2 = Math.PI * 1.98;
     ctx.lineCap = 'round';
@@ -309,6 +322,7 @@ window.MK = window.MK || {};
           case 'bomb': _bomb(ctx, s, OUT); break;
           case 'star': _starIcon(ctx, s); break;
           case 'lightning': _lightning(ctx, s); break;
+          case 'spiny': _spiny(ctx, s, OUT); break;
           case 'mushroom': case 'triple': default: _mushroom(ctx, s, OUT);
         }
         if (c.toDataURL) url = c.toDataURL();

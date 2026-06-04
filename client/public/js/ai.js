@@ -185,6 +185,9 @@ window.MK = window.MK || {};
         case 'lightning':
           if (k.place > 2) use();
           break;
+        case 'spiny':
+          use(); // 一位を自動追尾するので即発射
+          break;
         default: use();
       }
     }
