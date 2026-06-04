@@ -391,7 +391,10 @@ window.MK = window.MK || {};
           b.mesh.position.y = b.base + Math.sin(performance.now() * 0.003 + b.pos.x) * 0.25;
           for (const k of karts) {
             if (k.item || k.rouletteTime > 0 || k.finished) continue;
-            if (k.group.position.distanceTo(b.mesh.position) < 2.6) {
+            // 水平距離で判定（ボックスは宙に浮いて上下動するので、Yを含めると端を掠めた時に取り損ねる）
+            const bdx = k.group.position.x - b.mesh.position.x;
+            const bdz = k.group.position.z - b.mesh.position.z;
+            if (bdx * bdx + bdz * bdz < 2.9 * 2.9 && Math.abs(k.group.position.y - b.mesh.position.y) < 3.2) {
               b.active = false; b.timer = 3.5; b.mesh.visible = false;
               this.startRoulette(k);
               this.world.particles.sparkle(b.mesh.position.x, b.mesh.position.y, b.mesh.position.z, 0xffffff);

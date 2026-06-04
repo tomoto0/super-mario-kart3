@@ -106,22 +106,31 @@ window.MK = window.MK || {};
     },
     chompBall() {
       const g = new THREE.Group();
-      const ball = sph(1.0, 0x202028, 18, { metalness: 0.3, roughness: 0.5 }); g.add(ball);
-      // 歯（白いリング）
-      const teeth = new THREE.Mesh(new THREE.TorusGeometry(0.66, 0.16, 8, 16), M(0xffffff));
-      teeth.position.set(0, -0.05, -0.62); g.add(teeth);
-      const mouth = sph(0.5, 0x401015, 10); mouth.position.set(0, -0.05, -0.7); mouth.scale.set(1, 0.8, 0.5); g.add(mouth);
-      // ギザギザの白い歯（口の周りに放射状）
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * U.TAU;
-        const tooth = cone(0.11, 0.28, 0xffffff, 6);
-        tooth.position.set(Math.cos(a) * 0.52, -0.05 + Math.sin(a) * 0.52, -0.62);
+      const R = 1.0;
+      const ball = sph(R, 0x23232b, 24, { metalness: 0.4, roughness: 0.4 }); g.add(ball);
+      // 大きく開いた赤い口（黒球の前面にほぼ面一）＋舌
+      const mouth = sph(0.54, 0xcc1818, 18, { roughness: 0.55 }); mouth.position.set(0, -0.18, -0.86); mouth.scale.set(1.16, 1.02, 0.34); g.add(mouth);
+      const tongue = sph(0.24, 0xff5a6a, 12); tongue.position.set(0, -0.34, -1.04); tongue.scale.set(1.05, 0.55, 0.5); g.add(tongue);
+      // 口を囲む大きな牙（球面に沿わせ、先端を口の中心へ）
+      const nT = 14, rr = 0.6, ymc = -0.18;
+      for (let i = 0; i < nT; i++) {
+        const a = (i / nT) * U.TAU;
+        const fx = Math.cos(a) * rr, fy = ymc + Math.sin(a) * rr;
+        const zs = -Math.sqrt(Math.max(0.12, R * R - fx * fx - fy * fy));
+        const tooth = cone(0.13, 0.4, 0xffffff, 8);
+        tooth.position.set(fx, fy, zs + 0.05);
         tooth.rotation.z = a + Math.PI / 2;
         g.add(tooth);
       }
-      eyes(g, 0.45, -0.66, 0.26, 1);
-      // 留め金
-      const bolt = sph(0.18, 0xb8bcc4, 8, { metalness: 0.7, roughness: 0.3 }); bolt.position.set(0, 0.7, 0.6); g.add(bolt);
+      // 大きな目（白＋黒目＋ハイライト）＋つり上がった眉
+      for (const s of [-1, 1]) {
+        const eye = sph(0.31, 0xffffff, 16); eye.scale.set(0.95, 1.1, 0.6); eye.position.set(s * 0.33, 0.52, -0.84); g.add(eye);
+        const pup = sph(0.14, 0x111118, 12); pup.position.set(s * 0.35, 0.48, -1.05); g.add(pup);
+        const hi = sph(0.05, 0xffffff, 8); hi.position.set(s * 0.28, 0.58, -1.11); g.add(hi);
+        const brow = box(0.42, 0.12, 0.13, 0x101017); brow.position.set(s * 0.33, 0.83, -0.66); brow.rotation.z = -s * 0.36; g.add(brow);
+      }
+      // 留め金（チェーンの付け根）
+      const bolt = sph(0.2, 0xc2c6cf, 10, { metalness: 0.7, roughness: 0.3 }); bolt.position.set(0, 0.8, 0.62); g.add(bolt);
       return g;
     },
     chompPost() {
@@ -368,7 +377,7 @@ window.MK = window.MK || {};
         hz.group = new THREE.Group();
         hz.lateral = U.randRange(-rh * 0.2, rh * 0.2); hz.radius = 1.3; hz.effect = 'spin';
         hz.pivot = new THREE.Group(); hz.group.add(hz.pivot);
-        hz.balls = []; hz.dists = [2.4, 3.8, 5.2]; hz.rot = 1.05 * (side > 0 ? 1 : -1); hz._pts = [];
+        hz.balls = []; hz.dists = [2.1, 3.2, 4.3]; hz.rot = 1.05 * (side > 0 ? 1 : -1); hz._pts = [];
         // 赤／青／緑をバーごとに割り当て（各所で色が変わる）
         const STARBAR = [
           { fill: '#ff5d5d', out: '#9a1f1f', core: 0xffd6d6, em: 0xff3b3b, hub: 0xff7a7a },
@@ -561,8 +570,8 @@ window.MK = window.MK || {};
           const hop = Math.abs(Math.sin(hz.t * 3.0)) * 0.6;
           const bx = hz.post.x + dx * reach, bz = hz.post.z + dz * reach, by = hz.post.y + 1.0 + hop;
           hz.ball.position.set(bx, by, bz);
-          hz.ball.rotation.y = Math.atan2(-dx, -dz);
-          hz.ball.rotation.x += dt * 4;
+          hz.ball.rotation.y = Math.atan2(-dx, -dz);   // 顔(-Z)を突進方向＝コース側へ向ける
+          hz.ball.rotation.x = Math.sin(hz.t * 9) * 0.12; // 噛みつくような小刻みな上下（顔は正面のまま）
           for (let i = 0; i < hz.links.length; i++) {
             const u = (i + 1) / (hz.links.length + 1);
             hz.links[i].position.set(

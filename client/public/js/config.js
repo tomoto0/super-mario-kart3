@@ -51,6 +51,10 @@ window.MK = window.MK || {};
     mushroomBoost: 16,
     mushroomDuration: 1.4,
 
+    // コイン：1枚取得するごとに最高速を恒久的に加算
+    // （HUD表示は内部速度×3.0なので 0.1km/h ＝ 0.1/3.0 units/s）
+    coinSpeedBonus: 0.1 / 3.0,
+
     // 当たり判定
     kartRadius: 2.0,
     itemHitRadius: 2.4,

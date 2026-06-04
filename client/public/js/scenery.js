@@ -621,7 +621,8 @@ window.MK = window.MK || {};
             if (k.group.position.distanceTo(c.mesh.position) < 2.2) {
               c.active = false; c.mesh.visible = false; c.timer = 8;
               this.coinCounters[k.index] = (this.coinCounters[k.index] || 0) + 1;
-              k.applyBoost(2.2, 0.25);
+              k.derived.maxSpeed += MK.CONFIG.coinSpeedBonus; // 1枚ごとに最高速 +0.1km/h（恒久・このレース中）
+              k.applyBoost(2.2, 0.25);                          // 取得時の一瞬の加速（従来の演出）
               if (k.isPlayer) { MK.audio.coin(); MK.hud && MK.hud.setCoins(this.coinCounters[k.index]); }
               MK.game && MK.game.particles && MK.game.particles.coinPop(c.mesh.position.x, c.mesh.position.y, c.mesh.position.z);
               break;
