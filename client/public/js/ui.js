@@ -88,13 +88,9 @@ window.MK = window.MK || {};
       return `
       <!-- TITLE -->
       <section id="screen-title" class="screen">
-        <img class="title-art" src="assets/title-art.svg" alt="" draggable="false" />
+        <img class="title-art" src="assets/title.jpg" alt="" draggable="false" />
         <div class="title-scrim"></div>
         <div class="title-inner">
-          <h1 class="smk-logo">
-            <span class="smk-super">SUPER MARIO</span>
-            <span class="smk-kart">KART<span class="smk-two">2</span></span>
-          </h1>
           <button id="btn-start" class="big-btn">▶ START</button>
           <div class="title-press">Press START / Enter</div>
         </div>
