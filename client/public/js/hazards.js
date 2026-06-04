@@ -229,11 +229,18 @@ window.MK = window.MK || {};
     // --- 虹：横切る彗星 ---
     comet() {
       const g = new THREE.Group();
-      const core = sph(0.62, 0xfff0a0, 14, { emissive: 0xffd24a, emissiveIntensity: 0.95 }); g.add(core);
-      g.add(glowSprite(0x9fd0ff, 2.6));
-      const tailTex = U.softCircleTexture('rgba(190,215,255,1)', 'rgba(120,140,255,0)');
-      const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map: tailTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-      tail.scale.set(4.2, 1.5, 1); tail.position.set(0, 0, 1.7); g.add(tail);
+      // 白熱した核＋暖色の大きな輝き（暗い宇宙でよく目立つ）
+      const core = sph(0.6, 0xffffff, 18, { emissive: 0xffd24a, emissiveIntensity: 1.0 }); g.add(core);
+      const inner = sph(0.4, 0xfff6e0, 12, { emissive: 0xffffff, emissiveIntensity: 1.0 }); g.add(inner);
+      g.add(glowSprite(0xffb84a, 3.6));
+      // 炎の尾（後方 +Z へだんだん小さく＝彗星と分かる筋）
+      const tailTex = U.softCircleTexture('rgba(255,224,150,1)', 'rgba(255,110,30,0)');
+      const tail = new THREE.Group();
+      [[1.5, 3.2, 1.9, 0xffd27a, 0.95], [2.9, 2.4, 1.4, 0xffae4a, 0.8], [4.2, 1.7, 0.95, 0xff7a2a, 0.6]].forEach((s) => {
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tailTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: s[3], opacity: s[4] }));
+        sp.position.set(0, 0, s[0]); sp.scale.set(s[1], s[2], 1); tail.add(sp);
+      });
+      g.add(tail);
       g.userData.core = core; g.userData.tail = tail;
       return g;
     },
@@ -371,11 +378,16 @@ window.MK = window.MK || {};
         hz.hitPoints = [hz._p];
       } else if (kind === 'comet') {
         hz.group = Build.comet();
-        hz.amp = rh * 0.95; hz.speed = 0.85; hz.radius = 1.75; hz.effect = 'launch';
+        hz.amp = rh * 0.6; hz.speed = 0.5;          // 路面内を緩く横移動
+        hz.radius = 1.9; hz.effect = 'launch';
+        hz.bounceH = 8.5; hz.bounceFreq = 0.62;     // 大きな放物線で跳ねる
+        hz.shadow = blob(2.0); this.root.add(hz.shadow);
+        hz._lastPhase = 0; hz._lastPos = new THREE.Vector3(sample.point.x, sample.point.y, sample.point.z);
         hz.hitPoints = [hz._p];
       } else if (kind === 'spinBar') {
         hz.group = new THREE.Group();
         hz.lateral = U.randRange(-rh * 0.2, rh * 0.2); hz.radius = 1.3; hz.effect = 'spin';
+        hz.playerOnly = true; // 回転する星形バーはプレイヤーのみクラッシュ（AIはすり抜ける）
         hz.pivot = new THREE.Group(); hz.group.add(hz.pivot);
         hz.balls = []; hz.dists = [2.1, 3.2, 4.3]; hz.rot = 1.05 * (side > 0 ? 1 : -1); hz._pts = [];
         // 赤／青／緑をバーごとに割り当て（各所で色が変わる）
@@ -654,14 +666,35 @@ window.MK = window.MK || {};
           hz.dangerous = on; break;
         }
         case 'comet': {
-          const cyc = hz.t * hz.speed + hz.phase;
-          const lat = Math.sin(cyc) * hz.amp;
-          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat, cy = bp.y + 1.3 + Math.sin(hz.t * 2) * 0.3;
+          // 路面内を緩く横移動しつつ、大きな放物線で跳ねる（這わずに飛び跳ねる）
+          const lat = Math.sin(hz.t * hz.speed + hz.phase) * hz.amp;
+          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
+          const ph = (((hz.t * hz.bounceFreq + hz.phase) % 1) + 1) % 1; // 0..1（0/1で接地）
+          const hop = hz.bounceH * 4 * ph * (1 - ph);                   // 放物線（中央で頂点）
+          const cy = bp.y + 0.6 + hop;
           hz.group.position.set(cx, cy, cz);
-          hz.group.rotation.y = Math.atan2(-nrm.x, -nrm.z) + (Math.cos(cyc) < 0 ? Math.PI : 0);
-          if (this.world.particles && Math.random() < 0.4) this.world.particles.starTrail(cx, cy, cz);
+          // 進行方向の逆へ尾をなびかせる（前フレームとの差分）
+          const vx = cx - hz._lastPos.x, vy = cy - hz._lastPos.y, vz = cz - hz._lastPos.z;
+          if (vx * vx + vy * vy + vz * vz > 1e-4) hz.group.lookAt(cx + vx, cy + vy, cz + vz);
+          hz._lastPos.set(cx, cy, cz);
+          // 着地（位相が一周）→ 近くにいる時だけ演出
+          if (ph < hz._lastPhase && this._playerNear(cx, cz, 40)) {
+            if (this.world.particles) for (let k = 0; k < 6; k++) this.world.particles.starTrail(cx + U.randRange(-1.2, 1.2), bp.y + 0.3, cz + U.randRange(-1.2, 1.2));
+            MK.audio.bump();
+            if (this._playerNear(cx, cz, 16)) this.world.shake(0.3);
+          }
+          hz._lastPhase = ph;
+          // 影（着地点の目印）
+          if (hz.shadow) {
+            const k = U.clamp(1 - hop / hz.bounceH, 0.15, 1);
+            hz.shadow.position.set(cx, bp.y + 0.06, cz);
+            hz.shadow.scale.set(1.2 + k * 1.6, 1.2 + k * 1.6, 1);
+            hz.shadow.material.opacity = 0.2 + k * 0.5;
+          }
+          if (this.world.particles && Math.random() < 0.5) this.world.particles.starTrail(cx, cy, cz);
           hz._p.set(cx, cy, cz); hz.markerPos.set(cx, bp.y, cz);
-          hz.dangerous = true; break;
+          hz.dangerous = hop < 2.6; // 低い時（着地付近）のみ危険＝高く跳ねている間はくぐれる
+          break;
         }
         case 'spinBar': {
           const a = hz.t * hz.rot; hz.pivot.rotation.y = a;
@@ -740,6 +773,7 @@ window.MK = window.MK || {};
       const rr2 = rr * rr;
       for (const k of karts) {
         if (!k.isHittable()) continue;
+        if (hz.playerOnly && !k.isPlayer) continue; // プレイヤー専用ハザード（星形バー）はAIに当たらない
         for (const hp of hz.hitPoints) {
           const dx = k.group.position.x - hp.x, dz = k.group.position.z - hp.z;
           if (dx * dx + dz * dz < rr2) {
@@ -770,6 +804,7 @@ window.MK = window.MK || {};
       const fwd = kart.forward(U.tmpV1);
       for (const hz of this.hazards) {
         if (!hz.dangerous) continue;
+        if (hz.playerOnly) continue; // プレイヤー専用ハザードはAIの回避対象にしない（すり抜ける）
         const dx = hz.markerPos.x - kart.group.position.x, dz = hz.markerPos.z - kart.group.position.z;
         const d2 = dx * dx + dz * dz;
         if (d2 < bd) {
