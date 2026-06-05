@@ -367,6 +367,7 @@ window.MK = window.MK || {};
       } else if (kind === 'chomp') {
         hz.group = new THREE.Group();
         hz.radius = 2.3; hz.effect = 'launch';
+        hz.playerOnly = true; // ワンワンもプレイヤーのみクラッシュ（AIはすり抜ける）
         const sm = hz.sample;
         const postLat = (rh + 1.0) * side;
         hz.post = new THREE.Vector3(sm.point.x + sm.normal.x * postLat, sm.point.y, sm.point.z + sm.normal.z * postLat);
