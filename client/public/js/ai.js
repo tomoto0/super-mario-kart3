@@ -170,6 +170,12 @@ window.MK = window.MK || {};
         case 'banana':
           if (nearestBehindDist < 26) use();
           break;
+        case 'fakeBox':
+          if (nearestBehindDist < 30 || Math.random() < 0.2) use(); // 追っ手への置き土産
+          break;
+        case 'golden':
+          use(); // 時間制なので即発動してそのまま連打（itemTimer の周期で再使用される）
+          break;
         case 'bomb':
           // 弧を描いて遠投するので、前方やや遠めの相手にも投げる
           if (nearestAheadDist < 52 || nearestBehindDist < 16) use();

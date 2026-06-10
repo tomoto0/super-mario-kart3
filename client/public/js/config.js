@@ -50,6 +50,18 @@ window.MK = window.MK || {};
     boostDecay: 16,          // ブースト減衰(units/s^2)
     mushroomBoost: 16,
     mushroomDuration: 1.4,
+    goldenDuration: 7.5,     // ゴールデンキノコの有効時間（連打でブーストし放題）
+
+    // ブーストパッド（路面の矢印ゾーン）
+    padBoost: 15,
+    padDuration: 1.0,
+
+    // スリップストリーム（前走者の真後ろを走り続けると加速）
+    draftDist: 16,           // 後方この距離以内
+    draftLatMax: 2.6,        // 横ずれ許容
+    draftTime: 1.0,          // 必要追走時間(s)
+    draftBoost: 9,
+    draftDuration: 1.1,
 
     // コイン：1枚取得するごとに最高速を恒久的に加算
     // （HUD表示は内部速度×3.0なので 0.2km/h ＝ 0.2/3.0 units/s）
@@ -155,6 +167,8 @@ window.MK = window.MK || {};
     star:       { id: 'star',       name: 'Star',             emoji: '⭐', type: 'star',        color: 0xffe14d },
     lightning:  { id: 'lightning',  name: 'Lightning',        emoji: '⚡', type: 'lightning',   color: 0xfff04d },
     spiny:      { id: 'spiny',      name: 'Spiny Shell',      emoji: '🐚', type: 'spiny',       color: 0x9b30ff },
+    fakeBox:    { id: 'fakeBox',    name: 'Fake Item Box',    emoji: '❓', type: 'fakeBox',     color: 0xe23b2e },
+    golden:     { id: 'golden',     name: 'Golden Mushroom',  emoji: '🍄', type: 'golden',      color: 0xffc41f },
   };
 
   // 順位に応じた抽選テーブル（前方ほど弱い／後方ほど強いアイテム = ラバーバンド）
@@ -162,25 +176,25 @@ window.MK = window.MK || {};
   function itemRollTable(pos, racerCount) {
     const last = racerCount - 1;
     const r = racerCount <= 1 ? 0 : pos / last; // 0(先頭)〜1(最後尾)
-    if (r < 0.18) {        // トップ集団
+    if (r < 0.18) {        // トップ集団（ニセアイテムボックスは先頭の防衛アイテム）
       return [
-        ['banana', 24], ['greenShell', 24], ['mushroom', 14],
-        ['redShell', 12], ['bomb', 10], ['triple', 8], ['tripleGreen', 8],
+        ['banana', 20], ['greenShell', 20], ['fakeBox', 14], ['mushroom', 12],
+        ['redShell', 12], ['bomb', 8], ['triple', 7], ['tripleGreen', 7],
       ];
     } else if (r < 0.5) {  // 中団前
       return [
-        ['mushroom', 22], ['greenShell', 16], ['redShell', 16],
-        ['banana', 12], ['triple', 12], ['tripleGreen', 12], ['bomb', 10], ['star', 6],
+        ['mushroom', 20], ['greenShell', 15], ['redShell', 15], ['fakeBox', 8],
+        ['banana', 10], ['triple', 12], ['tripleGreen', 12], ['bomb', 9], ['star', 5],
       ];
-    } else if (r < 0.8) {  // 中団後
+    } else if (r < 0.8) {  // 中団後（ゴールデンキノコが出始める）
       return [
-        ['mushroom', 20], ['redShell', 16], ['triple', 14], ['tripleGreen', 12],
-        ['star', 14], ['bomb', 12], ['greenShell', 10], ['lightning', 8], ['spiny', 3],
+        ['mushroom', 16], ['redShell', 15], ['triple', 13], ['tripleGreen', 11],
+        ['star', 13], ['bomb', 11], ['golden', 9], ['greenShell', 8], ['lightning', 8], ['spiny', 3],
       ];
     } else {               // 後方（トゲゾー甲羅は最後尾ほど出やすい・全体では稀）
       return [
-        ['triple', 20], ['star', 22], ['mushroom', 16], ['tripleGreen', 10],
-        ['lightning', 16], ['redShell', 12], ['bomb', 10], ['spiny', 7],
+        ['triple', 17], ['star', 19], ['golden', 14], ['mushroom', 10], ['tripleGreen', 9],
+        ['lightning', 15], ['redShell', 10], ['bomb', 8], ['spiny', 7],
       ];
     }
   }

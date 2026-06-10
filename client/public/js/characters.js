@@ -119,12 +119,19 @@ window.MK = window.MK || {};
       }
     }
 
-    // 腕（ハンドルへ）＋手袋
+    // 腕（ステアリングホイールを両手で握る）＋手袋
+    // grip = ドライバーローカルのハンドル握り位置（カートのホイール位置に一致させる）
+    const grip = opts.grip || [0.26, 0.36, -0.77];
     for (const s of [-1, 1]) {
       const shoulder = sph(0.19, shirt, 14); shoulder.position.set(s * 0.39, 0.76, 0); g.add(shoulder);
-      const arm = cyl(0.11, 0.14, 0.5, shirt, 12); arm.position.set(s * 0.37, 0.54, -0.27); arm.rotation.x = 1.2; arm.rotation.z = s * 0.16; g.add(arm);
-      const cuff = tor(0.14, 0.05, opts.glove || 0xffffff, 8); cuff.position.set(s * 0.34, 0.43, -0.51); cuff.rotation.x = 1.2; g.add(cuff);
-      const glove = sph(0.16, opts.glove || 0xffffff, 14); glove.position.set(s * 0.33, 0.36, -0.58); g.add(glove);
+      const adx = grip[0] - 0.39, ady = grip[1] - 0.76, adz = grip[2];
+      const alen = Math.sqrt(adx * adx + ady * ady + adz * adz);
+      const arm = cyl(0.11, 0.14, alen * 0.92, shirt, 12);
+      arm.position.set(s * (0.39 + grip[0]) / 2, (0.76 + grip[1]) / 2, grip[2] / 2);
+      arm.rotation.x = Math.atan2(-adz, -ady); arm.rotation.z = s * 0.2; g.add(arm);
+      const cuff = tor(0.14, 0.05, opts.glove || 0xffffff, 8);
+      cuff.position.set(s * (grip[0] + 0.03), grip[1] + 0.11, grip[2] + 0.13); cuff.rotation.x = 1.3; g.add(cuff);
+      const glove = sph(0.16, opts.glove || 0xffffff, 14); glove.position.set(s * grip[0], grip[1], grip[2]); g.add(glove);
     }
     // 首
     const neck = cyl(0.17, 0.19, 0.16, skin, 12); place(neck, 0, 0.97, 0); g.add(neck);
@@ -168,16 +175,16 @@ window.MK = window.MK || {};
 
   /* ---- 各キャラ ---- */
   function buildMario(c) {
-    return humanoidBody(c, { cap: true, letter: 'M', letterColor: '#e52521', capColor: c.primary, mustache: true, hair: 0x351f0e, brow: true, glove: 0xffffff, shoe: 0x5a3210, noseR: 0.22, iris: 0x4a6fb0 });
+    return humanoidBody(c, { cap: true, letter: 'M', letterColor: '#e52521', capColor: c.primary, mustache: true, hair: 0x351f0e, brow: true, glove: 0xffffff, shoe: 0x5a3210, noseR: 0.22, iris: 0x4a6fb0, grip: [0.26, 0.36, -0.77] });
   }
   function buildLuigi(c) {
-    const g = humanoidBody(c, { cap: true, letter: 'L', letterColor: '#1fa12f', capColor: c.primary, mustache: true, hair: 0x351f0e, brow: true, glove: 0xffffff, shoe: 0x4a2c10, noseR: 0.22, faceY: 1.08, iris: 0x4a6fb0 });
+    const g = humanoidBody(c, { cap: true, letter: 'L', letterColor: '#1fa12f', capColor: c.primary, mustache: true, hair: 0x351f0e, brow: true, glove: 0xffffff, shoe: 0x4a2c10, noseR: 0.22, faceY: 1.08, iris: 0x4a6fb0, grip: [0.27, 0.32, -0.81] });
     g.scale.set(0.95, 1.14, 0.95); // ルイージは細長い
     return g;
   }
   function buildWario(c) {
     // 黄シャツ＋紫オーバーオール＋黄帽子。大きなピンクの鼻＆とがった髭。
-    const g = humanoidBody(c, { cap: true, letter: 'W', letterColor: '#2c2cae', capColor: c.primary, mustache: true, wario: true, hair: 0x6a4a18, brow: true, noseR: 0.29, noseColor: 0xffb6a6, glove: 0xffd24a, shoe: 0x1f7a3a, headScale: 1.2, iris: 0x4a6fb0 });
+    const g = humanoidBody(c, { cap: true, letter: 'W', letterColor: '#2c2cae', capColor: c.primary, mustache: true, wario: true, hair: 0x6a4a18, brow: true, noseR: 0.29, noseColor: 0xffb6a6, glove: 0xffd24a, shoe: 0x1f7a3a, headScale: 1.2, iris: 0x4a6fb0, grip: [0.22, 0.37, -0.65] });
     g.scale.set(1.18, 0.97, 1.18); // がっしり
     return g;
   }
@@ -191,11 +198,11 @@ window.MK = window.MK || {};
     // 胸元の青い宝石（金縁）
     const collar = tor(0.12, 0.04, 0xffd24a, 8, null, { metalness: 0.6, roughness: 0.3 }); collar.rotation.x = Math.PI / 2; place(collar, 0, 0.83, -0.3); g.add(collar);
     const gem = sph(0.08, 0x59b6ff, 12, { emissive: 0x1a3a6a, emissiveIntensity: 0.4, metalness: 0.3, roughness: 0.2 }); place(gem, 0, 0.83, -0.33); g.add(gem);
-    // パフスリーブ＋腕＋長手袋
+    // パフスリーブ＋腕＋長手袋（ハンドルを握る）
     for (const s of [-1, 1]) {
       const puff = sph(0.18, dress, 14); place(puff, s * 0.35, 0.79, 0); g.add(puff);
-      const arm = cyl(0.085, 0.1, 0.4, glove, 12); arm.position.set(s * 0.35, 0.55, -0.25); arm.rotation.x = 1.18; g.add(arm);
-      const hand = sph(0.12, glove, 12); hand.position.set(s * 0.32, 0.39, -0.51); g.add(hand);
+      const arm = cyl(0.085, 0.1, 0.74, glove, 12); arm.position.set(s * 0.3, 0.58, -0.37); arm.rotation.x = 1.07; arm.rotation.z = s * 0.15; g.add(arm);
+      const hand = sph(0.12, glove, 12); hand.position.set(s * 0.26, 0.38, -0.75); g.add(hand);
     }
     // 首
     const neck = cyl(0.13, 0.15, 0.16, skin, 12); place(neck, 0, 0.96, 0); g.add(neck);
@@ -237,10 +244,10 @@ window.MK = window.MK || {};
     const placket = box(0.12, 0.42, 0.06, 0xffffff); place(placket, 0, 0.5, -0.34); g.add(placket);
     for (let i = 0; i < 3; i++) { const b = sph(0.035, 0xffd24a, 8, { metalness: 0.5 }); place(b, 0, 0.62 - i * 0.13, -0.37); g.add(b); }
     const collar = tor(0.24, 0.05, 0xffffff, 8); collar.rotation.x = Math.PI / 2; place(collar, 0, 0.69, 0); g.add(collar);
-    // 腕
+    // 腕（ハンドルを握る）
     for (const s of [-1, 1]) {
-      const arm = cyl(0.085, 0.1, 0.36, skin, 12); arm.position.set(s * 0.31, 0.47, -0.21); arm.rotation.x = 1.16; g.add(arm);
-      const hand = sph(0.12, 0xffffff, 12); hand.position.set(s * 0.28, 0.33, -0.47); g.add(hand);
+      const arm = cyl(0.085, 0.1, 0.7, skin, 12); arm.position.set(s * 0.28, 0.48, -0.37); arm.rotation.x = 1.26; arm.rotation.z = s * 0.12; g.add(arm);
+      const hand = sph(0.12, 0xffffff, 12); hand.position.set(s * 0.26, 0.36, -0.75); g.add(hand);
     }
     // 足（茶色いブーツ）
     for (const s of [-1, 1]) { const shoe = sph(0.16, 0xc98a4a, 12); shoe.scale.set(1, 0.72, 1.45); place(shoe, s * 0.16, 0.07, -0.4); g.add(shoe); }
@@ -269,10 +276,10 @@ window.MK = window.MK || {};
     // 背中の赤いサドル＋白フチ
     const sd = dome(0.44, saddle); place(sd, 0, 0.74, 0.18); g.add(sd);
     const sdRim = tor(0.42, 0.07, 0xffffff, 10); sdRim.rotation.x = Math.PI / 2; place(sdRim, 0, 0.5, 0.18); g.add(sdRim);
-    // 腕
+    // 腕（ハンドルを握る）
     for (const s of [-1, 1]) {
-      const arm = cyl(0.1, 0.13, 0.4, green, 12); arm.position.set(s * 0.37, 0.54, -0.23); arm.rotation.x = 1.12; g.add(arm);
-      const hand = sph(0.14, green, 12); hand.position.set(s * 0.33, 0.39, -0.51); g.add(hand);
+      const arm = cyl(0.1, 0.13, 0.72, green, 12); arm.position.set(s * 0.32, 0.52, -0.37); arm.rotation.x = 1.21; arm.rotation.z = s * 0.16; g.add(arm);
+      const hand = sph(0.14, green, 12); hand.position.set(s * 0.26, 0.38, -0.75); g.add(hand);
     }
     // 脚＋大きなオレンジ靴
     for (const s of [-1, 1]) { const leg = cyl(0.13, 0.15, 0.3, green, 12); leg.position.set(s * 0.2, 0.15, -0.3); leg.rotation.x = 1.2; g.add(leg); const shoeM = sph(0.22, shoe, 14); shoeM.scale.set(1, 0.72, 1.6); place(shoeM, s * 0.2, 0.05, -0.59); g.add(shoeM); }
@@ -312,11 +319,11 @@ window.MK = window.MK || {};
     const tieKnot = box(0.18, 0.15, 0.07, tie); place(tieKnot, 0, 0.82, -0.62); g.add(tieKnot);
     const tieBody = box(0.26, 0.44, 0.07, tie); place(tieBody, 0, 0.54, -0.66); g.add(tieBody);
     const dk = emblem('DK', '#ffe14d', '#7a3b12'); dk.scale.setScalar(0.86); place(dk, 0, 0.54, -0.7); dk.rotation.y = Math.PI; g.add(dk);
-    // 太い腕（肩→前腕→大きなこぶし）
+    // 太い腕（肩→前腕→大きなこぶしでハンドルを握る）
     for (const s of [-1, 1]) {
       const shoulder = sph(0.26, fur, 14); place(shoulder, s * 0.56, 0.66, 0); g.add(shoulder);
-      const arm = cyl(0.17, 0.21, 0.62, fur, 14); arm.position.set(s * 0.54, 0.46, -0.18); arm.rotation.x = 1.0; g.add(arm);
-      const fist = sph(0.22, fur, 14); fist.position.set(s * 0.5, 0.3, -0.5); g.add(fist);
+      const arm = cyl(0.17, 0.21, 0.78, fur, 14); arm.position.set(s * 0.41, 0.5, -0.36); arm.rotation.x = 1.18; arm.rotation.z = s * 0.42; g.add(arm);
+      const fist = sph(0.22, fur, 14); fist.position.set(s * 0.27, 0.36, -0.72); g.add(fist);
     }
     // 頭（丸い頭＋下半分の大きなマズル＋ニカッと笑う口）
     const head = new THREE.Group();
@@ -358,13 +365,13 @@ window.MK = window.MK || {};
       const ringB = cyl(0.11, 0.14, 0.08, 0xffffff, 10); place(ringB, p[0], p[1], p[2]); ringB.rotation.x = -0.6; g.add(ringB);
       const sp = cone(0.11, 0.28, horn, 10); place(sp, p[0], p[1] + 0.07, p[2] - 0.04); sp.rotation.x = -0.6; g.add(sp);
     });
-    // 腕＋爪＋トゲ付きリストバンド
+    // 腕＋爪＋トゲ付きリストバンド（ハンドルを握る）
     for (const s of [-1, 1]) {
-      const arm = cyl(0.17, 0.19, 0.5, skin, 14); arm.position.set(s * 0.52, 0.54, -0.2); arm.rotation.x = 1.05; g.add(arm);
-      const hand = sph(0.19, skin, 12); hand.position.set(s * 0.47, 0.37, -0.51); g.add(hand);
-      for (let i = -1; i <= 1; i++) { const claw = cone(0.045, 0.14, 0xffffff, 6); place(claw, s * 0.47 + i * 0.1, 0.29, -0.63); claw.rotation.x = -1.4; g.add(claw); }
-      const band = tor(0.19, 0.07, 0x222831, 6); band.position.set(s * 0.5, 0.49, -0.31); band.rotation.y = Math.PI / 2; g.add(band);
-      for (let i = 0; i < 4; i++) { const sp = cone(0.05, 0.15, 0xffffff, 6); const a = (i / 4) * TAU; place(sp, s * 0.5 + Math.cos(a) * 0.19, 0.49 + Math.sin(a) * 0.19, -0.31); sp.rotation.x = s * Math.PI / 2; g.add(sp); }
+      const arm = cyl(0.17, 0.19, 0.68, skin, 14); arm.position.set(s * 0.37, 0.5, -0.34); arm.rotation.x = 1.06; arm.rotation.z = s * 0.42; g.add(arm);
+      const hand = sph(0.19, skin, 12); hand.position.set(s * 0.24, 0.33, -0.66); g.add(hand);
+      for (let i = -1; i <= 1; i++) { const claw = cone(0.045, 0.14, 0xffffff, 6); place(claw, s * 0.24 + i * 0.09, 0.26, -0.78); claw.rotation.x = -1.4; g.add(claw); }
+      const band = tor(0.19, 0.07, 0x222831, 6); band.position.set(s * 0.3, 0.43, -0.49); band.rotation.y = Math.PI / 2; band.rotation.z = s * 0.4; g.add(band);
+      for (let i = 0; i < 4; i++) { const sp = cone(0.05, 0.15, 0xffffff, 6); const a = (i / 4) * TAU; place(sp, s * 0.3 + Math.cos(a) * 0.19, 0.43 + Math.sin(a) * 0.19, -0.49); sp.rotation.x = s * Math.PI / 2; g.add(sp); }
     }
     // トゲ付き首輪
     const collar = tor(0.46, 0.09, 0x222831, 8); collar.rotation.x = Math.PI / 2 - 0.1; place(collar, 0, 0.92, 0.02); g.add(collar);

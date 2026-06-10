@@ -77,6 +77,22 @@ window.MK = window.MK || {};
     return g;
   }
 
+  // ニセアイテムボックス：本物そっくり（赤系・逆さ?）。踏むとスピン。
+  function buildFakeBox() {
+    const g = new THREE.Group();
+    const tex = U.questionTexture(true);
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex, transparent: true, roughness: 0.25, metalness: 0.15,
+      emissive: 0x551111, emissiveIntensity: 0.5, opacity: 0.94,
+    });
+    const box = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.3, 2.3), mat);
+    g.add(box);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(2.42, 2.42, 2.42),
+      new THREE.MeshBasicMaterial({ color: 0xff8a7a, wireframe: true, transparent: true, opacity: 0.45 }));
+    g.add(edge);
+    return g;
+  }
+
   // トゲゾー甲羅：紫のトゲトゲ甲羅（一位を自動追尾する特別なこうら）
   function buildSpinyShell() {
     const g = new THREE.Group();
@@ -186,6 +202,14 @@ window.MK = window.MK || {};
         case 'banana':
           this._spawnBanana(kart, fwd, gp);
           break;
+        case 'fakeBox':
+          this._spawnFakeBox(kart, fwd, gp);
+          break;
+        case 'golden':
+          // ゴールデンキノコ：時間内なら何度でもブースト（時間切れで kart 側が手放す）
+          if (!kart.goldenTimer || kart.goldenTimer <= 0) kart.goldenTimer = C.goldenDuration;
+          kart.useMushroom(0xffc41f);
+          return;
         case 'bomb':
           this._spawnBomb(kart, fwd, gp);
           MK.audio.shellFire();
@@ -224,6 +248,12 @@ window.MK = window.MK || {};
       mesh.position.set(gp.x - fwd.x * 2.6, gp.y + 0.4, gp.z - fwd.z * 2.6);
       this.scene.add(mesh);
       this.projectiles.push({ type: 'banana', mesh, vel: new THREE.Vector3(), life: 28, owner: kart, grace: 0.7, spin: 0.6, _si: kart.sampleIndex });
+    }
+    _spawnFakeBox(kart, fwd, gp) {
+      const mesh = buildFakeBox();
+      mesh.position.set(gp.x - fwd.x * 3.0, gp.y + 1.3, gp.z - fwd.z * 3.0);
+      this.scene.add(mesh);
+      this.projectiles.push({ type: 'fakeBox', mesh, vel: new THREE.Vector3(), life: 30, owner: kart, grace: 0.8, spin: 1.5, _si: kart.sampleIndex });
     }
     _spawnBomb(kart, fwd, gp) {
       const mesh = buildBomb();
@@ -565,7 +595,7 @@ window.MK = window.MK || {};
           }
         }
 
-        if (pr.type !== 'banana') {
+        if (pr.type !== 'banana' && pr.type !== 'fakeBox') {
           m.position.x += pr.vel.x * dt;
           m.position.z += pr.vel.z * dt;
         }
@@ -626,6 +656,12 @@ window.MK = window.MK || {};
                 MK.audio.bump(); remove = true; break;
               }
               if (pr.type === 'bomb') { this.explodeAt(m.position, 7, pr.owner); }
+              else if (pr.type === 'fakeBox') {
+                k.spinOut();
+                this.world.particles.itemPop(m.position.x, m.position.y, m.position.z, 0xff5d5d);
+                this.world.particles.burst(m.position.x, m.position.y, m.position.z, 0xe2342a, 12, 8);
+                MK.audio.hit();
+              }
               else { k.spinOut(); this.world.particles.sparkle(m.position.x, m.position.y, m.position.z, pr.type === 'redShell' ? 0xff6a5a : 0x7affa0); MK.audio.hit(); }
               remove = true; break;
             }
@@ -638,6 +674,11 @@ window.MK = window.MK || {};
         if (pr.type === 'bomb' && m.userData.spark) m.userData.spark.visible = (performance.now() * 0.02 | 0) % 2 === 0;
         // バナナの浮遊
         if (pr.type === 'banana') { m.position.y = info.point.y + 0.4 + Math.sin(performance.now() * 0.004) * 0.08; m.rotation.y += dt * 0.6; }
+        // ニセボックスは本物のボックスと同じ挙動（宙に浮いて回転）
+        if (pr.type === 'fakeBox') {
+          m.position.y = info.point.y + 1.5 + Math.sin(performance.now() * 0.003 + m.position.x) * 0.25;
+          m.rotation.y += dt * 1.5; m.rotation.x += dt * 0.6;
+        }
 
         if (pr.life <= 0 && pr.type !== 'bomb') remove = true;
 

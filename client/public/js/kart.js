@@ -10,7 +10,8 @@ window.MK = window.MK || {};
   const C = MK.CONFIG;
 
   /* ---- カートのシャシー造形（親しみやすいゴーカート風）---- */
-  function buildChassis(color, accent) {
+  // letter を渡すとボンネットのナンバー丸にキャライニシャルが入る
+  function buildChassis(color, accent, letter) {
     accent = accent != null ? accent : 0xffffff;
     const g = new THREE.Group();
     // スムーズシェーディング（コンセプトアートのなめらかなカートに合わせる）
@@ -48,11 +49,23 @@ window.MK = window.MK || {};
     const grille = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.16, 0.1), M(0x15171b));
     grille.position.set(0, 0.42, -1.45); g.add(grille);
     for (let i = -1; i <= 1; i++) { const bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.12), M(chrome, { metalness: 0.7, roughness: 0.3 })); bar.position.set(i * 0.2, 0.42, -1.47); g.add(bar); }
-    // ボンネットのナンバー丸
+    // ボンネットのナンバー丸（キャラのイニシャル入り）
     const roundel = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.06, 18), M(0xffffff, { roughness: 0.4 }));
     roundel.rotation.x = -Math.PI / 2 + 0.08; roundel.position.set(0, 0.78, -0.72); g.add(roundel);
     const rring = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.04, 8, 20), M(accent, { metalness: 0.4 }));
     rring.rotation.x = -Math.PI / 2 + 0.08; rring.position.set(0, 0.79, -0.72); g.add(rring);
+    if (letter) {
+      const ltex = MK.U.makeCanvasTexture(128, (ctx, s) => {
+        ctx.clearRect(0, 0, s, s);
+        ctx.fillStyle = '#1f2330'; ctx.font = '900 92px "Trebuchet MS", Arial, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(letter, s / 2, s / 2 + 4);
+      });
+      const lmesh = new THREE.Mesh(new THREE.CircleGeometry(0.22, 20),
+        new THREE.MeshBasicMaterial({ map: ltex, transparent: true }));
+      lmesh.rotation.x = -Math.PI / 2 + 0.08; lmesh.position.set(0, 0.815, -0.72);
+      g.add(lmesh);
+    }
     // コックピットの縁（アクセント）
     const cockpit = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.1, 10, 22), M(accent, { metalness: 0.4 }));
     cockpit.rotation.x = -Math.PI / 2; cockpit.scale.set(1.0, 1.25, 1); cockpit.position.set(0, 0.85, 0.3); g.add(cockpit);
@@ -64,11 +77,24 @@ window.MK = window.MK || {};
     // ロールフープ
     const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 16, Math.PI), M(chrome, { metalness: 0.7, roughness: 0.3 }));
     hoop.position.set(0, 1.08, 0.86); g.add(hoop);
-    // ステアリング
-    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), M(0x202327));
-    column.position.set(0, 0.85, -0.5); column.rotation.x = 0.8; g.add(column);
-    const steerWheel = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.05, 8, 16), M(0x202327));
-    steerWheel.position.set(0, 1.02, -0.66); steerWheel.rotation.x = 1.0; g.add(steerWheel);
+    // ステアリング（ドライバーが両手で握る位置・スポーク付き・操舵で回る）
+    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.6, 8), M(0x202327));
+    column.position.set(0, 0.86, -0.54); column.rotation.x = 1.0; g.add(column);
+    const wheelPivot = new THREE.Group();
+    wheelPivot.position.set(0, 1.06, -0.42); wheelPivot.rotation.x = 1.22; g.add(wheelPivot);
+    const wheelSpin = new THREE.Group(); wheelPivot.add(wheelSpin);
+    const rimW = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.05, 10, 22), M(0x202327, { roughness: 0.55 }));
+    wheelSpin.add(rimW);
+    for (let i = 0; i < 3; i++) {
+      const a = i * (Math.PI * 2 / 3) + Math.PI / 2;
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, 0.035), M(0x33363d));
+      spoke.rotation.z = a - Math.PI / 2;
+      spoke.position.set(Math.cos(a) * 0.12, Math.sin(a) * 0.12, 0);
+      wheelSpin.add(spoke);
+    }
+    const hubBtn = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.06, 12), M(accent, { metalness: 0.4 }));
+    hubBtn.rotation.x = Math.PI / 2; wheelSpin.add(hubBtn);
+    g.userData.steerWheel = wheelSpin;
     // 背後に立ち上がるツインマフラー（クロム）— マリオカートらしさ
     for (const s of [-1, 1]) {
       const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.7, 10), M(chrome, { metalness: 0.8, roughness: 0.25 }));
@@ -94,6 +120,7 @@ window.MK = window.MK || {};
     const tireMat = M(0x16181c, { metalness: 0.05, roughness: 0.9 });
     const hubMat = M(0xeef0f4, { metalness: 0.7, roughness: 0.25 });
     const capMat = M(accent, { metalness: 0.5, roughness: 0.35 });
+    const wallMat = M(0xf2f2f2, { roughness: 0.55, metalness: 0.05 });
     function makeWheel(big) {
       const wg = new THREE.Group();
       const r = big ? 0.5 : 0.42, w = big ? 0.42 : 0.36;
@@ -106,6 +133,13 @@ window.MK = window.MK || {};
       hub.rotation.z = Math.PI / 2; wg.add(hub);
       const cap = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.26, r * 0.26, w + 0.04, 14), capMat);
       cap.rotation.z = Math.PI / 2; wg.add(cap);
+      // 白いサイドウォールリング（両面）— マリオカートらしいタイヤの顔
+      for (const s of [-1, 1]) {
+        const wall = new THREE.Mesh(new THREE.TorusGeometry(r * 0.7, 0.024, 6, 20), wallMat);
+        wall.rotation.y = Math.PI / 2;
+        wall.position.x = s * (w * 0.5 + 0.012);
+        wg.add(wall);
+      }
       return wg;
     }
     const positions = [
@@ -189,6 +223,12 @@ window.MK = window.MK || {};
       this.itemCount = 0;
       this.rouletteTime = 0;
       this._orbiter = null;      // トリプルグリーンこうらの周回シールド（ItemSystem が管理）
+      this.goldenTimer = 0;      // ゴールデンキノコの残り時間（>0 の間は連打でブースト）
+      this.inkTimer = 0;         // ゲッソーの墨（プレイヤーのみ：視界＋ハンドルが揺れる）
+
+      // ブーストパッド / スリップストリーム
+      this._padCD = 0;
+      this.draftT = 0;           // 追走の蓄積時間（負はクールダウン）
 
       this._build();
     }
@@ -211,7 +251,10 @@ window.MK = window.MK || {};
       g.add(tilt);
       this.tilt = tilt;
 
-      const chassis = buildChassis(this.color, this.character.colors.secondary);
+      const chassis = buildChassis(this.color, this.character.colors.secondary, (this.character.name || '?')[0]);
+      // 体格でカートの大きさを変える（軽量級は小ぶり、重量級はワイド）
+      this._sizeScale = 0.92 + (this.character.stats.weight - 1) * 0.045;
+      chassis.scale.setScalar(this._sizeScale);
       tilt.add(chassis);
       this.chassis = chassis;
       this.wheels = chassis.userData.wheels;
@@ -319,6 +362,7 @@ window.MK = window.MK || {};
       this.starTimer = Math.max(0, this.starTimer - dt);
       this.invulnTimer = Math.max(0, this.invulnTimer - dt);
       this.boostTimer = Math.max(0, this.boostTimer - dt);
+      this.inkTimer = Math.max(0, this.inkTimer - dt);
       if (this.boostTimer <= 0) this.boostPower = U.damp(this.boostPower, 0, 8, dt);
 
       // 復帰演出中
@@ -398,6 +442,8 @@ window.MK = window.MK || {};
           turn *= C.driftTurnBoost;
           steerEff = U.clamp(this.driftDir * 0.6 + ctrl.steer * 0.55, -1.4, 1.4);
         }
+        // 墨を浴びている間はハンドルがふらつく
+        if (this.inkTimer > 0) steerEff += Math.sin(performance.now() * 0.007) * 0.16;
         const speedFactor = U.clamp(Math.abs(this.speed) / 9, 0, 1);
         const dir = this.speed >= 0 ? 1 : -1;
         this.yaw += -steerEff * turn * speedFactor * dir * dt;
@@ -451,6 +497,9 @@ window.MK = window.MK || {};
 
       /* --- 進行・周回 --- */
       this._updateProgress(track, after, raceTime);
+
+      /* --- ブーストパッド / スリップストリーム / ゴールデンキノコ --- */
+      this._updateRaceExtras(dt);
 
       /* --- パーティクル --- */
       this._emit(dt, offRoad, boosting);
@@ -523,12 +572,70 @@ window.MK = window.MK || {};
       }
     }
 
-    useMushroom() {
+    useMushroom(color) {
+      const col = color || 0xff7a1f;
       this.applyBoost(C.mushroomBoost, C.mushroomDuration);
-      this._boostColor = 0xff7a1f;
+      this._boostColor = col;
       if (this.isPlayer) MK.audio.boost();
       const p = this.world.particles, gp = this.group.position;
-      if (p) p.boostRing(gp.x, gp.y + 0.3, gp.z, 0xff7a1f);
+      if (p) p.boostRing(gp.x, gp.y + 0.3, gp.z, col);
+    }
+
+    // ブーストパッド通過 / スリップストリーム / ゴールデンキノコの時間管理
+    _updateRaceExtras(dt) {
+      const track = this.track;
+
+      // ゴールデンキノコ：時間切れで手放す
+      if (this.goldenTimer > 0) {
+        this.goldenTimer -= dt;
+        if (this.goldenTimer <= 0 && this.item === 'golden') { this.item = null; this.itemCount = 0; }
+      }
+
+      // ブーストパッド（路面の矢印ゾーンを踏むと加速）
+      this._padCD = Math.max(0, this._padCD - dt);
+      const pads = track.boostPads;
+      if (pads && pads.length && this._padCD <= 0 && Math.abs(this.speed) > 2 && this.spinTimer <= 0) {
+        const N = track.sampleCount;
+        for (const pad of pads) {
+          const di = (this.sampleIndex - pad.index + N) % N;
+          if (di <= pad.lenSamples && Math.abs(this.lateral - pad.lat) <= pad.halfW + 0.5) {
+            this._padCD = 1.1;
+            this.applyBoost(C.padBoost, C.padDuration);
+            this._boostColor = 0xffc41f;
+            const p = this.world.particles, gp = this.group.position;
+            if (p) p.boostRing(gp.x, gp.y + 0.3, gp.z, 0xffc41f);
+            if (this.isPlayer) { MK.audio.boostPad(); this.world.shake(0.12); }
+            break;
+          }
+        }
+      }
+
+      // スリップストリーム：前走者の真後ろに付き続けると風をもらって加速
+      if (this.draftT < 0) { this.draftT = Math.min(0, this.draftT + dt); return; }
+      if (this.finished || this.spinTimer > 0 || this.falling || this.respawnTimer > 0 ||
+          Math.abs(this.speed) < this.derived.maxSpeed * 0.6) { this.draftT = Math.max(0, this.draftT - dt * 2); return; }
+      let lead = null;
+      for (const k of this.world.karts) {
+        if (k === this || k.finished) continue;
+        const gap = (k.progress - this.progress) * track.length;
+        if (gap > 2.5 && gap < C.draftDist &&
+            Math.abs(k.lateral - this.lateral) < C.draftLatMax &&
+            Math.abs(U.angleDelta(this.yaw, k.yaw)) < 0.55) { lead = k; break; }
+      }
+      if (lead) {
+        this.draftT += dt;
+        const p = this.world.particles, gp = this.group.position;
+        if (p && Math.random() < 0.35) p.draftStreak(gp.x, gp.y + 1.0, gp.z, this.forward(U.tmpV2));
+        if (this.draftT >= C.draftTime) {
+          this.draftT = -1.8;        // クールダウン
+          this.applyBoost(C.draftBoost, C.draftDuration);
+          this._boostColor = 0x9fd8ff;
+          if (p) p.boostRing(gp.x, gp.y + 0.3, gp.z, 0x9fd8ff);
+          if (this.isPlayer) MK.audio.draftWhoosh();
+        }
+      } else {
+        this.draftT = Math.max(0, this.draftT - dt * 1.5);
+      }
     }
 
     _updateProgress(track, info, raceTime) {
@@ -577,9 +684,25 @@ window.MK = window.MK || {};
         p.boostFlame(gp.x + back.x * 1.5 + sidex, gp.y + 0.5, gp.z + back.z * 1.5 + sidez, col);
         p.boostFlame(gp.x + back.x * 1.5 - sidex, gp.y + 0.5, gp.z + back.z * 1.5 - sidez, col);
       }
-      // オフロードの砂煙
+      // オフロードの砂煙（テーマ別の色）
+      const props = this.track.course.theme.props;
+      const sprayCol = props === 'snow' ? 0xf2f8ff
+        : (props === 'beach' || props === 'desert') ? 0xeed9a0
+        : props === 'castle' ? 0x6a5a60
+        : props === 'rainbow' ? 0xd0baff : 0xcdbb88;
       if (offRoad && Math.abs(this.speed) > 6 && Math.random() < 0.5) {
-        p.dust(gp.x + back.x * 1.2, gp.y, gp.z + back.z * 1.2);
+        p.dust(gp.x + back.x * 1.2, gp.y, gp.z + back.z * 1.2, sprayCol);
+      }
+      // 路面のしぶき（コンセプトアートの「タイヤの蹴り上げ」：雪・砂は走るだけで、虹はきらめき）
+      if (!offRoad && Math.abs(this.speed) > 12) {
+        const kick = this.drifting ? 0.75 : 0.22;
+        if ((props === 'snow' || props === 'beach' || props === 'desert') && Math.random() < kick) {
+          const s = Math.random() < 0.5 ? 1 : -1;
+          const ox = Math.cos(this.yaw) * s * 0.9, oz = -Math.sin(this.yaw) * s * 0.9;
+          p.dust(gp.x + back.x * 1.1 + ox, gp.y + 0.1, gp.z + back.z * 1.1 + oz, sprayCol);
+        } else if (props === 'rainbow' && this.drifting && Math.random() < 0.5) {
+          p.starTrail(gp.x + back.x * 1.2, gp.y + 0.2, gp.z + back.z * 1.2);
+        }
       }
       // スターの軌跡
       if (this.starTimer > 0 && Math.random() < 0.7) p.starTrail(gp.x, gp.y, gp.z);
@@ -591,6 +714,27 @@ window.MK = window.MK || {};
       for (const w of this.wheels) w.rotation.x = this._wheelSpin;
       const steerVis = U.clamp(this.controls.steer + (this.drifting ? this.driftDir * 0.5 : 0), -1, 1);
       for (const piv of this.steerPivots) piv.rotation.y = U.damp(piv.rotation.y, -steerVis * 0.4, 16, dt);
+      // ステアリングホイールも切れ角に合わせて回す
+      const sw = this.chassis.userData.steerWheel;
+      if (sw) sw.rotation.z = U.damp(sw.rotation.z, -steerVis * 0.85, 16, dt);
+
+      // ドライバーの動き：コーナーへ体を倒し、進行方向へ顔を向ける。ゴール後はバンザイの上下
+      if (this.driver) {
+        const head = this.driver.userData.head;
+        if (this.finished) {
+          const tn = performance.now() * 0.001;
+          this.driver.position.y = 0.7 + Math.abs(Math.sin(tn * 5)) * 0.16;
+          this.driver.rotation.z = Math.sin(tn * 5) * 0.1;
+          this.driver.rotation.y = U.damp(this.driver.rotation.y, 0, 8, dt);
+          if (head) head.rotation.y = U.damp(head.rotation.y, 0, 8, dt);
+        } else {
+          const lean = U.clamp(this.controls.steer + (this.drifting ? this.driftDir * 0.7 : 0), -1.4, 1.4);
+          this.driver.position.y = 0.7;
+          this.driver.rotation.z = U.damp(this.driver.rotation.z, -lean * 0.1, 10, dt);
+          this.driver.rotation.y = U.damp(this.driver.rotation.y, -lean * 0.2, 10, dt);
+          if (head) head.rotation.y = U.damp(head.rotation.y, -lean * 0.3, 10, dt);
+        }
+      }
 
       // ドリフトのロール
       let targetRoll = -this.controls.steer * 0.08;
@@ -630,10 +774,10 @@ window.MK = window.MK || {};
         this.starRing.rotation.z += dt * 6;
         // 点滅で半透明（無敵の点滅）
         const blink = (tnow * 0.02 | 0) % 2 === 0 ? 1 : 0.55;
-        this.chassis.scale.setScalar(blink);
+        this.chassis.scale.setScalar(blink * this._sizeScale);
       } else {
         this.aura.material.opacity = U.damp(this.aura.material.opacity, 0, 10, dt);
-        if (this.chassis.scale.x !== 1) this.chassis.scale.setScalar(1);
+        if (this.chassis.scale.x !== this._sizeScale) this.chassis.scale.setScalar(this._sizeScale);
         if (this.starRing && this.starRing.visible) {
           this.starRing.material.opacity = U.damp(this.starRing.material.opacity, 0, 12, dt);
           if (this.starRing.material.opacity < 0.02) {
@@ -643,8 +787,8 @@ window.MK = window.MK || {};
         }
       }
 
-      // 影サイズ（ホップで小さく）
-      const sc = U.clamp(1 - this.hop * 0.15, 0.6, 1);
+      // 影サイズ（ホップで小さく・体格に追従）
+      const sc = U.clamp(1 - this.hop * 0.15, 0.6, 1) * this._sizeScale;
       this.shadow.scale.set(sc, sc, 1);
       this.shadow.position.x = 0; this.shadow.position.z = 0;
     }

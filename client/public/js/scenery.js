@@ -307,6 +307,184 @@ window.MK = window.MK || {};
       g.userData.bob = Math.random() * Math.PI * 2;
       return g;
     },
+    // ヤシの木（曲がった幹＋放射状の葉＋ヤシの実）
+    palm() {
+      const g = new THREE.Group();
+      const lean = U.randRange(-0.16, 0.16);
+      let x = 0, y = 0;
+      for (let i = 0; i < 4; i++) {
+        const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.24 - i * 0.03, 0.3 - i * 0.03, 1.6, 8), M(0x9a6a3a));
+        x += Math.sin(lean) * 1.2 * i * 0.35; y += 1.45;
+        seg.position.set(x, y - 0.7, 0); seg.rotation.z = lean * (i + 1) * 0.5;
+        g.add(seg);
+      }
+      const crown = new THREE.Group(); crown.position.set(x, y + 0.1, 0); g.add(crown);
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * U.TAU;
+        const leaf = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 4), M(0x2fae4a, { flatShading: false }));
+        leaf.scale.set(0.32, 0.07, 1.0);
+        leaf.position.set(Math.cos(a) * 1.3, 0.25, Math.sin(a) * 1.3);
+        leaf.rotation.y = -a + Math.PI / 2; leaf.rotation.x = 0.42;
+        crown.add(leaf);
+      }
+      for (let i = 0; i < 3; i++) { const a = i / 3 * U.TAU; const nut = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), M(0x6a4a22)); nut.position.set(x + Math.cos(a) * 0.34, y - 0.15, Math.sin(a) * 0.34); g.add(nut); }
+      return g;
+    },
+    // ビーチパラソル＋レジャーシート
+    parasol() {
+      const g = new THREE.Group();
+      const cols = [0xe23b2e, 0xffffff];
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.6, 8), M(0xdedede)); pole.position.y = 1.3; pole.rotation.z = 0.12; g.add(pole);
+      const canopy = new THREE.Group(); canopy.position.set(0.3, 2.5, 0); g.add(canopy);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * U.TAU;
+        const slice = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 5, a, U.TAU / 8, 0, Math.PI * 0.4), M(cols[i % 2], { flatShading: false }));
+        canopy.add(slice);
+      }
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), M(0xe23b2e)); tip.position.set(0.3, 4.0, 0); g.add(tip);
+      const towel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 2.6), M([0x59b6ff, 0xffe14d, 0xff8ad6][(Math.random() * 3) | 0], { flatShading: false }));
+      towel.position.set(1.7, 0.05, 0.4); towel.rotation.y = U.randRange(-0.4, 0.4); g.add(towel);
+      return g;
+    },
+    // ヒトデ（砂浜のアクセント）
+    starfish() {
+      const g = new THREE.Group();
+      const col = Math.random() < 0.5 ? 0xff8a5a : 0xff5d8a;
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), M(col, { flatShading: false })); core.scale.y = 0.4; core.position.y = 0.12; g.add(core);
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * U.TAU;
+        const arm = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), M(col, { flatShading: false }));
+        arm.scale.set(1.3, 0.32, 0.5);
+        arm.position.set(Math.cos(a) * 0.42, 0.1, Math.sin(a) * 0.42);
+        arm.rotation.y = -a; g.add(arm);
+      }
+      return g;
+    },
+    // 浜の岩（うっすら緑のフジツボ付き）
+    beachRock() {
+      const g = new THREE.Group();
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(U.randRange(0.8, 1.6), 0), M(0x8a8f96));
+      rock.position.y = 0.5; rock.rotation.set(Math.random(), Math.random(), Math.random()); g.add(rock);
+      for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), M(0xe8e2cf)); b.position.set(U.randRange(-0.6, 0.6), U.randRange(0.3, 1.0), U.randRange(-0.6, 0.6)); g.add(b); }
+      return g;
+    },
+    // 道をまたぐ岩のアーチ（ビーチの名所）
+    rockArch(halfSpan, height) {
+      const g = new THREE.Group();
+      const W = halfSpan || 16, H = height || 9;
+      const mat = M(0x9a8f82);
+      for (const s of [-1, 1]) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.2, H, 8), mat);
+        leg.position.set(s * W, H / 2, 0); leg.rotation.y = Math.random(); g.add(leg);
+      }
+      // アーチ（弧に沿って太い石をつなぐ）
+      const segN = 7;
+      for (let i = 0; i <= segN; i++) {
+        const u = i / segN;
+        const x = U.lerp(-W, W, u);
+        const y = H + Math.sin(u * Math.PI) * 3.2;
+        const seg = new THREE.Mesh(new THREE.SphereGeometry(2.0, 8, 6), mat);
+        seg.position.set(x, y, 0); seg.scale.set(1.25, 0.85, 0.9); g.add(seg);
+      }
+      return g;
+    },
+    // 遠景の島（砂山＋ヤシ）
+    islandMound(r) {
+      const g = new THREE.Group();
+      const R = r || 26;
+      const sand = new THREE.Mesh(new THREE.SphereGeometry(R, 14, 8, 0, U.TAU, 0, Math.PI * 0.5), M(0xeedfa8, { fog: true }));
+      sand.scale.y = 0.45; g.add(sand);
+      const grass = new THREE.Mesh(new THREE.SphereGeometry(R * 0.62, 12, 7, 0, U.TAU, 0, Math.PI * 0.5), M(0x5fbf3f, { fog: true }));
+      grass.scale.y = 0.55; grass.position.y = R * 0.18; g.add(grass);
+      const palm = Build.palm(); palm.scale.setScalar(R / 8); palm.position.y = R * 0.4; g.add(palm);
+      return g;
+    },
+    // 砂漠のメサ（赤土の台地：地層の縞入り）
+    mesa(r, h) {
+      const g = new THREE.Group();
+      const R = r || 40, H = h || 70;
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.74, R, H, 9), M(0xc26a3f, { fog: true }));
+      body.position.y = H / 2; g.add(body);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.78, R * 0.74, H * 0.08, 9), M(0xd8854f, { fog: true }));
+      cap.position.y = H + H * 0.03; g.add(cap);
+      for (let i = 0; i < 3; i++) {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(R * (0.99 - i * 0.07), R * (1.01 - i * 0.07), H * 0.05, 9), M(0xa14f2f, { fog: true }));
+        band.position.y = H * (0.18 + i * 0.24); g.add(band);
+      }
+      return g;
+    },
+    // サボテン（サワロ：腕つき）
+    saguaro() {
+      const g = new THREE.Group();
+      const col = 0x3f9d4a;
+      const h = U.randRange(3.2, 5.2);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, h, 10), M(col)); trunk.position.y = h / 2; g.add(trunk);
+      const top = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), M(col)); top.position.y = h; g.add(top);
+      for (const s of [-1, 1]) {
+        if (Math.random() < 0.25) continue;
+        const ay = h * U.randRange(0.4, 0.62);
+        const out = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 1.1, 8), M(col)); out.position.set(s * 0.75, ay, 0); out.rotation.z = s * Math.PI / 2; g.add(out);
+        const up = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, U.randRange(1.2, 2.0), 8), M(col)); up.position.set(s * 1.25, ay + 0.8, 0); g.add(up);
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.26, 8, 6), M(col)); tip.position.set(s * 1.25, ay + 1.7, 0); g.add(tip);
+      }
+      if (Math.random() < 0.3) { const fl = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), M(0xff8ad6)); fl.position.y = h + 0.35; g.add(fl); }
+      return g;
+    },
+    // 枯れ木
+    deadTree() {
+      const g = new THREE.Group();
+      const mat = M(0x6a4a2a);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.3, 2.6, 7), mat); trunk.position.y = 1.3; trunk.rotation.z = U.randRange(-0.1, 0.1); g.add(trunk);
+      for (let i = 0; i < 3; i++) {
+        const br = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, U.randRange(1.0, 1.8), 6), mat);
+        const a = Math.random() * U.TAU;
+        br.position.set(Math.cos(a) * 0.5, U.randRange(1.8, 2.6), Math.sin(a) * 0.5);
+        br.rotation.set(U.randRange(-0.4, 0.4), 0, U.randRange(0.5, 1.1) * (Math.random() < 0.5 ? 1 : -1));
+        g.add(br);
+      }
+      return g;
+    },
+    // 岩の尖塔（砂漠）
+    rockSpire() {
+      const g = new THREE.Group();
+      const h = U.randRange(4, 9);
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(U.randRange(0.5, 1.0), U.randRange(1.6, 2.4), h, 7), M(0xb86a42));
+      spire.position.y = h / 2; g.add(spire);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), M(0xc97a4a)); cap.scale.y = 0.5; cap.position.y = h; g.add(cap);
+      return g;
+    },
+    // 踏切標識（クロスバック＋赤ランプ）
+    crossbuck() {
+      const g = new THREE.Group();
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 3.4, 8), M(0xf0f0f0)); post.position.y = 1.7; g.add(post);
+      for (const r of [0.6, -0.6]) {
+        const plank = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.3, 0.08), M(0xffffff));
+        plank.position.set(0, 3.0, -0.08); plank.rotation.z = r; g.add(plank);
+      }
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8),
+        new THREE.MeshStandardMaterial({ color: 0xff3b30, emissive: 0xff2a20, emissiveIntensity: 0.9 }));
+      lamp.position.set(0, 2.35, -0.12); g.add(lamp);
+      g.userData.lamp = lamp;
+      return g;
+    },
+    // 鳥（カモメ/ハゲワシ）。羽ばたきは update 側で wings を動かす
+    bird(dark) {
+      const g = new THREE.Group();
+      const col = dark ? 0x3a322e : 0xffffff;
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), M(col, { flatShading: false }));
+      body.scale.set(1, 0.8, 1.5); g.add(body);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), M(col, { flatShading: false })); head.position.set(0, 0.16, -0.5); g.add(head);
+      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.24, 6), M(0xff9b2f)); beak.rotation.x = -Math.PI / 2; beak.position.set(0, 0.12, -0.72); g.add(beak);
+      const wings = [];
+      for (const s of [-1, 1]) {
+        const piv = new THREE.Group(); piv.position.set(s * 0.2, 0.1, 0); g.add(piv);
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.55), M(dark ? 0x2a241f : 0xf0f0f0, { flatShading: false }));
+        wing.position.x = s * 0.75; piv.add(wing);
+        wings.push(piv);
+      }
+      g.userData.wings = wings;
+      return g;
+    },
     signal() {
       const g = new THREE.Group();
       const board = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.4, 0.3), M(0x222831));
@@ -365,6 +543,39 @@ window.MK = window.MK || {};
     },
   };
 
+  /* ---- 機関車の走行路（独自の閉ループ）。線路の描画と列車ハザードで共有 ---- */
+  // course.train.points([x,z])を閉Catmull-Romにし、等間隔サンプルへ。
+  // 道路をまたぐ区間は路面の高さに吸い付けて滑らかな踏切を作る。
+  const TrainPath = {
+    build(course, track) {
+      const def = course.train;
+      if (!def) return null;
+      const pts = def.points.map((p) => new THREE.Vector3(p[0], 0, p[1]));
+      const curve = new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.5);
+      const length = curve.getLength();
+      const N = Math.max(200, Math.round(length / 3));
+      const samples = [];
+      for (let i = 0; i < N; i++) {
+        const t = i / N;
+        const p = curve.getPointAt(t);
+        const tg = curve.getTangentAt(t).setY(0).normalize();
+        const info = track.project(p);          // ビルド時のみ全探索
+        const absL = Math.abs(info.lateral);
+        const blend = 1 - U.clamp((absL - track.roadHalf) / 10, 0, 1);
+        samples.push({
+          x: p.x, y: info.point.y * blend, z: p.z, tx: tg.x, tz: tg.z,
+          onRoad: absL < track.roadHalf + 2.5,
+        });
+      }
+      // 高さの平滑化（踏切のスロープを滑らかに）
+      for (let pass = 0; pass < 3; pass++) {
+        const ys = samples.map((s) => s.y);
+        for (let i = 0; i < N; i++) samples[i].y = (ys[(i - 1 + N) % N] + ys[i] * 2 + ys[(i + 1) % N]) / 4;
+      }
+      return { samples, length, N, spacing: length / N };
+    },
+  };
+
   /* ---- 環境 + 配置の管理 ---- */
   class Scenery {
     constructor(scene, course, track) {
@@ -380,8 +591,11 @@ window.MK = window.MK || {};
       this.lakitus = [];
       this.banners = [];
       this.goombas = [];
-      this.drifters = [];   // 漂う気球など（背景の動き）
+      this.drifters = [];   // 漂う気球・雲など（背景の動き）
       this.snowfall = null; // 降雪（雪原の動き）
+      this.birds = [];      // カモメ/ハゲワシ（旋回＋羽ばたき）
+      this.oceanTex = null; // 海面アニメ（ビーチ）
+      this.trainPath = null;// 機関車の走行路（砂漠）
       this.signal = null;
       this.coinCounters = {}; // kartIndex -> count
     }
@@ -406,7 +620,14 @@ window.MK = window.MK || {};
       this.root.add(sky);
 
       // 地面
-      if (t.props !== 'rainbow') {
+      if (t.props === 'beach') {
+        // 砂の島＋まわり一面の海
+        const sand = new THREE.Mesh(new THREE.CircleGeometry(290, 48), M(t.ground, { roughness: 0.95 }));
+        sand.rotation.x = -Math.PI / 2; sand.position.y = -0.5; this.root.add(sand);
+        // 波打ち際（濡れた砂のリング）
+        const wet = new THREE.Mesh(new THREE.RingGeometry(282, 302, 48), M(0xd8c089, { roughness: 0.8 }));
+        wet.rotation.x = -Math.PI / 2; wet.position.y = -0.72; this.root.add(wet);
+      } else if (t.props !== 'rainbow') {
         const ground = new THREE.Mesh(new THREE.CircleGeometry(620, 48),
           M(t.ground, { roughness: 0.95 }));
         ground.rotation.x = -Math.PI / 2;
@@ -426,6 +647,8 @@ window.MK = window.MK || {};
       // 遠景（コースのコンセプトに合わせて作り込んだ背景）
       if (t.props === 'grass') this._buildGrassBackdrop();
       else if (t.props === 'snow') this._buildSnowBackdrop();
+      else if (t.props === 'beach') this._buildBeachBackdrop();
+      else if (t.props === 'desert') this._buildDesertBackdrop();
       // 城コース：高架の通路の下に広がる溶岩の海
       if (t.props === 'castle') {
         const lavaTex = U.makeCanvasTexture(256, (ctx, s) => {
@@ -537,6 +760,9 @@ window.MK = window.MK || {};
       }
       // 遠景のピーチ城
       const castle = Build.peachCastle(); castle.position.set(95, 0, -300); castle.rotation.y = -0.32; castle.scale.setScalar(2.4); this.root.add(castle);
+      // 空中に浮かぶ?ブロックの列（マリオの世界観）
+      this._floatingBlocks(0.26, 1);
+      this._floatingBlocks(0.68, -1);
       // 漂う熱気球（動きあり）
       const cols = [0xe23b2e, 0x2b6fd6, 0xffd24a, 0x2fae4a, 0xf45ba5];
       for (let i = 0; i < 5; i++) {
@@ -587,6 +813,161 @@ window.MK = window.MK || {};
       this.snowfall = { pts, geo, range, top, vy: 13 };
     }
 
+    // ビーチ（ノコノコビーチ）：海と入道雲、沖の島々、太陽、カモメ、岩のアーチ
+    _buildBeachBackdrop() {
+      // 海面（島の外側いっぱい・波テクスチャをゆっくり流す）
+      const waterTex = U.makeCanvasTexture(256, (ctx, s) => {
+        ctx.fillStyle = '#2fa3d8'; ctx.fillRect(0, 0, s, s);
+        const g2 = ctx.createLinearGradient(0, 0, s, s);
+        g2.addColorStop(0, 'rgba(110,220,255,0.35)'); g2.addColorStop(1, 'rgba(20,90,160,0.3)');
+        ctx.fillStyle = g2; ctx.fillRect(0, 0, s, s);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2;
+        for (let i = 0; i < 26; i++) {
+          const y = Math.random() * s, x = Math.random() * s, w = 14 + Math.random() * 36;
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + w / 2, y - 4, x + w, y); ctx.stroke();
+        }
+      });
+      waterTex.wrapS = waterTex.wrapT = THREE.RepeatWrapping; waterTex.repeat.set(14, 14);
+      const sea = new THREE.Mesh(new THREE.CircleGeometry(700, 56),
+        new THREE.MeshStandardMaterial({ map: waterTex, color: 0xbfe8ff, roughness: 0.35, metalness: 0.12 }));
+      sea.rotation.x = -Math.PI / 2; sea.position.y = -1.1; this.root.add(sea);
+      this.oceanTex = waterTex;
+      // 沖の島々
+      for (const p of [[-300, -260, 1.2], [330, -150, 0.9], [180, 340, 1.4], [-360, 160, 1.0]]) {
+        const isl = Build.islandMound(26); isl.position.set(p[0], -1, p[1]); isl.scale.setScalar(p[2]); this.root.add(isl);
+      }
+      // 太陽＋ぎらつき
+      const sunTex = U.softCircleTexture('rgba(255,250,220,1)', 'rgba(255,220,120,0)');
+      const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+      sun.scale.set(150, 150, 1); sun.position.set(220, 250, -380); this.root.add(sun);
+      // カモメ
+      this._spawnBirds(6, false, 24, 60);
+      // 空中に浮かぶ?ブロックの列（マリオの世界観）
+      this._floatingBlocks(0.3, -1);
+      this._floatingBlocks(0.84, 1);
+      // 道をまたぐ岩のアーチ（名所）
+      const N = this.track.sampleCount;
+      const sm = this.track.samples[Math.floor(N * 0.56)];
+      const arch = Build.rockArch(this.track.wallHalf + 4, 9.5);
+      arch.position.set(sm.point.x, sm.point.y, sm.point.z);
+      arch.rotation.y = Math.atan2(sm.tangent.x, sm.tangent.z);
+      this.root.add(arch);
+    }
+
+    // 砂漠（カラカラさばく）：赤土のメサ・太陽・ハゲワシ・機関車の線路
+    _buildDesertBackdrop() {
+      // 遠景のメサ（2層）
+      const layers = [
+        { r: 330, n: 7, rMin: 26, rMax: 44, hMin: 40, hMax: 75 },
+        { r: 470, n: 9, rMin: 40, rMax: 70, hMin: 70, hMax: 130 },
+      ];
+      for (const L of layers) {
+        for (let i = 0; i < L.n; i++) {
+          const a = (i / L.n) * U.TAU + U.randRange(-0.12, 0.12), r = L.r + U.randRange(-25, 25);
+          const mesa = Build.mesa(U.randRange(L.rMin, L.rMax), U.randRange(L.hMin, L.hMax));
+          mesa.position.set(Math.cos(a) * r, -2, Math.sin(a) * r);
+          mesa.rotation.y = Math.random() * U.TAU;
+          this.root.add(mesa);
+        }
+      }
+      // ぎらつく太陽
+      const sunTex = U.softCircleTexture('rgba(255,244,200,1)', 'rgba(255,190,90,0)');
+      const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: sunTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+      sun.scale.set(190, 190, 1); sun.position.set(-180, 280, -360); this.root.add(sun);
+      // ハゲワシが高空を旋回
+      this._spawnBirds(4, true, 45, 80);
+      // 機関車の線路＋踏切
+      this.trainPath = TrainPath.build(this.course, this.track);
+      if (this.trainPath) this._buildTrainTracks(this.trainPath);
+    }
+
+    // 沿道の空中に浮かぶ?ブロックの列（SMB の空中ブロック。装飾のみ）
+    _floatingBlocks(f, side) {
+      const N = this.track.sampleCount;
+      const i0 = Math.floor(f * N) % N;
+      const lat = (this.track.wallHalf + 6) * side;
+      for (let k = -1; k <= 1; k++) {
+        const sm = this.track.samples[(i0 + k * 2 + N) % N];
+        const b = Build.qblock();
+        b.position.set(sm.point.x + sm.normal.x * lat, sm.point.y + 4.3, sm.point.z + sm.normal.z * lat);
+        b.rotation.y = Math.atan2(sm.tangent.x, sm.tangent.z);
+        this.root.add(b);
+      }
+    }
+
+    // 鳥を旋回飛行で配置（dark=true でハゲワシ）
+    _spawnBirds(n, dark, hMin, hMax) {
+      for (let i = 0; i < n; i++) {
+        const b = Build.bird(dark);
+        const cx = U.randRange(-260, 260), cz = U.randRange(-260, 260);
+        b.scale.setScalar(U.randRange(1.6, 2.6));
+        this.root.add(b);
+        this.birds.push({
+          mesh: b, cx, cz, alt: U.randRange(hMin, hMax),
+          ang: Math.random() * U.TAU, rad: U.randRange(26, 70),
+          spd: U.randRange(0.12, 0.3) * (Math.random() < 0.5 ? 1 : -1),
+          flap: Math.random() * 10, flapSpd: U.randRange(5, 9),
+        });
+      }
+    }
+
+    // 任意パスに沿ったリボン（線路の砂利・レール用）
+    _pathRibbon(samples, o1, o2, yOff, mat) {
+      const N = samples.length;
+      const positions = [], uvs = [], indices = [];
+      for (let i = 0; i < N; i++) {
+        const s = samples[i];
+        const nx = -s.tz, nz = s.tx;   // 左法線
+        positions.push(s.x + nx * o1, s.y + yOff, s.z + nz * o1);
+        positions.push(s.x + nx * o2, s.y + yOff, s.z + nz * o2);
+        const v = i / N * 60;
+        uvs.push(0, v); uvs.push(1, v);
+      }
+      for (let i = 0; i < N; i++) {
+        const a0 = i * 2, b0 = i * 2 + 1, ni = (i + 1) % N, a1 = ni * 2, b1 = ni * 2 + 1;
+        indices.push(a0, b0, b1); indices.push(a0, b1, a1);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.setIndex(indices); geo.computeVertexNormals();
+      const mesh = new THREE.Mesh(geo, mat);
+      this.root.add(mesh);
+      return mesh;
+    }
+
+    // 線路：砂利ベッド＋枕木＋2本のレール＋踏切標識
+    _buildTrainTracks(tp) {
+      const samples = tp.samples, N = tp.N;
+      const bedMat = M(0x8a7a64, { roughness: 0.95 });
+      const railMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 0.35, metalness: 0.7 });
+      this._pathRibbon(samples, -1.7, 1.7, 0.04, bedMat);
+      this._pathRibbon(samples, 0.72, 0.92, 0.24, railMat);
+      this._pathRibbon(samples, -0.92, -0.72, 0.24, railMat);
+      // 枕木
+      const tieMat = M(0x5a4026, { roughness: 0.9 });
+      const tieGeo = new THREE.BoxGeometry(2.6, 0.12, 0.6);
+      for (let i = 0; i < N; i += 3) {
+        const s = samples[i];
+        const tie = new THREE.Mesh(tieGeo, tieMat);
+        tie.position.set(s.x, s.y + 0.12, s.z);
+        tie.rotation.y = Math.atan2(s.tx, s.tz) + Math.PI / 2;
+        this.root.add(tie);
+      }
+      // 踏切標識（道路へ出入りする境目に設置）
+      for (let i = 0; i < N; i++) {
+        const cur = samples[i], prev = samples[(i - 1 + N) % N];
+        if (cur.onRoad !== prev.onRoad) {
+          const sign = Build.crossbuck();
+          const nx = -cur.tz, nz = cur.tx;
+          const side = Math.random() < 0.5 ? 1 : -1;
+          sign.position.set(cur.x + nx * 3.4 * side, cur.y, cur.z + nz * 3.4 * side);
+          sign.rotation.y = Math.atan2(cur.tx, cur.tz);
+          this.root.add(sign);
+        }
+      }
+    }
+
     _scatterProps() {
       const t = this.course.theme;
       const samples = this.track.samples;
@@ -601,6 +982,7 @@ window.MK = window.MK || {};
           const dist = edge + U.randRange(1, 14);
           const px = sm.point.x + sm.normal.x * side * dist;
           const pz = sm.point.z + sm.normal.z * side * dist;
+          if (this._nearRail(px, pz, 6)) continue;   // 線路の上に小物を置かない
           const prop = this._pickProp(t.props);
           if (!prop) continue;
           prop.position.set(px, sm.point.y, pz);
@@ -608,7 +990,7 @@ window.MK = window.MK || {};
           this.root.add(prop);
         }
       }
-      // 雲（城＝なし、虹＝星空なので雲なし）
+      // 雲（城＝なし、虹＝星空なので雲なし）。ゆっくり漂う
       const cloudN = (t.props === 'castle' || t.props === 'rainbow') ? 0 : 16;
       for (let i = 0; i < cloudN; i++) {
         const a = Math.random() * U.TAU, r = U.randRange(120, 380);
@@ -616,7 +998,26 @@ window.MK = window.MK || {};
         c.position.set(Math.cos(a) * r, U.randRange(40, 110), Math.sin(a) * r);
         c.scale.setScalar(U.randRange(2, 5));
         this.root.add(c);
+        this.drifters.push({
+          mesh: c, cx: c.position.x, cz: c.position.z, baseY: c.position.y,
+          ang: Math.random() * U.TAU, rad: U.randRange(8, 22),
+          spd: U.randRange(0.01, 0.035) * (Math.random() < 0.5 ? 1 : -1),
+          bob: Math.random() * 10, bobAmp: U.randRange(0.5, 1.5),
+        });
       }
+    }
+
+    // 線路に近いか（砂漠の小物配置用）
+    _nearRail(px, pz, dist) {
+      const tp = this.trainPath;
+      if (!tp) return false;
+      const d2 = dist * dist;
+      for (let i = 0; i < tp.N; i += 3) {
+        const s = tp.samples[i];
+        const dx = px - s.x, dz = pz - s.z;
+        if (dx * dx + dz * dz < d2) return true;
+      }
+      return false;
     }
 
     _pickProp(theme) {
@@ -634,6 +1035,17 @@ window.MK = window.MK || {};
         if (r < 0.66) return Build.igloo();
         if (r < 0.82) { const g = Build.pipe(U.randRange(3, 5)); return g; }
         return Build.tree(true);
+      } else if (theme === 'beach') {
+        if (r < 0.4) return Build.palm();
+        if (r < 0.54) return Build.parasol();
+        if (r < 0.7) return Build.starfish();
+        if (r < 0.86) return Build.beachRock();
+        return Build.pipe(U.randRange(3, 5));
+      } else if (theme === 'desert') {
+        if (r < 0.45) return Build.saguaro();
+        if (r < 0.64) return Build.rockSpire();
+        if (r < 0.82) return Build.deadTree();
+        return Build.beachRock();
       } else if (theme === 'castle') {
         if (r < 0.66) { const p = Build.castlePillar(); this.torches.push(p); return p; }
         const b = Build.lavaBubble(); this.bubbles.push({ mesh: b, phase: Math.random() * 10, baseY: -5.5 }); return b;
@@ -720,6 +1132,22 @@ window.MK = window.MK || {};
         d.mesh.position.set(d.cx + Math.cos(d.ang) * d.rad, d.baseY + Math.sin(now * 0.5 + d.bob) * d.bobAmp, d.cz + Math.sin(d.ang) * d.rad);
         d.mesh.rotation.y += dt * 0.1;
       }
+      // 海面の流れ（ビーチ）
+      if (this.oceanTex) { this.oceanTex.offset.x = now * 0.008; this.oceanTex.offset.y = now * 0.005; }
+      // 鳥（カモメ/ハゲワシ）の旋回＋羽ばたき
+      for (const b of this.birds) {
+        b.ang += b.spd * dt;
+        const dir = b.spd > 0 ? 1 : -1;
+        const m = b.mesh;
+        m.position.set(
+          b.cx + Math.cos(b.ang) * b.rad,
+          b.alt + Math.sin(now * 0.7 + b.flap) * 2.5,
+          b.cz + Math.sin(b.ang) * b.rad);
+        const vx = -Math.sin(b.ang) * dir, vz = Math.cos(b.ang) * dir;
+        m.rotation.y = Math.atan2(-vx, -vz);
+        const wings = m.userData.wings;
+        if (wings) { const f = Math.sin(now * b.flapSpd + b.flap) * 0.55; wings[0].rotation.z = f; wings[1].rotation.z = -f; }
+      }
       // 降雪（雪原）：プレイヤー周辺に追従して舞い落ちる
       if (this.snowfall) {
         const sf = this.snowfall;
@@ -796,5 +1224,6 @@ window.MK = window.MK || {};
 
   MK.Scenery = Scenery;
   MK.SceneryBuild = Build;
+  MK.TrainPath = TrainPath;
 
 })(window.MK);

@@ -273,6 +273,366 @@ window.MK = window.MK || {};
       g.userData.core = core; g.userData.tail = tail;
       return g;
     },
+    // --- ビーチ：カニ（横歩きで道を塞ぐ）---
+    crab() {
+      const g = new THREE.Group();
+      const red = 0xe8503a, dark = 0xb83a28;
+      const sm = (geo, c, o) => new THREE.Mesh(geo, M(c, Object.assign({ flatShading: false }, o || {})));
+      const body = sm(new THREE.SphereGeometry(0.75, 18, 14), red); body.scale.set(1.25, 0.72, 1.0); body.position.y = 0.62; g.add(body);
+      const belly = sm(new THREE.SphereGeometry(0.6, 14, 10), 0xffd9c0); belly.scale.set(1.1, 0.5, 0.9); belly.position.y = 0.5; g.add(belly);
+      // 飛び出した目玉（白目大きめ＋ハイライト）＋怒り眉
+      for (const s of [-1, 1]) {
+        const stalk = cyl(0.06, 0.09, 0.52, dark, 8); stalk.position.set(s * 0.3, 1.12, -0.28); stalk.rotation.x = -0.3; g.add(stalk);
+        const eye = sm(new THREE.SphereGeometry(0.19, 14, 12), 0xffffff); eye.scale.set(0.92, 1.15, 0.9); eye.position.set(s * 0.3, 1.4, -0.38); g.add(eye);
+        const pup = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), basic(0x18181f)); pup.position.set(s * 0.3, 1.38, -0.54); g.add(pup);
+        const shine = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 6), basic(0xffffff)); shine.position.set(s * 0.26, 1.46, -0.55); g.add(shine);
+        const brow = sm(new THREE.BoxGeometry(0.3, 0.09, 0.1), dark); brow.position.set(s * 0.3, 1.6, -0.42); brow.rotation.z = -s * 0.5; g.add(brow);
+      }
+      // 口（への字）＋甲羅の白い斑点
+      const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.045, 6, 14, Math.PI), M(0x6a1410, { flatShading: false }));
+      mouth.position.set(0, 0.66, -0.96); g.add(mouth);
+      [[-0.45, 0.95, -0.3], [0.45, 0.95, -0.3], [0, 1.02, 0.2], [-0.3, 0.9, 0.55], [0.3, 0.9, 0.55]].forEach((p) => {
+        const spot = sm(new THREE.SphereGeometry(0.09, 8, 6), 0xffb09a); spot.scale.y = 0.5; spot.position.set(p[0], p[1], p[2]); g.add(spot);
+      });
+      // 大きなハサミ（上下二枚貝式・開閉は claws ピボットで）
+      const claws = [];
+      for (const s of [-1, 1]) {
+        const piv = new THREE.Group(); piv.position.set(s * 0.95, 0.62, -0.35); piv.rotation.y = -s * 0.3; g.add(piv);
+        const wrist = sm(new THREE.SphereGeometry(0.17, 10, 8), red); wrist.position.z = 0.05; piv.add(wrist);
+        const palm = sm(new THREE.SphereGeometry(0.32, 14, 12), red); palm.scale.set(0.9, 0.78, 1.3); palm.position.z = -0.34; piv.add(palm);
+        // 上の可動つめ＋下の固定つめ（カチカチ）
+        const upper = new THREE.Group(); upper.position.set(0, 0.12, -0.6); piv.add(upper);
+        const uClaw = sm(new THREE.SphereGeometry(0.2, 10, 8), red); uClaw.scale.set(0.62, 0.5, 1.5); uClaw.position.z = -0.2; upper.add(uClaw);
+        const uTip = cone(0.09, 0.3, 0xffd9c0, 8); uTip.rotation.x = -Math.PI / 2; uTip.position.set(0, 0, -0.52); upper.add(uTip);
+        const lower = sm(new THREE.SphereGeometry(0.18, 10, 8), dark); lower.scale.set(0.6, 0.42, 1.45); lower.position.set(0, -0.1, -0.78); piv.add(lower);
+        piv.userData.upper = upper;
+        claws.push(piv);
+      }
+      // 関節つきの脚（歩行アニメ用ピボット）
+      const legs = [];
+      for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+        const lp = new THREE.Group(); lp.position.set(s * 0.78, 0.5, 0.05 + (i - 1) * 0.34); g.add(lp);
+        const upperL = cyl(0.055, 0.065, 0.5, dark, 6); upperL.position.set(s * 0.22, -0.05, 0); upperL.rotation.z = s * 1.15; lp.add(upperL);
+        const shin = cyl(0.04, 0.055, 0.4, red, 6); shin.position.set(s * 0.46, -0.3, 0); shin.rotation.z = s * 0.5; lp.add(shin);
+        legs.push(lp);
+      }
+      g.userData.claws = claws;
+      g.userData.legs = legs;
+      return g;
+    },
+    // --- ビーチ：プクプク（海から道を飛び越える）---
+    cheepCheep() {
+      const g = new THREE.Group();
+      const red = 0xff5a2a;
+      const sm = (geo, c, o) => new THREE.Mesh(geo, M(c, Object.assign({ flatShading: false }, o || {})));
+      const body = sm(new THREE.SphereGeometry(0.85, 20, 16), red); body.scale.set(0.95, 1.0, 1.1); g.add(body);
+      const bel = sm(new THREE.SphereGeometry(0.72, 16, 12), 0xffe8c8); bel.scale.set(0.85, 0.8, 0.9); bel.position.set(0, -0.22, -0.12); g.add(bel);
+      // 大きな目
+      for (const s of [-1, 1]) {
+        const eye = sm(new THREE.SphereGeometry(0.26, 14, 12), 0xffffff); eye.position.set(s * 0.42, 0.34, -0.5); g.add(eye);
+        const pup = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), basic(0x18181f)); pup.position.set(s * 0.47, 0.34, -0.68); g.add(pup);
+      }
+      // すぼめた唇（上下二段の白いリング＝プクプクらしさ）
+      const lipT = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.1, 10, 18), M(0xffe6d0, { flatShading: false }));
+      lipT.position.set(0, 0.05, -0.88); lipT.rotation.x = 0.18; g.add(lipT);
+      const lipB = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.09, 10, 16), M(0xffd9c0, { flatShading: false }));
+      lipB.position.set(0, -0.16, -0.86); lipB.rotation.x = -0.18; g.add(lipB);
+      const mouthIn = sm(new THREE.SphereGeometry(0.16, 10, 8), 0x6a1410); mouthIn.scale.set(1.1, 0.9, 0.5); mouthIn.position.set(0, -0.05, -0.92); g.add(mouthIn);
+      // ひれ（黄色）：背・尾＋羽ばたく胸びれ（翼のように動く）
+      const dorsal = cone(0.3, 0.55, 0xffe14d, 8); dorsal.position.set(0, 0.85, 0.15); dorsal.rotation.x = 0.4; g.add(dorsal);
+      const tail = new THREE.Group(); tail.position.set(0, 0, 0.95); g.add(tail);
+      for (const s of [-1, 1]) { const tf = cone(0.26, 0.6, 0xffe14d, 8); tf.rotation.x = s * 2.2; tf.position.set(0, s * 0.18, 0.18); tail.add(tf); }
+      const fins = [];
+      for (const s of [-1, 1]) {
+        const fp = new THREE.Group(); fp.position.set(s * 0.72, 0.1, -0.15); g.add(fp);
+        const wing = sm(new THREE.SphereGeometry(0.34, 10, 8), 0xffe14d);
+        wing.scale.set(1.5, 0.18, 0.7); wing.position.x = s * 0.4; fp.add(wing);
+        const wing2 = sm(new THREE.SphereGeometry(0.22, 8, 6), 0xffba4d);
+        wing2.scale.set(1.3, 0.16, 0.55); wing2.position.set(s * 0.66, 0.04, 0.05); fp.add(wing2);
+        fins.push(fp);
+      }
+      g.userData.tail = tail;
+      g.userData.fins = fins;
+      return g;
+    },
+    // --- 砂漠：サンボ（積み上がったトゲ段が揺れる）---
+    pokey() {
+      const g = new THREE.Group();
+      const col = 0xd9c33f;
+      const sm = (geo, c, o) => new THREE.Mesh(geo, M(c, Object.assign({ flatShading: false }, o || {})));
+      const segs = [];
+      const n = 4;
+      for (let i = 0; i < n; i++) {
+        const seg = new THREE.Group();
+        const r = 0.58 - i * 0.045;
+        const ball = sm(new THREE.SphereGeometry(r, 18, 14), col); ball.scale.y = 0.84; seg.add(ball);
+        // しっかり見える白いトゲ（2段リング・外向き）
+        for (const ring of [{ y: 0.1, n: 6, off: 0 }, { y: -0.18, n: 6, off: 0.5 }]) {
+          for (let k = 0; k < ring.n; k++) {
+            const a = (k / ring.n) * U.TAU + i * 0.35 + ring.off;
+            const sp = cone(0.075, 0.32, 0xfff7e0, 7);
+            sp.position.set(Math.cos(a) * (r - 0.04), ring.y, Math.sin(a) * (r - 0.04));
+            sp.rotation.z = -Math.cos(a) * Math.PI / 2;
+            sp.rotation.x = Math.sin(a) * Math.PI / 2;
+            seg.add(sp);
+          }
+        }
+        seg.position.y = 0.48 + i * 0.9;
+        seg.userData.baseY = seg.position.y;
+        g.add(seg); segs.push(seg);
+      }
+      // 顔（最上段）：眠そうな半目＋ぽかんと開いた口（サンボらしい顔）
+      const head = segs[n - 1];
+      for (const s of [-1, 1]) {
+        const socket = sm(new THREE.SphereGeometry(0.13, 10, 8), 0xffffff); socket.scale.set(0.9, 1.2, 0.6); socket.position.set(s * 0.18, 0.12, -0.38); head.add(socket);
+        const pup = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), basic(0x18181f)); pup.scale.set(0.9, 1.3, 0.6); pup.position.set(s * 0.18, 0.1, -0.47); head.add(pup);
+        const lid = sm(new THREE.SphereGeometry(0.135, 10, 6), col); lid.scale.set(0.95, 0.55, 0.7); lid.position.set(s * 0.18, 0.22, -0.38); head.add(lid);
+      }
+      const mouth = sm(new THREE.SphereGeometry(0.13, 10, 8), 0x5e430c); mouth.scale.set(1.2, 1.0, 0.5); mouth.position.set(0, -0.18, -0.44); head.add(mouth);
+      // 頭の花（ピンクの花びら＋黄色い芯＋小さな葉）
+      const fl = new THREE.Group();
+      for (let k = 0; k < 6; k++) { const a = k / 6 * U.TAU; const pet = sm(new THREE.SphereGeometry(0.11, 8, 6), 0xff8ad6); pet.scale.set(1, 0.45, 1.5); pet.position.set(Math.cos(a) * 0.19, 0, Math.sin(a) * 0.19); fl.add(pet); }
+      fl.add(sm(new THREE.SphereGeometry(0.1, 8, 6), 0xffe14d));
+      for (const s of [-1, 1]) { const leaf = sm(new THREE.SphereGeometry(0.09, 8, 6), 0x3f9d4a); leaf.scale.set(1.6, 0.3, 0.8); leaf.position.set(s * 0.3, -0.06, 0); fl.add(leaf); }
+      fl.position.y = 0.5; head.add(fl);
+      g.userData.segs = segs;
+      return g;
+    },
+    // --- 砂漠：転がるタンブルウィード ---
+    tumbleweed() {
+      const g = new THREE.Group();
+      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.85, 0), M(0x8a6a3a, { wireframe: true }));
+      g.add(core);
+      for (let i = 0; i < 3; i++) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.05, 5, 12), M(0x9a7a4a, { roughness: 0.95 }));
+        ring.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        g.add(ring);
+      }
+      const ball = new THREE.Mesh(new THREE.IcosahedronGeometry(0.65, 0), M(0xa8854f, { wireframe: true }));
+      ball.rotation.set(1, 2, 0); g.add(ball);
+      return g;
+    },
+    // --- ビーチ：ゲッソー（白イカ。プレイヤーにだけ墨を吐く）---
+    blooper() {
+      const g = new THREE.Group();
+      const white = 0xf6f8fa, shade = 0xdfe5ea;
+      const sm = (geo, c, o) => new THREE.Mesh(geo, M(c, Object.assign({ flatShading: false, roughness: 0.5 }, o || {})));
+      // 頭（上にすぼまるフード）
+      const hood = sm(new THREE.SphereGeometry(0.62, 18, 16), white); hood.scale.set(1, 1.45, 1); hood.position.y = 0.95; g.add(hood);
+      const tip = cone(0.3, 0.7, white, 12); tip.position.y = 1.95; tip.rotation.x = 0.18; g.add(tip);
+      // 顔（縦長の黒目＋への字口）
+      for (const s of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), basic(0x14161c));
+        eye.scale.set(0.7, 1.6, 0.5); eye.position.set(s * 0.24, 0.95, -0.55); g.add(eye);
+        const shine = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 6), basic(0xffffff)); shine.position.set(s * 0.21, 1.07, -0.6); g.add(shine);
+      }
+      const bm = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.03, 6, 12, Math.PI), M(0x44507a, { flatShading: false }));
+      bm.position.set(0, 0.6, -0.58); g.add(bm);
+      // 触腕（外へ反るカール・wiggle 用に配列で保持）
+      const arms = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * U.TAU + 0.26;
+        const piv = new THREE.Group(); piv.position.set(Math.cos(a) * 0.34, 0.35, Math.sin(a) * 0.34); g.add(piv);
+        const seg1 = sm(new THREE.SphereGeometry(0.16, 10, 8), white); seg1.scale.set(0.8, 1.5, 0.8); seg1.position.y = -0.18; piv.add(seg1);
+        const seg2 = sm(new THREE.SphereGeometry(0.12, 8, 6), shade); seg2.scale.set(0.75, 1.5, 0.75); seg2.position.set(Math.cos(a) * 0.12, -0.48, Math.sin(a) * 0.12); piv.add(seg2);
+        const tipA = cone(0.06, 0.22, white, 6); tipA.position.set(Math.cos(a) * 0.2, -0.68, Math.sin(a) * 0.2); tipA.rotation.z = -Math.cos(a) * 0.7; tipA.rotation.x = Math.sin(a) * 0.7 + Math.PI; piv.add(tipA);
+        arms.push(piv);
+      }
+      g.userData.arms = arms;
+      return g;
+    },
+    // --- 砂漠：怒りの太陽（プレイヤーだけを狙って急降下する）---
+    angrySun() {
+      const g = new THREE.Group();
+      // 顔は常にカメラ/プレイヤー方向へ向ける想定（_animate で lookAt）
+      const core = sph(1.15, 0xffd24a, 20, { emissive: 0xff8a00, emissiveIntensity: 0.95, roughness: 0.4 });
+      core.scale.z = 0.72; g.add(core);
+      // 三角形の光線（外周にぐるり）
+      const rays = new THREE.Group(); g.add(rays);
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * U.TAU;
+        const ray = cone(0.22, i % 2 === 0 ? 0.85 : 0.6, 0xffae33, 6);
+        ray.position.set(Math.cos(a) * 1.42, Math.sin(a) * 1.42, 0);
+        ray.rotation.z = a - Math.PI / 2;
+        ray.material.emissive = new THREE.Color(0xff6a00); ray.material.emissiveIntensity = 0.8;
+        rays.add(ray);
+      }
+      // 怒り顔（つり上がった眉＋黒目＋食いしばり口）— -Z 面
+      for (const s of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), basic(0x401800));
+        eye.scale.set(0.7, 1.15, 0.4); eye.position.set(s * 0.42, 0.18, -0.82); g.add(eye);
+        const brow = box(0.5, 0.13, 0.1, 0x9a3a00); brow.position.set(s * 0.42, 0.56, -0.84); brow.rotation.z = -s * 0.55; g.add(brow);
+      }
+      const mouthS = box(0.66, 0.14, 0.1, 0x401800); mouthS.position.set(0, -0.42, -0.86); g.add(mouthS);
+      for (let i = -1; i <= 1; i++) { const tooth = box(0.07, 0.14, 0.12, 0xfff4d0); tooth.position.set(i * 0.2, -0.42, -0.88); g.add(tooth); }
+      g.add(glowSprite(0xffb84a, 6.5));
+      g.userData.core = core; g.userData.rays = rays;
+      return g;
+    },
+    // --- 砂漠：ファイアスネーク（跳ねながら進む炎の連なり）の玉 ---
+    fireOrb(r, head) {
+      const g = new THREE.Group();
+      const core = sph(r, head ? 0xffe27a : 0xff9a3a, 14, { emissive: head ? 0xffb030 : 0xff5a00, emissiveIntensity: 1.0, roughness: 0.4 });
+      g.add(core);
+      if (head) {
+        for (const s of [-1, 1]) {
+          const eye = new THREE.Mesh(new THREE.SphereGeometry(r * 0.3, 8, 8), basic(0xffffff)); eye.position.set(s * r * 0.45, r * 0.35, -r * 0.7); g.add(eye);
+          const pup = new THREE.Mesh(new THREE.SphereGeometry(r * 0.15, 6, 6), basic(0x2a1200)); pup.position.set(s * r * 0.45, r * 0.32, -r * 0.95); g.add(pup);
+        }
+      }
+      g.add(glowSprite(head ? 0xffd24a : 0xff7a2a, r * 4.2));
+      g.userData.core = core;
+      return g;
+    },
+    // --- 砂漠：蒸気機関車（先頭車）。本格ディテール＋回転する動輪 ---
+    locomotive() {
+      const g = new THREE.Group();
+      const dark = 0x23262c, black = 0x16181d, red = 0xb8352a, gold = 0xd9b13f;
+      const wheels = [];
+      // メインフレーム＋ランニングボード
+      const frame = box(2.5, 0.5, 7.4, black); frame.position.set(0, 1.0, -0.3); g.add(frame);
+      const board = box(2.7, 0.1, 5.2, red); board.position.set(0, 1.3, -1.3); g.add(board);
+      // ボイラー（前方 -Z）＋金の帯
+      const boiler = cyl(1.02, 1.08, 4.0, dark, 18); boiler.rotation.x = Math.PI / 2; boiler.position.set(0, 2.05, -1.7); g.add(boiler);
+      for (const z of [-2.8, -1.8, -0.8]) {
+        const band = cyl(1.1, 1.1, 0.14, gold, 18); band.rotation.x = Math.PI / 2; band.position.set(0, 2.05, z); g.add(band);
+      }
+      // スモークボックス（黒い前頭部＋丸扉＋ヒンジ）
+      const smokebox = cyl(1.06, 1.06, 0.7, black, 18); smokebox.rotation.x = Math.PI / 2; smokebox.position.set(0, 2.05, -3.85); g.add(smokebox);
+      const door = cyl(0.74, 0.8, 0.2, 0x3a3e46, 16); door.rotation.x = Math.PI / 2; door.position.set(0, 2.05, -4.22); g.add(door);
+      const hinge = sph(0.12, gold, 8); hinge.position.set(0, 2.05, -4.34); g.add(hinge);
+      // 煙突（クラウン付き）・蒸気ドーム・ベル
+      const stack = cyl(0.24, 0.34, 0.95, black, 12); stack.position.set(0, 3.55, -3.4); g.add(stack);
+      const crown = cyl(0.5, 0.28, 0.4, black, 12); crown.position.set(0, 4.15, -3.4); g.add(crown);
+      const dome = sph(0.46, gold, 14); dome.scale.y = 0.78; dome.position.set(0, 3.25, -1.8); g.add(dome);
+      const bellPost = box(0.1, 0.32, 0.1, gold); bellPost.position.set(0, 3.35, -0.75); g.add(bellPost);
+      const bell = cone(0.2, 0.3, gold, 10); bell.rotation.x = Math.PI; bell.position.set(0, 3.2, -0.75); g.add(bell);
+      // キャブ（赤・白枠の窓・張り出した屋根）
+      const cab = box(2.4, 2.0, 2.0, red); cab.position.set(0, 2.6, 1.55); g.add(cab);
+      const roof = box(2.85, 0.16, 2.5, dark); roof.position.set(0, 3.68, 1.55); g.add(roof);
+      for (const s of [-1, 1]) {
+        const wf = box(0.84, 0.74, 0.08, 0xf3ead8); wf.position.set(s * 1.21, 2.85, 1.45); g.add(wf);
+        const wg2 = box(0.66, 0.56, 0.1, 0x9fd8e8); wg2.position.set(s * 1.23, 2.85, 1.45); g.add(wg2);
+      }
+      const fwf = box(0.9, 0.7, 0.08, 0xf3ead8); fwf.position.set(0, 2.95, 0.52); g.add(fwf);
+      const fwg = box(0.7, 0.52, 0.1, 0x9fd8e8); fwg.position.set(0, 2.95, 0.5); g.add(fwg);
+      // ナンバープレート（金縁の赤丸）
+      const plate = cyl(0.3, 0.3, 0.08, gold, 14); plate.rotation.x = Math.PI / 2; plate.position.set(0, 2.85, -4.3); g.add(plate);
+      const plateC = cyl(0.22, 0.22, 0.1, red, 12); plateC.rotation.x = Math.PI / 2; plateC.position.set(0, 2.85, -4.32); g.add(plateC);
+      // 排障器（プラウ型のパイロット：V字の赤い板＋金フチ）
+      for (const s of [-1, 1]) {
+        const plow = box(1.5, 1.05, 0.14, red); plow.position.set(s * 0.62, 0.78, -4.25); plow.rotation.y = s * 0.62; plow.rotation.x = -0.38; g.add(plow);
+        const trim = box(1.5, 0.12, 0.16, gold); trim.position.set(s * 0.66, 1.22, -4.32); trim.rotation.y = s * 0.62; trim.rotation.x = -0.38; g.add(trim);
+      }
+      // 前照灯（金リム＋発光レンズ）
+      const lampRim = cyl(0.3, 0.34, 0.34, gold, 12); lampRim.rotation.x = Math.PI / 2; lampRim.position.set(0, 3.45, -4.05); g.add(lampRim);
+      const lamp = sph(0.22, 0xfff2c0, 10, { emissive: 0xffd24a, emissiveIntensity: 1.0 }); lamp.position.set(0, 3.45, -4.18); g.add(lamp);
+      // 動輪（大きな赤スポーク輪×2＋先輪×1）— group に入れて回転させる
+      const mkWheel = (r, x, z) => {
+        const wg = new THREE.Group();
+        const tire = cyl(r, r, 0.26, black, 16); tire.rotation.z = Math.PI / 2; wg.add(tire);
+        const hubF = cyl(r * 0.78, r * 0.78, 0.3, red, 14); hubF.rotation.z = Math.PI / 2; wg.add(hubF);
+        for (let k = 0; k < 4; k++) { const sp = box(0.34, r * 1.5, 0.12, 0xd9b13f); sp.rotation.x = k * Math.PI / 4; wg.add(sp); }
+        const cap = cyl(r * 0.2, r * 0.2, 0.36, gold, 10); cap.rotation.z = Math.PI / 2; wg.add(cap);
+        wg.position.set(x, r, z);
+        g.add(wg); wheels.push(wg);
+        return wg;
+      };
+      for (const s of [-1, 1]) {
+        mkWheel(0.78, s * 1.18, 0.4);
+        mkWheel(0.78, s * 1.18, -1.25);
+        mkWheel(0.48, s * 1.18, -2.9);
+      }
+      g.userData.wheels = wheels;
+      return g;
+    },
+    // --- 砂漠：有蓋貨車（板張り） ---
+    freightCar(color) {
+      const g = new THREE.Group();
+      const wheels = [];
+      const body = box(2.3, 1.8, 5.4, color || 0x7a5a34); body.position.y = 2.0; g.add(body);
+      const roofC = box(2.45, 0.14, 5.6, 0x4a3a26); roofC.position.y = 2.96; g.add(roofC);
+      const frame = box(2.4, 0.4, 6.0, 0x1c1e24); frame.position.y = 0.95; g.add(frame);
+      // 板張りの質感＋白いマーキング
+      for (let i = -2; i <= 2; i++) {
+        for (const s of [-1, 1]) { const slat = box(0.06, 1.8, 0.06, 0x3f3222); slat.position.set(s * 1.17, 2.0, i * 1.05); g.add(slat); }
+      }
+      for (const s of [-1, 1]) { const door = box(0.08, 1.3, 1.4, 0x5e4a30); door.position.set(s * 1.18, 1.95, 0); g.add(door); }
+      Build._carWheels(g, wheels);
+      g.userData.wheels = wheels;
+      return g;
+    },
+    // --- 砂漠：タンク車（銀のタンク＋ドーム） ---
+    tankerCar() {
+      const g = new THREE.Group();
+      const wheels = [];
+      const frame = box(2.4, 0.4, 6.0, 0x1c1e24); frame.position.y = 0.95; g.add(frame);
+      const tank = cyl(1.0, 1.0, 4.8, 0xc8ccd4, 18); tank.rotation.x = Math.PI / 2; tank.position.y = 2.0; g.add(tank);
+      for (const zz of [-2.4, 2.4]) { const capE = sph(1.0, 0xb8bcc4, 14); capE.scale.z = 0.45; capE.position.set(0, 2.0, zz); g.add(capE); }
+      for (const z of [-1.5, 0, 1.5]) { const band = cyl(1.04, 1.04, 0.14, 0x8a8f99, 18); band.rotation.x = Math.PI / 2; band.position.set(0, 2.0, z); g.add(band); }
+      const domeT = cyl(0.4, 0.45, 0.5, 0xb8bcc4, 12); domeT.position.set(0, 3.1, 0); g.add(domeT);
+      const valve = sph(0.18, 0xe23b2e, 8); valve.position.set(0, 3.42, 0); g.add(valve);
+      Build._carWheels(g, wheels);
+      g.userData.wheels = wheels;
+      return g;
+    },
+    // --- 砂漠：長物車（土管を積んだフラットカー：マリオらしさ） ---
+    flatCar() {
+      const g = new THREE.Group();
+      const wheels = [];
+      const deck = box(2.5, 0.34, 6.0, 0x6a4a2a); deck.position.y = 1.2; g.add(deck);
+      const frame = box(2.4, 0.4, 6.0, 0x1c1e24); frame.position.y = 0.92; g.add(frame);
+      // 積み荷：緑の土管2本＋固定ベルト
+      for (const zz of [-1.5, 1.3]) {
+        const pipe = cyl(0.85, 0.85, 1.7, 0x2fae4a, 14); pipe.position.set(0, 2.25, zz); g.add(pipe);
+        const rim = cyl(1.0, 1.0, 0.55, 0x36c957, 14); rim.position.set(0, 3.0, zz); g.add(rim);
+        const innerP = cyl(0.72, 0.72, 0.2, 0x176b2a, 14); innerP.position.set(0, 3.2, zz); g.add(innerP);
+        const belt = box(2.55, 0.12, 0.3, 0x33363d); belt.position.set(0, 1.45, zz); g.add(belt);
+      }
+      Build._carWheels(g, wheels);
+      g.userData.wheels = wheels;
+      return g;
+    },
+    // --- 砂漠：車掌車（赤いカブース：屋根上の見張り台つき） ---
+    caboose() {
+      const g = new THREE.Group();
+      const wheels = [];
+      const red = 0xb8352a, dark = 0x23262c;
+      const body = box(2.3, 1.7, 4.6, red); body.position.y = 1.95; g.add(body);
+      const roofC = box(2.55, 0.14, 4.9, dark); roofC.position.y = 2.88; g.add(roofC);
+      // キューポラ（見張り台）
+      const cupola = box(1.5, 0.85, 1.5, red); cupola.position.y = 3.35; g.add(cupola);
+      const cupRoof = box(1.75, 0.12, 1.75, dark); cupRoof.position.y = 3.84; g.add(cupRoof);
+      for (const s of [-1, 1]) { const cw = box(0.08, 0.4, 0.9, 0x9fd8e8); cw.position.set(s * 0.76, 3.36, 0); g.add(cw); }
+      // 側面の窓＋白帯
+      for (const s of [-1, 1]) for (const zz of [-1.3, 1.3]) {
+        const wf = box(0.08, 0.6, 0.66, 0xf3ead8); wf.position.set(s * 1.17, 2.1, zz); g.add(wf);
+        const wg2 = box(0.1, 0.46, 0.5, 0x9fd8e8); wg2.position.set(s * 1.18, 2.1, zz); g.add(wg2);
+      }
+      const stripe = box(2.34, 0.14, 4.64, 0xf3ead8); stripe.position.y = 1.34; g.add(stripe);
+      // 後部デッキ＋手すり＋テールランプ＋煙突
+      const frame = box(2.4, 0.4, 5.6, 0x1c1e24); frame.position.y = 0.95; g.add(frame);
+      for (const zz of [-2.6, 2.6]) {
+        const deck = box(2.3, 0.14, 0.6, 0x4a3a26); deck.position.set(0, 1.25, zz); g.add(deck);
+        for (const s of [-1, 1]) { const rail = box(0.07, 0.7, 0.07, 0xd9b13f); rail.position.set(s * 1.0, 1.65, zz); g.add(rail); }
+        const railT = box(2.1, 0.07, 0.07, 0xd9b13f); railT.position.set(0, 2.0, zz); g.add(railT);
+      }
+      const tail = sph(0.14, 0xff3b30, 8, { emissive: 0xff2a20, emissiveIntensity: 0.9 }); tail.position.set(0, 2.4, 2.95); g.add(tail);
+      const chim = cyl(0.12, 0.14, 0.6, dark, 8); chim.position.set(0.7, 3.1, -1.4); g.add(chim);
+      Build._carWheels(g, wheels);
+      g.userData.wheels = wheels;
+      return g;
+    },
+    // 貨車類の共通車輪（4輪・回転用に group で包む）
+    _carWheels(g, wheels) {
+      for (const s of [-1, 1]) for (const zz of [-1.9, 1.9]) {
+        const wg = new THREE.Group();
+        const tire = cyl(0.5, 0.5, 0.24, 0x16181d, 14); tire.rotation.z = Math.PI / 2; wg.add(tire);
+        const hub = cyl(0.22, 0.22, 0.28, 0x8a4a3a, 10); hub.rotation.z = Math.PI / 2; wg.add(hub);
+        wg.position.set(s * 1.2, 0.5, zz);
+        g.add(wg); wheels.push(wg);
+      }
+    },
     // --- 虹：回転するスター・バー（火柱の星版）。fill/outline/coreで色を指定 ---
     starOrb(fill, outline, coreCol, em) {
       const g = new THREE.Group();
@@ -305,6 +665,8 @@ window.MK = window.MK || {};
         snow: [['penguin', 4], ['snowman', 2], ['icicle', 3]],
         castle: [['thwomp', 2], ['firebar', 2], ['podoboo', 3], ['flameJet', 2]],
         rainbow: [['chomp', 2], ['comet', 2], ['spinBar', 3]],
+        beach: [['crab', 3], ['cheepCheep', 3], ['koopa', 2], ['blooper', 2]],
+        desert: [['pokey', 3], ['tumbleweed', 2], ['montyMole', 2], ['fireSnake', 2]],
       }[props] || [];
 
       // 0.15〜0.95 の範囲に種類ごとへ均等配置
@@ -316,6 +678,12 @@ window.MK = window.MK || {};
           this._add(kind, f, (i % 2 === 0 ? 1 : -1));
         }
       }
+
+      // 機関車（砂漠）：独自の閉ループ線路を周回し、踏切でコースを横切る
+      if (course.train) this._addTrain(course);
+
+      // 怒りの太陽（砂漠）：プレイヤーの上空を旋回し、時々急降下してくる（プレイヤー専用）
+      if (props === 'desert') this._addAngrySun();
 
       // ジュゲム（ラキトゥ）— 各コースに1匹、上空を旋回しノコノコを落とす
       this._addLakitu();
@@ -416,6 +784,50 @@ window.MK = window.MK || {};
         hz.shadow = blob(2.0); this.root.add(hz.shadow);
         hz._lastPhase = 0; hz._lastPos = new THREE.Vector3(sample.point.x, sample.point.y, sample.point.z);
         hz.hitPoints = [hz._p];
+      } else if (kind === 'crab') {
+        hz.group = Build.crab(); hz.group.scale.setScalar(1.1);
+        hz.amp = rh * 0.8; hz.speed = 1.45; hz.radius = 1.6; hz.effect = 'spin';
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'cheepCheep') {
+        hz.group = Build.cheepCheep(); hz.group.scale.setScalar(1.15);
+        hz.radius = 1.8; hz.effect = 'spin';
+        hz.cycle = U.randRange(4.2, 5.8); hz.jumpDur = 1.7;
+        hz.span = rh + 7; hz.dir = side; hz._cycN = -1;
+        hz.shadow = blob(1.6); this.root.add(hz.shadow);
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'pokey') {
+        hz.group = Build.pokey();
+        hz.amp = rh * 0.6; hz.speed = 0.45; hz.radius = 1.7; hz.effect = 'spin';
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'tumbleweed') {
+        hz.group = Build.tumbleweed(); hz.group.scale.setScalar(U.randRange(1.0, 1.5));
+        hz.radius = 1.5; hz.effect = 'spin';
+        hz.rollSpeed = U.randRange(9, 14); hz.rollDir = side;
+        hz._lat = -(this.track.wallHalf + 10) * side;
+        hz.wait = U.randRange(0, 2);
+        hz.hitPoints = [hz._p];
+      } else if (kind === 'blooper') {
+        // ゲッソー：クラッシュさせない代わりに、プレイヤーの画面へ墨を吐く（プレイヤー専用の妨害）
+        hz.group = Build.blooper(); hz.group.scale.setScalar(1.3);
+        hz.radius = 0; hz.effect = 'spin'; hz.playerOnly = true;
+        hz.baseLat = (rh + 9) * side;
+        hz._lat = hz.baseLat; hz._h = 1.6;
+        hz.cycle = U.randRange(8, 11);
+        hz.state = 'rest'; hz.stateT = U.randRange(1, 5);
+        hz.hitPoints = [];   // 当たり判定なし（攻撃は墨のみ）
+      } else if (kind === 'fireSnake') {
+        hz.group = new THREE.Group();
+        hz.radius = 1.4; hz.effect = 'spin';
+        hz.orbs = []; hz._pts = [];
+        const sizes = [0.62, 0.5, 0.42, 0.34];
+        for (let oi = 0; oi < sizes.length; oi++) {
+          const orb = Build.fireOrb(sizes[oi], oi === 0);
+          hz.group.add(orb); hz.orbs.push(orb); hz._pts.push(new THREE.Vector3());
+        }
+        hz._f = idx; hz.travel = 5.5;
+        hz._latCur = 0; hz._latTarget = U.randRange(-1, 1) * rh * 0.6;
+        hz._hist = []; hz.hopT = 0;
+        hz.hitPoints = hz._pts;
       } else if (kind === 'spinBar') {
         hz.group = new THREE.Group();
         hz.lateral = U.randRange(-rh * 0.2, rh * 0.2); hz.radius = 1.3; hz.effect = 'spin';
@@ -447,6 +859,70 @@ window.MK = window.MK || {};
       hz.markerPos.copy(hz._p);
       if (hz.group && hz.kind !== 'chomp' && hz.kind !== 'firebar' && hz.kind !== 'spinBar') hz.group.position.copy(sm.point);
       if (hz.kind === 'firebar' || hz.kind === 'spinBar') hz.group.position.set(sm.point.x + sm.normal.x * hz.lateral, sm.point.y, sm.point.z + sm.normal.z * hz.lateral);
+    }
+
+    // 蒸気機関車：MK.TrainPath の閉ループを一定速度で周回（常に危険・launch）
+    _addTrain(course) {
+      const tp = (this.world.scenery && this.world.scenery.trainPath) || MK.TrainPath.build(course, this.track);
+      if (!tp) return;
+      const hz = {
+        kind: 'train', side: 1, sample: this.track.samples[0], t: 0, phase: 0,
+        dangerous: true, radius: 3.3, effect: 'launch',
+        hitPoints: [], markerPos: new THREE.Vector3(), lateral: 0, _p: new THREE.Vector3(),
+        _baseIndex: null,            // 道路から遠く離れるため毎回全探索で投影する
+        path: tp, arc: Math.random() * tp.length,
+        speed: (course.train && course.train.speed) || 26,
+        whistleCD: 2, smokeT: 0,
+        cars: [], crossArcs: [],
+      };
+      hz.group = new THREE.Group();
+      const loco = Build.locomotive(); hz.group.add(loco); hz.cars.push(loco);
+      const nCars = Math.max(0, ((course.train && course.train.cars) || 6) - 1);
+      // 編成：有蓋車・タンク車・土管積みフラットカーを織り交ぜ、最後尾は必ずカブース
+      const mid = [
+        () => Build.freightCar(0x7a5a34),
+        () => Build.tankerCar(),
+        () => Build.flatCar(),
+        () => Build.freightCar(0x4a6a8a),
+        () => Build.freightCar(0x8a4a4a),
+      ];
+      for (let i = 0; i < nCars; i++) {
+        const isLast = i === nCars - 1;
+        const c = isLast ? Build.caboose() : mid[i % mid.length]();
+        hz.group.add(c); hz.cars.push(c);
+      }
+      // 車両ごとの弧長オフセット（機関車が長いので先頭間隔だけ広め）
+      hz.carOffsets = [0];
+      for (let i = 1; i < hz.cars.length; i++) hz.carOffsets.push(hz.carOffsets[i - 1] + (i === 1 ? 9.0 : 7.6));
+      for (let i = 0; i < hz.cars.length * 2; i++) hz.hitPoints.push(new THREE.Vector3());
+      // 踏切の弧長位置（接近時の汽笛用）
+      for (let i = 0; i < tp.N; i++) {
+        const cur = tp.samples[i], prev = tp.samples[(i - 1 + tp.N) % tp.N];
+        if (cur.onRoad && !prev.onRoad) hz.crossArcs.push(i * tp.spacing);
+      }
+      this.root.add(hz.group);
+      this.hazards.push(hz);
+    }
+
+    // 怒りの太陽：プレイヤー上空を旋回 → 赤く明滅して予告 → 急降下（プレイヤーのみクラッシュ）
+    _addAngrySun() {
+      const idx = this._baseIndex(0.5);
+      const sm = this.track.samples[idx];
+      const hz = {
+        kind: 'angrySun', side: 1, sample: sm, t: 0, phase: 0,
+        dangerous: false, radius: 2.4, effect: 'launch', playerOnly: true,
+        hitPoints: [], markerPos: new THREE.Vector3(), lateral: 0, _p: new THREE.Vector3(),
+        _baseIndex: null,
+        state: 'orbit', stateT: U.randRange(6, 9), orbA: Math.random() * U.TAU,
+        alt: 26, orbR: 17,
+        _from: new THREE.Vector3(), _to: new THREE.Vector3(),
+      };
+      hz.group = Build.angrySun();
+      hz.group.scale.setScalar(1.6);
+      hz.group.position.set(sm.point.x, sm.point.y + hz.alt, sm.point.z);
+      hz.hitPoints = [hz._p];
+      this.root.add(hz.group);
+      this.hazards.push(hz);
     }
 
     // ジュゲム本体（上空を旋回し、定期的にノコノコを落とす）。各コースに1匹。
@@ -751,6 +1227,297 @@ window.MK = window.MK || {};
             hz._pts[i + n].set(cx - Math.cos(a) * d, cy, cz + Math.sin(a) * d);
           }
           hz.markerPos.set(cx, cy, cz);
+          hz.dangerous = true; break;
+        }
+        case 'crab': {
+          // 進行方向を向いたままカニ歩き（横スライド）＋ハサミの開閉
+          const cyc = hz.t * hz.speed + hz.phase;
+          const lat = Math.sin(cyc) * hz.amp;
+          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
+          hz.group.position.set(cx, bp.y + Math.abs(Math.sin(hz.t * 9)) * 0.1, cz);
+          hz.group.rotation.y = Math.atan2(-sm.tangent.x, -sm.tangent.z);  // 常にコース前方を向く
+          const claws = hz.group.userData.claws;
+          if (claws) for (const cl of claws) { if (cl.userData.upper) cl.userData.upper.rotation.x = -0.25 - Math.abs(Math.sin(hz.t * 5 + hz.phase)) * 0.5; }
+          const legs = hz.group.userData.legs;
+          if (legs) for (let li = 0; li < legs.length; li++) legs[li].rotation.z = Math.sin(hz.t * 11 + li * 1.7) * 0.16;  // カサカサ歩き
+          hz._p.set(cx, bp.y + 0.6, cz); hz.markerPos.copy(hz._p); hz.markerPos.y = bp.y;
+          hz.dangerous = true; break;
+        }
+        case 'cheepCheep': {
+          // 周期ごとに左右を入れ替えながら、道を大ジャンプで飛び越える
+          const cycN = Math.floor((hz.t + hz.phase) / hz.cycle);
+          if (cycN !== hz._cycN) { hz._cycN = cycN; hz.dir *= -1; }
+          const cyc = (hz.t + hz.phase) % hz.cycle;
+          if (cyc < hz.jumpDur) {
+            const u = cyc / hz.jumpDur;
+            const lat = U.lerp(-hz.span * hz.dir, hz.span * hz.dir, u);
+            const h = Math.sin(u * Math.PI) * 5.4;
+            const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
+            hz.group.visible = true;
+            hz.group.position.set(cx, bp.y - 0.8 + h, cz);
+            const mvx = nrm.x * hz.dir, mvz = nrm.z * hz.dir;
+            hz.group.rotation.y = Math.atan2(-mvx, -mvz);
+            hz.group.rotation.x = U.lerp(-0.65, 0.75, u);   // 弧なりのピッチ
+            if (hz.group.userData.tail) hz.group.userData.tail.rotation.y = Math.sin(hz.t * 15) * 0.5;
+            const fins = hz.group.userData.fins;
+            if (fins) { const fl = Math.sin(hz.t * 18) * 0.5; fins[0].rotation.z = fl; fins[1].rotation.z = -fl; } // 胸びれをはばたかせる
+            if (hz.shadow) {
+              hz.shadow.visible = true;
+              hz.shadow.position.set(cx, bp.y + 0.06, cz);
+              const k = U.clamp(1 - h / 5.4, 0.2, 1);
+              hz.shadow.scale.set(0.8 + k, 0.8 + k, 1);
+              hz.shadow.material.opacity = 0.15 + k * 0.45;
+            }
+            // 飛び出し・着水の水しぶき
+            if ((u < 0.05 || u > 0.95) && Math.random() < 0.35 && this.world.particles && this._playerNear(cx, cz, 60)) {
+              this.world.particles.splash(cx, bp.y, cz, 0x9fd8ff);
+              if (u < 0.05 && Math.random() < 0.3 && MK.audio.splashSfx) MK.audio.splashSfx();
+            }
+            hz._p.set(cx, bp.y - 0.8 + h, cz); hz.markerPos.set(cx, bp.y, cz);
+            hz.dangerous = h < 2.8;   // 低空（飛び出し/着水まわり）のみ危険
+          } else {
+            hz.group.visible = false;
+            if (hz.shadow) hz.shadow.visible = false;
+            hz.markerPos.set(bp.x + nrm.x * hz.span * hz.dir, bp.y, bp.z + nrm.z * hz.span * hz.dir);
+            hz.dangerous = false;
+          }
+          break;
+        }
+        case 'pokey': {
+          // ゆっくり横へ移動しつつ、節が波打つように揺れる
+          const cyc = hz.t * hz.speed + hz.phase;
+          const lat = Math.sin(cyc) * hz.amp;
+          const vx = Math.cos(cyc);
+          const cx = bp.x + nrm.x * lat, cz = bp.z + nrm.z * lat;
+          hz.group.position.set(cx, bp.y, cz);
+          hz.group.rotation.y = Math.atan2(-nrm.x * Math.sign(vx || 1), -nrm.z * Math.sign(vx || 1));
+          const segs = hz.group.userData.segs;
+          if (segs) for (let i = 1; i < segs.length; i++) {
+            segs[i].position.x = Math.sin(hz.t * 2.2 + i * 0.9) * 0.16 * i;                       // 横に波打つ
+            segs[i].position.y = segs[i].userData.baseY + Math.sin(hz.t * 3.1 + i * 1.4) * 0.05 * i; // アコーディオン上下
+          }
+          hz._p.set(cx, bp.y + 1.2, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = true; break;
+        }
+        case 'tumbleweed': {
+          // 路肩の外から反対側まで転がり抜け、しばらく待ってまた戻ってくる
+          if (hz.wait > 0) {
+            hz.wait -= dt;
+            hz.group.visible = false;
+            hz.markerPos.set(bp.x + nrm.x * hz._lat, bp.y, bp.z + nrm.z * hz._lat);
+            hz.dangerous = false; break;
+          }
+          hz._lat += hz.rollSpeed * hz.rollDir * dt;
+          const W = this.track.wallHalf + 10;
+          if (hz.rollDir > 0 ? hz._lat > W : hz._lat < -W) {
+            hz.rollDir *= -1;
+            hz.wait = U.randRange(1.2, 3.5);
+            hz.rollSpeed = U.randRange(9, 14);
+          }
+          const cx = bp.x + nrm.x * hz._lat, cz = bp.z + nrm.z * hz._lat;
+          const bounce = Math.abs(Math.sin(hz.t * 5.5)) * 0.45;
+          hz.group.visible = true;
+          hz.group.position.set(cx, bp.y + 0.85 + bounce, cz);
+          const mvx = nrm.x * hz.rollDir, mvz = nrm.z * hz.rollDir;
+          hz.group.rotation.y = Math.atan2(-mvx, -mvz);
+          hz.group.rotation.x -= hz.rollSpeed * dt / 0.85;   // 転がり
+          hz._p.set(cx, bp.y + 0.85, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = Math.abs(hz._lat) < this.track.wallHalf; break;
+        }
+        case 'blooper': {
+          // 触腕をゆらゆら
+          const arms = hz.group.userData.arms;
+          if (arms) for (let ai = 0; ai < arms.length; ai++) {
+            arms[ai].rotation.x = Math.sin(hz.t * 4 + ai) * 0.18;
+            arms[ai].rotation.z = Math.cos(hz.t * 3.4 + ai * 1.3) * 0.18;
+          }
+          hz.stateT -= dt;
+          if (hz.state === 'rest') {
+            hz._lat = hz.baseLat;
+            hz._h = 1.6 + Math.sin(hz.t * 1.8 + hz.phase) * 0.5;
+            if (hz.stateT <= 0) {
+              hz.state = 'approach'; hz.stateT = 1.3;
+              hz._fromLat = hz._lat;
+              hz._toLat = U.randRange(-0.35, 0.35) * this.track.roadHalf;
+              hz._squirted = false;
+            }
+          } else if (hz.state === 'approach') {
+            const u = U.clamp(1 - hz.stateT / 1.3, 0, 1);
+            hz._lat = U.lerp(hz._fromLat, hz._toLat, U.smoothstep(u));
+            hz._h = U.lerp(1.6, 5.4, U.smoothstep(u));
+            if (hz.stateT <= 0) { hz.state = 'aim'; hz.stateT = 0.8; }
+          } else if (hz.state === 'aim') {
+            hz._h = 5.4 + Math.sin(hz.t * 10) * 0.15;
+            if (hz.stateT <= 0) { hz.state = 'retreat'; hz.stateT = 1.3; hz._fromLat = hz._lat; }
+          } else { // retreat
+            const u = U.clamp(1 - hz.stateT / 1.3, 0, 1);
+            hz._lat = U.lerp(hz._fromLat, hz.baseLat, U.smoothstep(u));
+            hz._h = U.lerp(5.4, 1.6, U.smoothstep(u));
+            if (hz.stateT <= 0) { hz.state = 'rest'; hz.stateT = Math.max(2.5, hz.cycle - 3.4); }
+          }
+          const cx = bp.x + nrm.x * hz._lat, cz = bp.z + nrm.z * hz._lat;
+          hz.group.position.set(cx, bp.y + hz._h, cz);
+          const pl = this.world.player;
+          if (pl) {
+            hz.group.lookAt(pl.group.position.x, bp.y + hz._h, pl.group.position.z);
+            hz.group.rotation.y += Math.PI;   // 顔は -Z 面
+          }
+          // 墨攻撃：狙いを定めた瞬間、近くのプレイヤーの画面へ墨を吐く（AIには一切影響なし）
+          if (hz.state === 'aim' && !hz._squirted && hz.stateT <= 0.3) {
+            hz._squirted = true;
+            if (pl && !pl.finished && !pl.falling && !pl.hasStar() && pl.inkTimer <= 0) {
+              const dx = pl.group.position.x - cx, dz = pl.group.position.z - cz;
+              if (dx * dx + dz * dz < 20 * 20) {
+                pl.inkTimer = 2.8;
+                if (MK.hud && MK.hud.ink) MK.hud.ink();
+                if (MK.audio.inkSplat) MK.audio.inkSplat();
+                if (this.world.particles) this.world.particles.inkJet(cx, bp.y + hz._h - 0.6, cz, dx, dz);
+              }
+            }
+          }
+          hz._p.set(cx, bp.y + hz._h, cz); hz.markerPos.set(cx, bp.y, cz);
+          hz.dangerous = false;   // クラッシュは決してさせない
+          break;
+        }
+        case 'angrySun': {
+          const pl = this.world.player;
+          const g2 = hz.group;
+          const core = g2.userData.core;
+          hz.stateT -= dt;
+          if (pl) {
+            if (hz.state === 'orbit' || hz.state === 'cool') {
+              hz.orbA += dt * 0.5;
+              const px = pl.group.position.x + Math.cos(hz.orbA) * hz.orbR;
+              const pz = pl.group.position.z + Math.sin(hz.orbA) * hz.orbR;
+              const py = pl.group.position.y + hz.alt;
+              g2.position.x = U.damp(g2.position.x, px, 1.6, dt);
+              g2.position.y = U.damp(g2.position.y, py, 1.6, dt);
+              g2.position.z = U.damp(g2.position.z, pz, 1.6, dt);
+              core.material.emissive.setHex(0xff8a00);
+              g2.scale.setScalar(1.6);
+              if (hz.state === 'orbit' && hz.stateT <= 0 && !pl.finished && !pl.falling) {
+                hz.state = 'warn'; hz.stateT = 1.25;
+                if (MK.audio.sunWarn) MK.audio.sunWarn();
+              } else if (hz.state === 'cool' && hz.stateT <= 0) {
+                hz.state = 'orbit'; hz.stateT = U.randRange(7, 11);
+              }
+            } else if (hz.state === 'warn') {
+              // 赤く明滅して急降下を予告
+              const k = Math.sin(hz.t * 22) * 0.5 + 0.5;
+              core.material.emissive.setHex(k > 0.5 ? 0xff2a00 : 0xff8a00);
+              g2.scale.setScalar(1.6 + k * 0.25);
+              if (hz.stateT <= 0) {
+                hz.state = 'dive'; hz.stateT = 1.1;
+                hz._from.copy(g2.position);
+                const fwd = pl.forward(U.tmpV1);
+                hz._to.set(
+                  pl.group.position.x + fwd.x * pl.speed * 0.5,
+                  pl.group.position.y + 1.1,
+                  pl.group.position.z + fwd.z * pl.speed * 0.5);
+              }
+            } else if (hz.state === 'dive') {
+              const u = U.clamp(1 - hz.stateT / 1.1, 0, 1);
+              const ease = U.smoothstep(u);
+              g2.position.x = U.lerp(hz._from.x, hz._to.x, ease);
+              g2.position.z = U.lerp(hz._from.z, hz._to.z, ease);
+              g2.position.y = U.lerp(hz._from.y, hz._to.y, ease) + Math.sin(u * Math.PI) * 2.5;
+              core.material.emissive.setHex(0xff3a00);
+              if (this.world.particles && Math.random() < 0.6) {
+                this.world.particles.boostFlame(g2.position.x, g2.position.y, g2.position.z, 0xff7a1f);
+              }
+              if (hz.stateT <= 0) { hz.state = 'climb'; hz.stateT = 1.6; hz._from.copy(g2.position); }
+            } else if (hz.state === 'climb') {
+              const u = U.clamp(1 - hz.stateT / 1.6, 0, 1);
+              g2.position.y = U.lerp(hz._from.y, pl.group.position.y + hz.alt, U.smoothstep(u));
+              core.material.emissive.setHex(0xff8a00);
+              if (hz.stateT <= 0) { hz.state = 'cool'; hz.stateT = 3; }
+            }
+            // 顔（-Z面）をプレイヤーへ向ける
+            g2.lookAt(pl.group.position.x, pl.group.position.y + 1, pl.group.position.z);
+            g2.rotateY(Math.PI);
+          }
+          g2.userData.rays.rotation.z += dt * 1.4;   // 光線リングがゆっくり回る
+          hz._p.copy(g2.position);
+          hz.markerPos.set(g2.position.x, pl ? pl.group.position.y : g2.position.y, g2.position.z);
+          hz.dangerous = hz.state === 'dive';        // 急降下中だけ危険（プレイヤー専用）
+          break;
+        }
+        case 'fireSnake': {
+          // 頭が跳ねながら道を進み、体節の炎が遅れて同じ場所を跳ねる
+          const N2 = this.track.sampleCount, samples2 = this.track.samples;
+          const spacing2 = this.track.length / N2;
+          hz._f += (hz.travel * dt) / spacing2;
+          const fi2 = ((hz._f % N2) + N2) % N2;
+          const i02 = Math.floor(fi2) % N2, i12 = (i02 + 1) % N2, tt3 = fi2 - Math.floor(fi2);
+          const s02 = samples2[i02].point, s12 = samples2[i12].point, nr2 = samples2[i02].normal;
+          hz.hopT += dt;
+          const hopCycle = 0.55;
+          if (hz.hopT >= hopCycle) { hz.hopT -= hopCycle; hz._latTarget = U.randRange(-1, 1) * this.track.roadHalf * 0.65; }
+          hz._latCur = U.damp(hz._latCur, hz._latTarget, 3.2, dt);
+          const hu = hz.hopT / hopCycle;
+          const hopH = Math.sin(hu * Math.PI) * 1.7;
+          const posX = U.lerp(s02.x, s12.x, tt3) + nr2.x * hz._latCur;
+          const posY = U.lerp(s02.y, s12.y, tt3);
+          const posZ = U.lerp(s02.z, s12.z, tt3) + nr2.z * hz._latCur;
+          hz._hist.unshift({ x: posX, y: posY + 0.55 + hopH, z: posZ });
+          if (hz._hist.length > 60) hz._hist.pop();
+          for (let oi = 0; oi < hz.orbs.length; oi++) {
+            const h = hz._hist[Math.min(oi * 9, hz._hist.length - 1)];
+            hz.orbs[oi].position.set(h.x, h.y, h.z);
+            hz._pts[oi].set(h.x, h.y, h.z);
+            const core2 = hz.orbs[oi].userData.core;
+            if (core2) core2.material.emissiveIntensity = 0.8 + Math.sin(hz.t * 12 + oi) * 0.3;
+          }
+          if (hz._hist.length > 2) {
+            const a2 = hz._hist[0], b2 = hz._hist[2];
+            hz.orbs[0].lookAt(a2.x * 2 - b2.x, a2.y * 2 - b2.y, a2.z * 2 - b2.z);
+          }
+          if (this.world.particles && Math.random() < 0.3 && this._playerNear(posX, posZ, 70)) {
+            this.world.particles.boostFlame(posX, posY + 0.6 + hopH, posZ, 0xff7a1f);
+          }
+          hz._baseIndex = i02;
+          hz._p.copy(hz._pts[0]); hz.markerPos.set(posX, posY, posZ);
+          hz.dangerous = true; break;
+        }
+        case 'train': {
+          // 専用線路を周回。各車両を弧長でつないで配置する
+          const tp = hz.path, NN = tp.N;
+          hz.arc = (hz.arc + hz.speed * dt) % tp.length;
+          for (let ci = 0; ci < hz.cars.length; ci++) {
+            const s = ((hz.arc - hz.carOffsets[ci]) % tp.length + tp.length) % tp.length;
+            const fi = s / tp.spacing;
+            const i0 = Math.floor(fi) % NN, i1 = (i0 + 1) % NN, tt2 = fi - Math.floor(fi);
+            const s0 = tp.samples[i0], s1 = tp.samples[i1];
+            const x = U.lerp(s0.x, s1.x, tt2), y = U.lerp(s0.y, s1.y, tt2), z = U.lerp(s0.z, s1.z, tt2);
+            const tx = U.lerp(s0.tx, s1.tx, tt2), tz = U.lerp(s0.tz, s1.tz, tt2);
+            const car = hz.cars[ci];
+            car.position.set(x, y + 0.2, z);
+            car.rotation.y = Math.atan2(tx, tz) + Math.PI;   // 車両前方(-Z)を進行方向へ
+            const ws = car.userData.wheels;
+            if (ws) for (const w of ws) w.rotation.x += hz.speed * dt / 0.6;   // 動輪の回転
+            hz.hitPoints[ci * 2].set(x - tx * 2.2, y + 1, z - tz * 2.2);
+            hz.hitPoints[ci * 2 + 1].set(x + tx * 2.2, y + 1, z + tz * 2.2);
+            if (ci === 0) { hz._p.set(x, y, z); hz.markerPos.set(x, y, z); }
+          }
+          const lp = hz.cars[0].position;
+          // 煙突の煙（プレイヤーが近くにいるときだけ）
+          hz.smokeT -= dt;
+          if (hz.smokeT <= 0 && this.world.particles && this._playerNear(lp.x, lp.z, 130)) {
+            hz.smokeT = 0.1;
+            const a = hz.cars[0].rotation.y;  // 煙突＝ローカル(0,4.0,-3.4) を yaw 回転してワールドへ
+            this.world.particles.smoke(lp.x - Math.sin(a) * 3.4, lp.y + 4.1, lp.z - Math.cos(a) * 3.4);
+          }
+          // 踏切接近の汽笛
+          hz.whistleCD -= dt;
+          if (hz.whistleCD <= 0) {
+            for (const ca of hz.crossArcs) {
+              let d = ca - hz.arc; if (d < 0) d += tp.length;
+              if (d < 62 && d > 6) {
+                if (this._playerNear(lp.x, lp.z, 280)) MK.audio.trainWhistle();
+                hz.whistleCD = 7; break;
+              }
+            }
+          }
           hz.dangerous = true; break;
         }
         case 'lakitu': {

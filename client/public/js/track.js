@@ -20,18 +20,19 @@ window.MK = window.MK || {};
         for (let i = 0; i < 40; i++) ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
         return;
       }
+      const sandy = theme.props === 'beach' || theme.props === 'desert';
       const base = theme.road || '#5a5f6a';
       ctx.fillStyle = base; ctx.fillRect(0, 0, s, s);
-      // ノイズ
+      // ノイズ（砂の道は粒を多めに）
       ctx.fillStyle = 'rgba(0,0,0,0.06)';
-      for (let i = 0; i < 60; i++) ctx.fillRect(Math.random() * s, Math.random() * s, 3, 3);
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      for (let i = 0; i < 40; i++) ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
+      for (let i = 0; i < (sandy ? 110 : 60); i++) ctx.fillRect(Math.random() * s, Math.random() * s, 3, 3);
+      ctx.fillStyle = sandy ? 'rgba(255,244,210,0.16)' : 'rgba(255,255,255,0.08)';
+      for (let i = 0; i < (sandy ? 80 : 40); i++) ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
       // 端の白線
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillStyle = sandy ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.55)';
       ctx.fillRect(6, 0, 6, s); ctx.fillRect(s - 12, 0, 6, s);
-      // 中央の破線
-      ctx.fillStyle = 'rgba(255,235,120,0.6)';
+      // 中央の破線（砂の道はわだち風の薄い白）
+      ctx.fillStyle = sandy ? 'rgba(255,255,255,0.22)' : 'rgba(255,235,120,0.6)';
       for (let y = 0; y < s; y += 64) ctx.fillRect(s / 2 - 4, y, 8, 34);
     });
   }
@@ -79,8 +80,64 @@ window.MK = window.MK || {};
       if (this.course.hasWalls) this._buildWalls();
       this._buildFences();
       this._buildItemBoxes();
+      this._buildBoostPads();
 
       return this;
+    }
+
+    /* ---- ブーストパッド（路面の発光シェブロン。踏むと加速） ---- */
+    _buildBoostPads() {
+      this.boostPads = [];
+      const defs = this.course.boostPads;
+      if (!defs || !defs.length) return;
+      const N = this.sampleCount;
+      // 進行方向（+v）を向く山形矢印のテクスチャ
+      const tex = U.makeCanvasTexture(128, (ctx, s) => {
+        const g = ctx.createLinearGradient(0, 0, 0, s);
+        g.addColorStop(0, '#ff7a1f'); g.addColorStop(1, '#ffb13a');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, s, s);
+        // シェブロン2本（canvas の上＝v=1＝進行方向。apex を上向きに）
+        ctx.fillStyle = '#fff04d';
+        for (const yc of [s * 0.3, s * 0.72]) {
+          ctx.beginPath();
+          ctx.moveTo(s * 0.08, yc + s * 0.16);
+          ctx.lineTo(s * 0.5, yc - s * 0.16);
+          ctx.lineTo(s * 0.92, yc + s * 0.16);
+          ctx.lineTo(s * 0.92, yc + s * 0.02);
+          ctx.lineTo(s * 0.5, yc - s * 0.3);
+          ctx.lineTo(s * 0.08, yc + s * 0.02);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 6;
+        ctx.strokeRect(3, 0, s - 6, s);
+      });
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+      for (const def of defs) {
+        const index = Math.floor((def.f || 0) * N) % N;
+        const lat = (def.lat || 0) * this.roadHalf * 0.5;
+        const halfW = (def.w != null ? def.w : 0.4) * this.roadHalf;
+        const lenSamples = 3;
+        const positions = [], uvs = [], indices = [];
+        for (let k = 0; k <= lenSamples; k++) {
+          const sm = this.samples[(index + k) % N];
+          for (const l of [lat - halfW, lat + halfW]) {
+            positions.push(sm.point.x + sm.normal.x * l, sm.point.y + 0.09, sm.point.z + sm.normal.z * l);
+          }
+          const v = (k / lenSamples) * 2;
+          uvs.push(0, v); uvs.push(1, v);
+        }
+        for (let k = 0; k < lenSamples; k++) {
+          const a0 = k * 2, b0 = k * 2 + 1, a1 = k * 2 + 2, b1 = k * 2 + 3;
+          indices.push(a0, b0, b1); indices.push(a0, b1, a1);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geo.setIndex(indices); geo.computeVertexNormals();
+        this.root.add(new THREE.Mesh(geo, mat));
+        this.boostPads.push({ index, lat, halfW, lenSamples });
+      }
     }
 
     _ribbon(innerHalf, outerHalf, yOff, material, vRepeat) {
@@ -208,6 +265,8 @@ window.MK = window.MK || {};
       if (props === 'grass') { postMat = mk(0xf6f6f6); railMat = mk(0xf6f6f6); accMat = mk(0xe23b2e, { roughness: 0.5 }); }
       else if (props === 'snow') { postMat = mk(0x8a5a34); railMat = mk(0xa7c2d4); accMat = mk(0xffffff); }
       else if (props === 'castle') { postMat = mk(0x4a4550); railMat = mk(0x3a3640); accMat = mk(0x2a2630); }
+      else if (props === 'beach') { postMat = mk(0xc99a5a); railMat = mk(0xe8d6b0, { roughness: 0.9 }); accMat = mk(0xe23b2e, { roughness: 0.5 }); }
+      else if (props === 'desert') { postMat = mk(0x7a512a); railMat = mk(0x8a5f33); accMat = mk(0xb0793f); }
       else { postMat = mk(0xffffff, { emissive: 0x66ccff, emissiveIntensity: 0.9 }); railMat = mk(0xffffff, { emissive: 0x4499ff, emissiveIntensity: 0.8 }); accMat = mk(0xffffff); }
       this._fenceMats = [postMat, railMat, accMat];
       for (const side of [1, -1]) {
@@ -242,6 +301,14 @@ window.MK = window.MK || {};
         const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.0, 0.5), postMat); base.position.y = 0.5; g.add(base);
         const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.55, 0.5), postMat); merlon.position.y = 1.28; g.add(merlon);
         const slit = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.18, 0.12), accMat); slit.position.set(0, 0.7, -0.2); g.add(slit);
+      } else if (props === 'beach') {
+        // 浜辺の杭（ロープ柵の支柱）＋赤白の縞
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 1.1, 8), postMat); p.position.y = 0.55; p.rotation.z = (Math.random() - 0.5) * 0.12; g.add(p);
+        const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.125, 0.22, 8), accMat); stripe.position.y = 0.92; g.add(stripe);
+      } else if (props === 'desert') {
+        // 牧場風の角杭
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.15, 0.18), postMat); p.position.y = 0.57; p.rotation.y = Math.random() * 0.5; g.add(p);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.1, 0.22), accMat); cap.position.y = 1.16; g.add(cap);
       } else {
         const p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.05, 8), postMat); p.position.y = 0.52; g.add(p);
         const ball = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })); ball.position.y = 1.15; g.add(ball);
@@ -262,6 +329,8 @@ window.MK = window.MK || {};
       if (props === 'grass') { g.add(mkRail(0.42)); g.add(mkRail(0.82)); }
       else if (props === 'snow') { g.add(mkRail(0.45)); g.add(mkRail(0.88, 0.12, 0.16)); }
       else if (props === 'castle') { g.add(mkRail(0.5, 0.34, 0.6)); }
+      else if (props === 'beach') { const r = mkRail(0.82, 0.07, 0.07); r.rotation.x = 0.04; g.add(r); } // たわむロープ
+      else if (props === 'desert') { g.add(mkRail(0.5, 0.1, 0.16)); g.add(mkRail(0.95, 0.1, 0.16)); }
       else { g.add(mkRail(0.7, 0.14, 0.14)); }
       return g;
     }

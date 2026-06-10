@@ -127,14 +127,71 @@ window.MK = window.MK || {};
       }
     }
 
-    dust(x, y, z) {
+    dust(x, y, z, color) {
       this.spawn({
         x: x + U.randRange(-0.4, 0.4), y: y + 0.1, z: z + U.randRange(-0.4, 0.4),
         vx: U.randRange(-2, 2), vy: U.randRange(0.5, 2), vz: U.randRange(-2, 2),
         gravity: 2, drag: 1.5,
         life: U.randRange(0.3, 0.6), size: 0.6, sizeEnd: 2.2,
-        color: 0xcdbb88, opacity: 0.5, blending: THREE.NormalBlending, fadePow: 1.5,
+        color: color != null ? color : 0xcdbb88, opacity: 0.5, blending: THREE.NormalBlending, fadePow: 1.5,
       });
+    }
+
+    // ゲッソーの墨（プレイヤーへ向けて黒い飛沫を噴く）
+    inkJet(x, y, z, dx, dz) {
+      const len = Math.hypot(dx, dz) || 1;
+      const nx = dx / len, nz = dz / len;
+      for (let i = 0; i < 16; i++) {
+        this.spawn({
+          x, y: y + U.randRange(-0.3, 0.3), z,
+          vx: nx * U.randRange(14, 26) + U.randRange(-4, 4),
+          vy: U.randRange(-2, 3),
+          vz: nz * U.randRange(14, 26) + U.randRange(-4, 4),
+          gravity: -6, drag: 0.8,
+          life: U.randRange(0.3, 0.6), size: U.randRange(0.8, 1.6), sizeEnd: 2.4,
+          color: 0x14141c, opacity: 0.85, blending: THREE.NormalBlending, fadePow: 1.1,
+        });
+      }
+    }
+
+    // 機関車の煙突から立ち上る煙
+    smoke(x, y, z) {
+      this.spawn({
+        x: x + U.randRange(-0.3, 0.3), y, z: z + U.randRange(-0.3, 0.3),
+        vx: U.randRange(-0.6, 0.6), vy: U.randRange(2.5, 4.2), vz: U.randRange(-0.6, 0.6),
+        gravity: 0.5, drag: 0.6,
+        life: U.randRange(0.8, 1.4), size: 1.0, sizeEnd: 3.4,
+        color: 0xcfcfd4, opacity: 0.45, blending: THREE.NormalBlending, fadePow: 1.2,
+      });
+    }
+
+    // スリップストリーム中の風の筋（前方から後ろへ流れる）
+    draftStreak(x, y, z, fwd) {
+      const side = Math.random() < 0.5 ? 1 : -1;
+      const ox = -fwd.z * side * U.randRange(0.9, 1.7), oz = fwd.x * side * U.randRange(0.9, 1.7);
+      this.spawn({
+        x: x + fwd.x * 3.2 + ox, y: y + U.randRange(-0.3, 0.9), z: z + fwd.z * 3.2 + oz,
+        vx: -fwd.x * 28, vy: 0, vz: -fwd.z * 28,
+        life: U.randRange(0.16, 0.26), size: 0.55, sizeEnd: 0.1,
+        color: 0xcfe8ff, opacity: 0.5, fadePow: 1.1,
+      });
+    }
+
+    // ゴールの紙吹雪（カラフル・ひらひら落ちる）
+    confetti(x, y, z, n) {
+      const cols = [0xff5d5d, 0xffba4d, 0xfff04d, 0x5dff8a, 0x5db9ff, 0xc45dff, 0xffffff, 0xff7ad6];
+      n = n || 46;
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * U.TAU, sp = U.randRange(3, 12);
+        this.spawn({
+          x: x + U.randRange(-2, 2), y: y + U.randRange(2, 7), z: z + U.randRange(-2, 2),
+          vx: Math.cos(a) * sp, vy: U.randRange(4, 12), vz: Math.sin(a) * sp,
+          gravity: -9, drag: 1.4,
+          life: U.randRange(1.0, 1.9), size: U.randRange(0.35, 0.6), sizeEnd: 0.3,
+          color: cols[(Math.random() * cols.length) | 0], opacity: 0.95,
+          blending: THREE.NormalBlending, fadePow: 0.6, spin: U.randRange(-8, 8),
+        });
+      }
     }
 
     splash(x, y, z, color) {

@@ -112,7 +112,7 @@ window.MK = window.MK || {};
       this.scenery.build();
 
       // パーティクル / アイテム
-      this.particles = new MK.ParticleSystem(scene, 760);
+      this.particles = new MK.ParticleSystem(scene, 920);
       this.items = new MK.ItemSystem(this);
       this.items.buildBoxes(this.track.itemBoxPositions);
 
@@ -173,8 +173,11 @@ window.MK = window.MK || {};
 
       MK.input.attach();
       MK.audio.startEngine();
+      MK.audio.setMusicRate(1);
       MK.audio.playCourseMusic(course);
       this._starMusicOn = false;
+      this._finalLapShown = false;
+      this._confettiT = 0;
 
       MK.ui.hideAll();
       this.state = 'countdown';
@@ -313,11 +316,24 @@ window.MK = window.MK || {};
       // スター無敵中は BGM をスター曲へ
       this._updateStarMusic();
 
+      // ファイナルラップ演出（表示＋BGMテンポアップ）
+      if (!this._finalLapShown && p.lap === C.laps - 1 && !p.finished) {
+        this._finalLapShown = true;
+        MK.hud.flashLap('FINAL LAP!');
+        MK.audio.setMusicRate(1.08);
+      }
+
       // ゴール判定
       if (p.finished && this.finishDelay <= 0) {
         this.finishDelay = 5.0;
         MK.hud.finish();
         MK.audio.finishJingle();
+        MK.audio.setMusicRate(1);
+        // 紙吹雪でお祝い
+        if (this.particles) {
+          const gp = p.group.position;
+          this.particles.confetti(gp.x, gp.y + 2, gp.z, 60);
+        }
         this.state = 'finished';
       }
     }
@@ -325,6 +341,13 @@ window.MK = window.MK || {};
     _updateFinished(dt) {
       this.raceTime += dt;
       this._handlePlayerInput();
+      // ゴール直後はしばらく紙吹雪が舞い続ける
+      this._confettiT -= dt;
+      if (this._confettiT <= 0 && this.finishDelay > 2.2 && this.particles && this.player) {
+        this._confettiT = 0.55;
+        const gp = this.player.group.position;
+        this.particles.confetti(gp.x + U.randRange(-4, 4), gp.y + 3, gp.z + U.randRange(-4, 4), 18);
+      }
       for (const ai of this.aiControllers) ai.update(dt);
       for (const k of this.karts) k.update(dt, this.raceTime);
       this._resolveCollisions(dt);

@@ -35,6 +35,7 @@ window.MK = window.MK || {};
       this._musicVol = 0.55;      // BGM の基準音量
       this._starReturnUrl = null; // スター終了後に戻す url
       this._fades = new Map();    // 要素 -> フェード用 interval id
+      this._musicRate = 1.0;      // 再生速度（ファイナルラップで上げる）
     }
 
     /* 初回ユーザー操作で起動 */
@@ -188,6 +189,46 @@ window.MK = window.MK || {};
       const t = this.now;
       [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.18, t + i * 0.05));
     }
+    boostPad() {
+      // パッド通過の「ビュンッ」
+      const t = this.now;
+      this.tone(320, 0.3, 'sawtooth', 0.26, t, 1280);
+      this.noise(0.22, 0.18, 'highpass', 900, t);
+    }
+    draftWhoosh() {
+      // スリップストリーム成立の風切り
+      const t = this.now;
+      this.noise(0.45, 0.3, 'bandpass', 700, t);
+      this.tone(180, 0.4, 'sine', 0.14, t, 520);
+    }
+    trainWhistle() {
+      // 蒸気機関車の二音汽笛
+      const t = this.now;
+      this.tone(311, 0.55, 'square', 0.12, t);
+      this.tone(392, 0.55, 'square', 0.12, t);
+      this.tone(311, 0.8, 'square', 0.12, t + 0.65);
+      this.tone(392, 0.8, 'square', 0.12, t + 0.65);
+      this.noise(1.2, 0.06, 'highpass', 2000, t);
+    }
+    splashSfx() {
+      const t = this.now;
+      this.noise(0.3, 0.25, 'bandpass', 1100, t);
+      this.tone(500, 0.16, 'sine', 0.1, t, 180);
+    }
+    inkSplat() {
+      // ゲッソーの墨「ボシュッ」
+      const t = this.now;
+      this.noise(0.28, 0.4, 'lowpass', 600, t);
+      this.tone(260, 0.3, 'sine', 0.22, t, 70);
+      this.noise(0.12, 0.2, 'bandpass', 1600, t + 0.02);
+    }
+    sunWarn() {
+      // 怒りの太陽の急降下予告（上昇する警告音）
+      const t = this.now;
+      this.tone(440, 0.16, 'square', 0.16, t, 660);
+      this.tone(440, 0.16, 'square', 0.16, t + 0.22, 660);
+      this.tone(520, 0.3, 'sawtooth', 0.14, t + 0.46, 980);
+    }
 
     /* ---- エンジン音（速度連動の連続音） ---- */
     startEngine() {
@@ -267,6 +308,13 @@ window.MK = window.MK || {};
       this._curMusic = null; this._curUrl = null;
     }
 
+    // ファイナルラップなどで BGM のテンポを上げる（現在曲と以後の曲に適用）
+    setMusicRate(rate) {
+      this._musicRate = rate || 1.0;
+      const el = this._curMusic;
+      if (el) { try { el.playbackRate = this._musicRate; } catch (e) {} }
+    }
+
     // B キー：BGM オン/オフ
     toggleMusic() {
       this.musicOn = !this.musicOn;
@@ -301,6 +349,7 @@ window.MK = window.MK || {};
       const old = this._curMusic;
       if (old && old !== next) this._fade(old, 0, 0.5, () => { try { old.pause(); } catch (e) {} });
       this._curMusic = next; this._curUrl = url; next.loop = true;
+      try { next.playbackRate = this._musicRate; } catch (e) {}
       this._attemptPlay(next);
       this._fade(next, this.muted ? 0 : this._musicVol, 0.5);
     }

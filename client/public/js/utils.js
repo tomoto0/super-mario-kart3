@@ -78,32 +78,39 @@ window.MK = window.MK || {};
     return tex;
   };
 
-  // アイテムボックスの「?」面テクスチャ
-  U.questionTexture = function () {
+  // アイテムボックスの「?」面テクスチャ。fake=true で偽物（赤系グラデ＋逆さの?）
+  U.questionTexture = function (fake) {
     return U.makeCanvasTexture(128, (ctx, s) => {
-      // 虹色グラデの台
       const g = ctx.createLinearGradient(0, 0, s, s);
-      g.addColorStop(0.0, '#ff5d5d');
-      g.addColorStop(0.2, '#ffba4d');
-      g.addColorStop(0.4, '#fff04d');
-      g.addColorStop(0.6, '#5dff8a');
-      g.addColorStop(0.8, '#5db9ff');
-      g.addColorStop(1.0, '#c45dff');
+      if (fake) {
+        // 偽ボックス：赤〜暗赤のグラデ（本物の虹色と見分けがつくのは近くだけ）
+        g.addColorStop(0.0, '#ff5d5d');
+        g.addColorStop(0.35, '#e2342a');
+        g.addColorStop(0.7, '#a32033');
+        g.addColorStop(1.0, '#6a1a4a');
+      } else {
+        g.addColorStop(0.0, '#ff5d5d');
+        g.addColorStop(0.2, '#ffba4d');
+        g.addColorStop(0.4, '#fff04d');
+        g.addColorStop(0.6, '#5dff8a');
+        g.addColorStop(0.8, '#5db9ff');
+        g.addColorStop(1.0, '#c45dff');
+      }
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, s, s);
       // 枠
       ctx.strokeStyle = 'rgba(255,255,255,0.85)';
       ctx.lineWidth = 8;
       ctx.strokeRect(8, 8, s - 16, s - 16);
-      // ?
+      // ?（偽物は逆さま）
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = 'rgba(40,30,0,0.55)';
       ctx.lineWidth = 6;
       ctx.font = 'bold 84px Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.strokeText('?', s / 2, s / 2 + 4);
-      ctx.fillText('?', s / 2, s / 2 + 4);
+      if (fake) { ctx.save(); ctx.translate(s / 2, s / 2); ctx.rotate(Math.PI); ctx.strokeText('?', 0, -4); ctx.fillText('?', 0, -4); ctx.restore(); }
+      else { ctx.strokeText('?', s / 2, s / 2 + 4); ctx.fillText('?', s / 2, s / 2 + 4); }
     });
   };
 
@@ -288,6 +295,62 @@ window.MK = window.MK || {};
     ctx.beginPath(); ctx.ellipse(s * 0.10, 0, s * 0.045, s * 0.075, 0, 0, U.TAU); ctx.fill();
     ctx.restore();
   }
+  // ゴールデンキノコ：金の傘＋白い星形の斑
+  function _golden(ctx, s, OUT) {
+    const cx = s / 2, lw = s * 0.05;
+    ctx.lineWidth = lw; ctx.strokeStyle = OUT;
+    // 軸
+    ctx.fillStyle = '#fff3d6';
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.20, s * 0.50);
+    ctx.lineTo(cx - s * 0.18, s * 0.80);
+    ctx.quadraticCurveTo(cx, s * 0.90, cx + s * 0.18, s * 0.80);
+    ctx.lineTo(cx + s * 0.20, s * 0.50);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 目
+    ctx.fillStyle = '#5a3a2a';
+    ctx.beginPath(); ctx.ellipse(cx - s * 0.08, s * 0.66, s * 0.028, s * 0.05, 0, 0, U.TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + s * 0.08, s * 0.66, s * 0.028, s * 0.05, 0, 0, U.TAU); ctx.fill();
+    // 金の傘（グラデで輝き）
+    const g = ctx.createLinearGradient(0, s * 0.12, 0, s * 0.56);
+    g.addColorStop(0, '#ffe27a'); g.addColorStop(0.55, '#ffc41f'); g.addColorStop(1, '#e89a00');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.36, s * 0.50);
+    ctx.quadraticCurveTo(cx - s * 0.40, s * 0.14, cx, s * 0.14);
+    ctx.quadraticCurveTo(cx + s * 0.40, s * 0.14, cx + s * 0.36, s * 0.50);
+    ctx.quadraticCurveTo(cx, s * 0.58, cx - s * 0.36, s * 0.50);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 白斑＋ハイライト
+    ctx.fillStyle = '#fff';
+    [[cx, s * 0.29, s * 0.10], [cx - s * 0.24, s * 0.40, s * 0.055], [cx + s * 0.24, s * 0.40, s * 0.055]].forEach((p) => {
+      ctx.beginPath(); ctx.arc(p[0], p[1], p[2], 0, U.TAU); ctx.fill(); ctx.stroke();
+    });
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.ellipse(cx - s * 0.17, s * 0.22, s * 0.07, s * 0.035, -0.5, 0, U.TAU); ctx.fill();
+  }
+  // ニセアイテムボックス：赤いボックス＋逆さの?
+  function _fakeBox(ctx, s, OUT) {
+    const pad = s * 0.14;
+    const g = ctx.createLinearGradient(pad, pad, s - pad, s - pad);
+    g.addColorStop(0, '#ff5d5d'); g.addColorStop(0.5, '#d22a2a'); g.addColorStop(1, '#7a1a3a');
+    ctx.fillStyle = g; ctx.strokeStyle = OUT; ctx.lineWidth = s * 0.05;
+    ctx.save();
+    ctx.translate(s / 2, s / 2); ctx.rotate(0.18); ctx.translate(-s / 2, -s / 2);
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(pad, pad, s - pad * 2, s - pad * 2, s * 0.08);
+    else ctx.rect(pad, pad, s - pad * 2, s - pad * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = s * 0.035;
+    ctx.strokeRect(pad + s * 0.05, pad + s * 0.05, s - (pad + s * 0.05) * 2, s - (pad + s * 0.05) * 2);
+    // 逆さの ?
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = 'rgba(40,0,0,0.5)'; ctx.lineWidth = s * 0.04;
+    ctx.font = 'bold ' + Math.round(s * 0.5) + 'px Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.translate(s / 2, s / 2); ctx.rotate(Math.PI);
+    ctx.strokeText('?', 0, -s * 0.02); ctx.fillText('?', 0, -s * 0.02);
+    ctx.restore();
+  }
   function _lightning(ctx, s) {
     const cx = s / 2;
     ctx.fillStyle = '#ffe14d'; ctx.strokeStyle = '#c79b00'; ctx.lineWidth = s * 0.05; ctx.lineJoin = 'round';
@@ -323,6 +386,8 @@ window.MK = window.MK || {};
           case 'star': _starIcon(ctx, s); break;
           case 'lightning': _lightning(ctx, s); break;
           case 'spiny': _spiny(ctx, s, OUT); break;
+          case 'fakeBox': _fakeBox(ctx, s, OUT); break;
+          case 'golden': _golden(ctx, s, OUT); break;
           case 'mushroom': case 'triple': default: _mushroom(ctx, s, OUT);
         }
         if (c.toDataURL) url = c.toDataURL();

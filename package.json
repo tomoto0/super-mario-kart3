@@ -1,7 +1,7 @@
 {
-  "name": "3d-super-mario-kart",
-  "version": "1.0.0",
-  "description": "3D Super Mario Kart-style browser racing game built with Three.js",
+  "name": "super-mario-kart3",
+  "version": "2.0.0",
+  "description": "3D Super Mario Kart-style browser racing game built with Three.js — upgraded edition with 6 courses, train crossings, boost pads and slipstream",
   "private": true,
   "scripts": {
     "dev": "node server/index.js",

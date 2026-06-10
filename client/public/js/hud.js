@@ -7,7 +7,7 @@ window.MK = window.MK || {};
   'use strict';
   const U = MK.U;
 
-  const ROULETTE = ['mushroom', 'tripleGreen', 'greenShell', 'redShell', 'banana', 'bomb', 'star', 'lightning'];
+  const ROULETTE = ['mushroom', 'tripleGreen', 'greenShell', 'redShell', 'banana', 'fakeBox', 'bomb', 'golden', 'star', 'lightning', 'spiny'];
   const ORD = ['', '1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH', '9TH', '10TH', '11TH', '12TH'];
 
   class HUD {
@@ -37,6 +37,7 @@ window.MK = window.MK || {};
         <div id="hud-center-msg"></div>
         <div id="hud-wrongway">⚠ WRONG WAY</div>
         <div id="hud-flash"></div>
+        <div id="hud-ink"></div>
       `;
       container.appendChild(root);
       this.root = root;
@@ -50,6 +51,7 @@ window.MK = window.MK || {};
       this.el.msg = root.querySelector('#hud-center-msg');
       this.el.wrong = root.querySelector('#hud-wrongway');
       this.el.flash = root.querySelector('#hud-flash');
+      this.el.ink = root.querySelector('#hud-ink');
       this.canvas = root.querySelector('#hud-map');
       this.ctx = this.canvas.getContext('2d');
       this.show(false);
@@ -63,6 +65,26 @@ window.MK = window.MK || {};
       this.setItem(null, 0, false);
       this.el.msg.textContent = ''; this.el.msg.className = '';
       this.el.wrong.classList.remove('on');
+      if (this.el.ink) this.el.ink.innerHTML = '';
+    }
+
+    // ゲッソーの墨：画面に黒いインクのしぶきを散らす（数秒で滴り落ちて消える）
+    ink() {
+      const wrap = this.el.ink;
+      if (!wrap) return;
+      const n = 7;
+      for (let i = 0; i < n; i++) {
+        const d = document.createElement('div');
+        d.className = 'ink-splat';
+        const sz = 16 + Math.random() * 26;
+        d.style.left = (Math.random() * 84) + '%';
+        d.style.top = (Math.random() * 64) + '%';
+        d.style.width = sz + 'vmin';
+        d.style.height = sz * (0.78 + Math.random() * 0.45) + 'vmin';
+        d.style.animationDelay = (Math.random() * 0.22) + 's';
+        wrap.appendChild(d);
+        setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 5000);
+      }
     }
 
     /* ---- 値の更新 ---- */

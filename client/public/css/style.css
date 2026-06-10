@@ -82,7 +82,7 @@ canvas{display:block;}
 .pip.on{background:linear-gradient(var(--yellow),var(--yellow-d));border-color:#fff;}
 
 /* ===================== コース選択 ===================== */
-.course-grid{display:grid;grid-template-columns:repeat(2,minmax(220px,300px));gap:18px;}
+.course-grid{display:grid;grid-template-columns:repeat(3,minmax(190px,250px));gap:16px;}
 .course-card{pointer-events:auto;--c:#5fbf3f;background:linear-gradient(#2c3358,#171c38);
   border:3px solid rgba(255,255,255,.2);border-top:8px solid var(--c);border-radius:18px;padding:16px;color:#fff;
   display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform .1s,box-shadow .1s,border-color .1s;}
@@ -205,8 +205,21 @@ body.is-touch #touch-controls{display:flex;justify-content:space-between;align-i
   .char-card-name{font-size:12px;}.char-card-en{display:none;}
   #char-preview-canvas{width:220px;height:220px;}
   #char-info{width:280px;}
-  .course-grid{grid-template-columns:repeat(2,minmax(150px,1fr));gap:10px;}
+  .course-grid{grid-template-columns:repeat(3,minmax(105px,1fr));gap:8px;}
   .course-emoji{font-size:34px;}.course-name{font-size:16px;}
   #hud-item{width:64px;height:64px;}#hud-item-icon{width:46px;height:46px;}
   #hud-map-wrap{width:92px;height:92px;}#hud-map{width:80px;height:80px;}
+}
+
+/* ===================== ゲッソーの墨（画面インク） ===================== */
+#hud-ink{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.ink-splat{position:absolute;border-radius:48% 52% 56% 44%/55% 46% 54% 45%;
+  background:radial-gradient(closest-side,rgba(12,12,20,.97) 58%,rgba(12,12,20,.88) 74%,rgba(12,12,20,0) 100%);
+  transform:scale(0);animation:inkpop 4.4s ease-out forwards;}
+@keyframes inkpop{
+  0%{transform:scale(0);}
+  6%{transform:scale(1.18);}
+  11%{transform:scale(1);}
+  62%{opacity:1;transform:scale(1) translateY(1.5vh);}
+  100%{opacity:0;transform:scale(1.05) translateY(8vh);}
 }
