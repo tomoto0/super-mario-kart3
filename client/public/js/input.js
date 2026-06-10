@@ -86,7 +86,7 @@ window.MK = window.MK || {};
       const root = document.createElement('div');
       root.id = 'touch-controls';
       root.classList.add('mode-race');
-      // 左：ステア / 右：ドリフト・アイテム(★)・アクセル。
+      // 左：アイテム(★)＋ステア(◀▶) / 右：アクセル。
       // data-role はメニューでのカーソル操作にも使う（onTouch フック）。
       // race-only はメニュー中は非表示（CSS）。
       root.innerHTML = `
@@ -98,7 +98,6 @@ window.MK = window.MK || {};
           </div>
         </div>
         <div class="tc-right">
-          <button class="tc-btn tc-drift race-only" data-key="_drift" data-role="drift">DRIFT</button>
           <button class="tc-btn tc-accel race-only" data-key="ArrowUp" data-role="accel">ACCEL</button>
         </div>`;
       document.body.appendChild(root);

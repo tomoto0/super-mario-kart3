@@ -192,7 +192,6 @@ body.is-touch #touch-controls{display:flex;justify-content:space-between;align-i
 .tc-btn.active{background:rgba(255,210,63,.7);transform:scale(.94);}
 .tc-accel{width:96px;height:96px;background:rgba(63,178,74,.65);}
 .tc-item{width:84px;height:84px;background:rgba(229,37,33,.6);font-size:30px;}
-.tc-drift{background:rgba(43,80,200,.6);font-size:14px;}
 .tc-accel{font-size:15px;}
 /* メニュー操作中は走行用ボタンを隠す（◀▶ と ★ のみ表示） */
 #touch-controls.mode-menu .race-only{display:none;}

@@ -162,7 +162,7 @@ window.MK = window.MK || {};
       const b = this.bounds;
       return { x: p.x * b.scale + b.ox, y: p.z * b.scale + b.oz };
     }
-    drawMinimap(karts, player, hazards) {
+    drawMinimap(karts, player) {
       if (!this.mapPts) return;
       const ctx = this.ctx, size = this.canvas.width;
       ctx.clearRect(0, 0, size, size);
@@ -175,28 +175,47 @@ window.MK = window.MK || {};
       // スタートライン
       const s0 = this.mapPts[4];
       if (s0) { ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(s0.x, s0.y, 4, 0, Math.PI * 2); ctx.fill(); }
-      // 敵キャラ（赤いひし形）
-      if (hazards) {
-        for (const hz of hazards) {
-          const m = this._toMap(hz.markerPos);
-          ctx.save();
-          ctx.translate(m.x, m.y); ctx.rotate(Math.PI / 4);
-          ctx.fillStyle = hz.dangerous ? '#ff2a2a' : 'rgba(200,60,60,0.55)';
-          ctx.fillRect(-3.2, -3.2, 6.4, 6.4);
-          ctx.restore();
-        }
-      }
-      // カート
+      // ライバルのカート（敵キャラは表示しない）。プレイヤーを最前面にするため先に描く。
       for (const k of karts) {
+        if (k === player) continue;
         const m = this._toMap(k.group.position);
-        const isP = k === player;
         ctx.beginPath();
-        ctx.arc(m.x, m.y, isP ? 6 : 4.5, 0, Math.PI * 2);
+        ctx.arc(m.x, m.y, 4, 0, Math.PI * 2);
         ctx.fillStyle = '#' + (k.character.colors.primary).toString(16).padStart(6, '0');
         ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = isP ? '#ffffff' : 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
         ctx.stroke();
+      }
+      // プレイヤーのカート（強調：脈動する光輪＋進行方向の三角＋太い白フチ＋中心の白点）
+      if (player) {
+        const m = this._toMap(player.group.position);
+        const pulse = (Math.sin(performance.now() * 0.006) + 1) * 0.5; // 0..1
+        // 脈動する光輪
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 9 + pulse * 2.5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.3 + pulse * 0.45) + ')';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        // 進行方向を指す三角（プレイヤーだけが矢印を持つので一目で分かる）
+        const fdx = -Math.sin(player.yaw), fdz = -Math.cos(player.yaw); // ワールド前方→マップ方向
+        const L = 12, w = 4.5, px = -fdz, pz = fdx;
+        ctx.beginPath();
+        ctx.moveTo(m.x + fdx * L, m.y + fdz * L);
+        ctx.lineTo(m.x + px * w, m.y + pz * w);
+        ctx.lineTo(m.x - px * w, m.y - pz * w);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff'; ctx.fill();
+        // 本体（キャラ色＋太い白フチ）
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#' + (player.character.colors.primary).toString(16).padStart(6, '0');
+        ctx.fill();
+        ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+        // 中心の白点（視認性）
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fill();
       }
     }
     _strokePath(ctx) {
@@ -229,8 +248,8 @@ window.MK = window.MK || {};
       this.setLap(Math.min(p.lap + 1, MK.CONFIG.laps), MK.CONFIG.laps);
       // 逆走
       this.setWrongWay(p.wrongWay && !p.finished);
-      // ミニマップ
-      this.drawMinimap(game.karts, p, game.hazards ? game.hazards.hazards : null);
+      // ミニマップ（カートのみ。敵キャラは非表示）
+      this.drawMinimap(game.karts, p);
     }
   }
 
