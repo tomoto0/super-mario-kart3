@@ -25,17 +25,20 @@ window.MK = window.MK || {};
   function place(m, x, y, z) { m.position.set(x, y, z); return m; }
 
   // 白目＋（虹彩）＋黒目＋ハイライト（-Z向き）。x を左右に符号付きで。
+  // コンセプトアートの「大きく縦長で生き生きした目」：白目を大きく、虹彩・瞳も大きめに。
   function eye(x, y, z, opts) {
     opts = opts || {};
     const g = new THREE.Group();
-    const sx = opts.sx || 0.82, sy = opts.tall || 1.5;
-    const white = sph(0.17, 0xffffff, 18); white.scale.set(sx, sy, 0.64); g.add(white);
-    if (opts.iris != null) { const ir = sph(0.09, opts.iris, 14); ir.scale.set(0.95, 1.2, 0.5); ir.position.set(0, -0.03, -0.12); g.add(ir); }
-    const pr = opts.iris != null ? 0.05 : 0.082;
-    const pupil = sph(pr, 0x15171d, 14); pupil.scale.set(0.95, 1.32, 0.5); pupil.position.set((opts.look || 0) * 0.03, opts.iris != null ? -0.05 : -0.01, -0.155); g.add(pupil);
-    const shine = sph(0.03, 0xffffff, 8); shine.position.set((opts.look || 0) * 0.03 - 0.045, 0.07, -0.2); g.add(shine);
+    const sx = opts.sx || 0.84, sy = opts.tall || 1.62;
+    const white = sph(0.185, 0xffffff, 18); white.scale.set(sx, sy, 0.6); g.add(white);
+    if (opts.iris != null) { const ir = sph(0.105, opts.iris, 14); ir.scale.set(0.95, 1.25, 0.45); ir.position.set(0, -0.02, -0.13); g.add(ir); }
+    const pr = opts.iris != null ? 0.06 : 0.09;
+    const pupil = sph(pr, 0x15171d, 14); pupil.scale.set(0.95, 1.3, 0.45); pupil.position.set((opts.look || 0) * 0.03, opts.iris != null ? -0.04 : -0.01, -0.165); g.add(pupil);
+    const shine = sph(0.035, 0xffffff, 8); shine.position.set((opts.look || 0) * 0.03 - 0.05, 0.08, -0.21); g.add(shine);
+    const shine2 = sph(0.018, 0xffffff, 6); shine2.position.set((opts.look || 0) * 0.03 + 0.04, -0.05, -0.21); g.add(shine2);
     g.position.set(x, y, z);
     if (opts.tilt) g.rotation.z = opts.tilt;
+    g.scale.setScalar(opts.size || 1);   // キャラごとの目の大きさ（クッパは小さめで精悍に）
     return g;
   }
 
@@ -67,27 +70,33 @@ window.MK = window.MK || {};
   }
 
   // 口ひげ。pointed=true でワリオのとがったジグザグ髭。
+  // 通常はコンセプトアートの「丸い房が並ぶスカラップ形」を球の重なりで再現する。
   function mustache(col, pointed) {
     const g = new THREE.Group();
     col = col || 0x4a2c10;
     if (pointed) {
+      // ワリオ：中央から外へ大きく跳ね上がるジグザグ
+      const c = sph(0.16, col, 12); c.scale.set(1.25, 0.72, 0.8); g.add(c);
       for (const s of [-1, 1]) {
-        const lobe = box(0.26, 0.13, 0.16, col); lobe.rotation.z = s * 0.55; place(lobe, s * 0.16, 0, 0); g.add(lobe);
-        const tip = cone(0.075, 0.22, col, 6); tip.rotation.z = s * Math.PI / 2; place(tip, s * 0.34, 0.08, 0); g.add(tip);
+        const lobe = sph(0.155, col, 12); lobe.scale.set(1.4, 0.75, 0.8); place(lobe, s * 0.25, 0.04, -0.01); lobe.rotation.z = s * 0.35; g.add(lobe);
+        const mid = sph(0.115, col, 10); mid.scale.set(1.35, 0.7, 0.7); place(mid, s * 0.46, 0.14, 0); mid.rotation.z = s * 0.62; g.add(mid);
+        const tip = cone(0.06, 0.3, col, 8); tip.rotation.z = s * (Math.PI / 2 - 0.85); place(tip, s * 0.62, 0.3, 0); g.add(tip);
       }
     } else {
-      const c = sph(0.16, col, 12); c.scale.set(1.55, 0.8, 0.98); g.add(c);
-      for (const s of [-1, 1]) {
-        const lobe = sph(0.17, col, 12); lobe.scale.set(1, 0.86, 0.92); place(lobe, s * 0.25, -0.05, 0); g.add(lobe);
-        const tip = sph(0.09, col, 10); tip.scale.set(1, 0.8, 0.9); place(tip, s * 0.4, -0.02, 0.02); g.add(tip);
+      // マリオ/ルイージ：下端が波打つ5房のスカラップ＋鼻下をそろえる上帯
+      const bumps = [[0, -0.03, 1.18], [-0.19, -0.01, 1.0], [0.19, -0.01, 1.0], [-0.36, 0.05, 0.78], [0.36, 0.05, 0.78]];
+      for (const b of bumps) {
+        const m = sph(0.14 * b[2], col, 14); m.scale.set(1.0, 0.85, 0.78);
+        place(m, b[0], b[1], -0.02 * b[2]); g.add(m);
       }
+      const band = sph(0.16, col, 12); band.scale.set(2.55, 0.5, 0.62); place(band, 0, 0.08, 0.02); g.add(band);
     }
     return g;
   }
 
-  // 眉
+  // 眉（細く・やや上に・外側へ下がる柔らかいアーチ＝アートの表情）
   function brows(head, col, y, z, w) {
-    for (const s of [-1, 1]) { const b = box(w || 0.2, 0.055, 0.07, col); place(b, s * 0.2, y != null ? y : 0.37, z != null ? z : -0.49); b.rotation.z = s * 0.08; head.add(b); }
+    for (const s of [-1, 1]) { const b = box(w || 0.2, 0.045, 0.06, col); place(b, s * 0.2, y != null ? y : 0.41, z != null ? z : -0.49); b.rotation.z = -s * 0.14; head.add(b); }
   }
   // ほっぺ（赤み）を頭に付ける
   function cheeks(head, color, y, z, sx) {
@@ -129,9 +138,11 @@ window.MK = window.MK || {};
       const arm = cyl(0.11, 0.14, alen * 0.92, shirt, 12);
       arm.position.set(s * (0.39 + grip[0]) / 2, (0.76 + grip[1]) / 2, grip[2] / 2);
       arm.rotation.x = Math.atan2(-adz, -ady); arm.rotation.z = s * 0.2; g.add(arm);
-      const cuff = tor(0.14, 0.05, opts.glove || 0xffffff, 8);
+      const cuff = tor(0.15, 0.055, opts.glove || 0xffffff, 8);
       cuff.position.set(s * (grip[0] + 0.03), grip[1] + 0.11, grip[2] + 0.13); cuff.rotation.x = 1.3; g.add(cuff);
-      const glove = sph(0.16, opts.glove || 0xffffff, 14); glove.position.set(s * grip[0], grip[1], grip[2]); g.add(glove);
+      // アートの大きな白手袋（親指の房つき）
+      const glove = sph(0.175, opts.glove || 0xffffff, 14); glove.position.set(s * grip[0], grip[1], grip[2]); g.add(glove);
+      const thumb = sph(0.08, opts.glove || 0xffffff, 10); thumb.position.set(s * (grip[0] - 0.12), grip[1] + 0.08, grip[2] - 0.04); g.add(thumb);
     }
     // 首
     const neck = cyl(0.17, 0.19, 0.16, skin, 12); place(neck, 0, 0.97, 0); g.add(neck);
@@ -145,19 +156,36 @@ window.MK = window.MK || {};
     const head = new THREE.Group();
     const R = 0.56;
     const face = sph(R, skin, 24); face.scale.set(1, opts.faceY || 1.0, 1); head.add(face);
-    for (const s of [-1, 1]) { const ear = sph(0.15, skin, 12); place(ear, s * 0.54, -0.02, 0.05); head.add(ear); }
-    // 大きな丸い鼻
-    const nose = sph(opts.noseR || 0.21, opts.noseColor || skin, 16); nose.scale.set(1.05, 0.96, 1.16); place(nose, 0, -0.05, -0.55); head.add(nose);
-    // 目（少し内寄せ・上向き）
-    head.add(eye(-0.21, 0.2, -0.49, { look: 1, iris: opts.iris }));
-    head.add(eye(0.21, 0.2, -0.49, { look: -1, iris: opts.iris }));
+    // 耳（ワリオは大きく尖った耳）
+    for (const s of [-1, 1]) {
+      if (opts.bigEars) {
+        // 頭に沿わせた大きめの尖り耳（上後方へツン）
+        const ear = sph(0.17, skin, 12); ear.scale.set(0.55, 1.15, 0.8); place(ear, s * 0.54, 0.05, 0.09); head.add(ear);
+        const tip = cone(0.07, 0.16, skin, 8); tip.rotation.z = -s * 0.5; place(tip, s * 0.6, 0.24, 0.09); head.add(tip);
+        const inner = sph(0.07, 0xe8a87e, 8); inner.scale.set(0.45, 0.9, 0.55); place(inner, s * 0.57, 0.03, 0.04); head.add(inner);
+      } else {
+        const ear = sph(0.15, skin, 12); place(ear, s * 0.54, -0.02, 0.05); head.add(ear);
+        const inner = sph(0.07, 0xe8a87e, 8); inner.scale.set(0.55, 0.9, 0.6); place(inner, s * 0.585, -0.02, 0.02); head.add(inner);
+      }
+    }
+    // 大きな丸い鼻（アートの存在感ある丸鼻）
+    const nose = sph(opts.noseR || 0.23, opts.noseColor || skin, 18); nose.scale.set(1.08, 0.95, 1.16); place(nose, 0, -0.06, -0.56); head.add(nose);
+    // 目（大きく・少し内寄せ）
+    head.add(eye(-0.2, 0.19, -0.48, { look: 1, iris: opts.iris }));
+    head.add(eye(0.2, 0.19, -0.48, { look: -1, iris: opts.iris }));
     // 眉
-    if (opts.brow) brows(head, opts.hair || 0x3a2410, 0.4, -0.52, 0.2);
+    if (opts.brow) brows(head, opts.hair || 0x3a2410, 0.43, -0.51, 0.2);
     // 口ひげ
-    if (opts.mustache) { const m = mustache(opts.hair || 0x4a2c10, opts.wario); m.position.set(0, -0.21, -0.52); head.add(m); }
-    // ほっぺ＆笑顔の口（ひげの下）
+    if (opts.mustache) { const m = mustache(opts.hair || 0x4a2c10, opts.wario); m.position.set(0, -0.22, -0.53); head.add(m); }
+    // ほっぺ＆口（ワリオはニカッと歯を見せる大口、他は笑顔の弧）
     cheeks(head, 0xff9a86, -0.08, -0.46, 0.35);
-    head.add(mouthArc(0.15, 0x6a241a, opts.mustache ? -0.35 : -0.27, -0.5));
+    if (opts.grin) {
+      const mouthO = sph(0.15, 0x6a241a, 14); mouthO.scale.set(1.5, 0.72, 0.5); place(mouthO, 0, -0.42, -0.44); head.add(mouthO);
+      const teeth = box(0.27, 0.075, 0.05, 0xfff8ec); place(teeth, 0, -0.37, -0.51); head.add(teeth);
+      const chin = sph(0.17, skin, 14); chin.scale.set(1.3, 0.7, 0.85); place(chin, 0, -0.54, -0.25); head.add(chin);
+    } else {
+      head.add(mouthArc(0.15, 0x6a241a, opts.mustache ? -0.36 : -0.27, -0.5));
+    }
     // もみあげ/後ろ髪
     if (opts.hair && opts.sideburns !== false) {
       for (const s of [-1, 1]) { const sb = box(0.14, 0.34, 0.26, opts.hair); place(sb, s * 0.46, 0.02, 0.07); head.add(sb); }
@@ -183,8 +211,14 @@ window.MK = window.MK || {};
     return g;
   }
   function buildWario(c) {
-    // 黄シャツ＋紫オーバーオール＋黄帽子。大きなピンクの鼻＆とがった髭。
-    const g = humanoidBody(c, { cap: true, letter: 'W', letterColor: '#2c2cae', capColor: c.primary, mustache: true, wario: true, hair: 0x6a4a18, brow: true, noseR: 0.29, noseColor: 0xffb6a6, glove: 0xffd24a, shoe: 0x1f7a3a, headScale: 1.2, iris: 0x4a6fb0, grip: [0.22, 0.37, -0.65] });
+    // 黄シャツ＋紫オーバーオール＋黄帽子。巨大なピンクの鼻・尖り耳・歯を見せるニカッと笑い。
+    const g = humanoidBody(c, {
+      cap: true, letter: 'W', letterColor: '#2c2cae', capColor: c.primary,
+      mustache: true, wario: true, hair: 0x2e2018, brow: true,
+      noseR: 0.3, noseColor: 0xff8585, glove: 0xffffff, shoe: 0x1f7a3a,
+      headScale: 1.2, iris: 0x4a6fb0, bigEars: true, grin: true,
+      grip: [0.22, 0.37, -0.65],
+    });
     g.scale.set(1.18, 0.97, 1.18); // がっしり
     return g;
   }
@@ -195,6 +229,8 @@ window.MK = window.MK || {};
     const bodice = cyl(0.3, 0.42, 0.5, dress, 18); place(bodice, 0, 0.62, 0); g.add(bodice);
     const skirt = cone(0.68, 0.78, dress, 24); place(skirt, 0, 0.3, 0); g.add(skirt);
     const skirtTrim = tor(0.64, 0.07, trim, 10); skirtTrim.rotation.x = Math.PI / 2; place(skirtTrim, 0, 0.0, 0); g.add(skirtTrim);
+    // 腰の左右のパニエ（濃いピンクのふくらみ＝アートのドレスシルエット）
+    for (const s of [-1, 1]) { const pan = sph(0.22, 0xe884b8, 14); pan.scale.set(1.15, 0.8, 1.0); place(pan, s * 0.42, 0.5, 0.04); g.add(pan); }
     // 胸元の青い宝石（金縁）
     const collar = tor(0.12, 0.04, 0xffd24a, 8, null, { metalness: 0.6, roughness: 0.3 }); collar.rotation.x = Math.PI / 2; place(collar, 0, 0.83, -0.3); g.add(collar);
     const gem = sph(0.08, 0x59b6ff, 12, { emissive: 0x1a3a6a, emissiveIntensity: 0.4, metalness: 0.3, roughness: 0.2 }); place(gem, 0, 0.83, -0.33); g.add(gem);
@@ -212,23 +248,36 @@ window.MK = window.MK || {};
     const nose = sph(0.075, skin, 12); place(nose, 0, -0.03, -0.5); head.add(nose);
     head.add(eye(-0.19, 0.1, -0.46, { iris: 0x3f86d0, tall: 1.55, look: 1 }));
     head.add(eye(0.19, 0.1, -0.46, { iris: 0x3f86d0, tall: 1.55, look: -1 }));
-    // まつ毛・ほっぺ・口・青い宝石のイヤリング
-    for (const s of [-1, 1]) { const lash = box(0.12, 0.04, 0.05, 0x3a2a18); place(lash, s * 0.27, 0.22, -0.46); lash.rotation.z = s * -0.32; head.add(lash); }
+    // まつ毛（3本ずつ外へ向けて扇状に＝アートの華やかな目元）・ほっぺ・口・イヤリング
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+      const lash = box(0.085, 0.026, 0.04, 0x3a2a18);
+      place(lash, s * (0.255 + i * 0.035), 0.21 + i * 0.015, -0.44 + i * 0.012);
+      lash.rotation.z = s * (-0.35 - i * 0.28);
+      head.add(lash);
+    }
     cheeks(head, 0xffb0c4, -0.05, -0.42, 0.3);
     head.add(mouthArc(0.09, 0xc0506a, -0.22, -0.48, 0.03));
-    for (const s of [-1, 1]) { const earg = sph(0.06, 0x59b6ff, 10, { emissive: 0x1a3a6a, emissiveIntensity: 0.4 }); place(earg, s * 0.48, -0.22, -0.08); head.add(earg); }
-    // ブロンドの髪（前髪＋顔まわりのサイドロック＋ふんわり後ろ＋ロングポニー）
-    const bangs = dome(0.52, hair); bangs.scale.set(1.08, 0.62, 1.04); place(bangs, 0, 0.18, 0.0); head.add(bangs);
-    // 前髪の左右の房（顔の輪郭に沿わせる）
-    for (const s of [-1, 1]) { const fr = sph(0.2, hair, 12); fr.scale.set(0.7, 1.1, 0.8); place(fr, s * 0.4, 0.18, -0.28); head.add(fr); }
-    const back = sph(0.52, hair, 18); back.scale.set(1.14, 1.12, 0.95); place(back, 0, 0.06, 0.22); head.add(back);
-    for (const s of [-1, 1]) { const side = cyl(0.11, 0.15, 0.6, hair, 12); place(side, s * 0.46, -0.16, 0.1); side.rotation.z = s * 0.06; head.add(side); }
-    const pony = cyl(0.22, 0.1, 0.9, hair, 14); place(pony, 0, -0.14, 0.5); pony.rotation.x = -0.34; head.add(pony);
-    const ponyTip = sph(0.12, hair, 12); place(ponyTip, 0, -0.5, 0.78); head.add(ponyTip);
-    // 王冠（金＋赤宝石）
-    const band = cyl(0.27, 0.29, 0.14, 0xffd24a, 20, { metalness: 0.7, roughness: 0.25 }); place(band, 0, 0.5, 0.04); head.add(band);
-    for (let i = 0; i < 5; i++) { const sp = cone(0.055, 0.15, 0xffd24a, 8, { metalness: 0.7, roughness: 0.25 }); const a = (i / 5) * TAU; place(sp, Math.cos(a) * 0.25, 0.62, 0.04 + Math.sin(a) * 0.25); head.add(sp); const jw = sph(0.035, i % 2 ? 0x59b6ff : 0xe23b6a, 8, { emissive: 0x222, emissiveIntensity: 0.3 }); place(jw, Math.cos(a) * 0.25, 0.6, 0.04 + Math.sin(a) * 0.25 - 0.05); head.add(jw); }
-    const cgem = sph(0.06, 0xe23b6a, 10, { emissive: 0x6a0a2a, emissiveIntensity: 0.5 }); place(cgem, 0, 0.5, -0.22); head.add(cgem);
+    for (const s of [-1, 1]) { const earg = sph(0.06, 0x59b6ff, 10, { emissive: 0x1a3a6a, emissiveIntensity: 0.4 }); place(earg, s * 0.46, -0.2, -0.06); head.add(earg); }
+    // ブロンドの髪：額を斜めに横切るサイドスイープの前髪＋豊かなサイドボリューム＋背中へ流れるロングヘア
+    const crownHair = sph(0.52, hair, 20); crownHair.scale.set(1.1, 0.85, 1.05); place(crownHair, 0, 0.2, 0.04); head.add(crownHair);
+    const sweep = sph(0.3, hair, 14); sweep.scale.set(1.55, 0.52, 0.78); place(sweep, -0.13, 0.2, -0.38); sweep.rotation.z = -0.3; head.add(sweep);   // 額のスイープ
+    const flick = sph(0.15, hair, 12); flick.scale.set(1.5, 0.55, 0.7); place(flick, 0.3, 0.3, -0.32); flick.rotation.z = 0.55; head.add(flick);     // 跳ねる毛先
+    for (const s of [-1, 1]) { const vol = sph(0.3, hair, 14); vol.scale.set(0.85, 1.2, 0.95); place(vol, s * 0.44, 0.06, 0.05); head.add(vol); }    // サイドの量感
+    const backTop = sph(0.5, hair, 18); backTop.scale.set(1.1, 1.05, 0.85); place(backTop, 0, 0.08, 0.24); head.add(backTop);
+    const backMid = sph(0.34, hair, 14); backMid.scale.set(1.0, 1.35, 0.7); place(backMid, 0, -0.42, 0.36); head.add(backMid);
+    const backTip = sph(0.22, hair, 12); backTip.scale.set(0.85, 1.45, 0.6); place(backTip, 0, -0.88, 0.42); head.add(backTip);
+    for (const s of [-1, 1]) { const lock = sph(0.12, hair, 10); lock.scale.set(0.8, 1.75, 0.7); place(lock, s * 0.43, -0.34, -0.04); head.add(lock); } // 顔横のロング毛束
+    // 小ぶりの王冠（金＋宝石。髪の上にちょこんと載る）
+    const crown = new THREE.Group();
+    const band = cyl(0.17, 0.2, 0.12, 0xffd24a, 16, { metalness: 0.7, roughness: 0.25 }); crown.add(band);
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * TAU + Math.PI / 4;
+      const sp = cone(0.05, 0.14, 0xffd24a, 8, { metalness: 0.7, roughness: 0.25 }); place(sp, Math.cos(a) * 0.15, 0.12, Math.sin(a) * 0.15); crown.add(sp);
+      const ball = sph(0.028, 0xffd24a, 6, { metalness: 0.7, roughness: 0.25 }); place(ball, Math.cos(a) * 0.15, 0.2, Math.sin(a) * 0.15); crown.add(ball);
+    }
+    const cgem = sph(0.05, 0xe23b6a, 10, { emissive: 0x6a0a2a, emissiveIntensity: 0.5 }); place(cgem, 0, 0.02, -0.18); crown.add(cgem);
+    for (const s of [-1, 1]) { const sgem = sph(0.035, 0x59b6ff, 8, { emissive: 0x1a3a6a, emissiveIntensity: 0.4 }); place(sgem, s * 0.15, 0.02, -0.1); crown.add(sgem); }
+    crown.position.set(0.08, 0.62, 0.02); crown.rotation.z = -0.08; head.add(crown);
     head.position.set(0, 1.17, 0);
     head.scale.setScalar(1.1);
     g.add(head); g.userData.head = head;
@@ -251,18 +300,22 @@ window.MK = window.MK || {};
     }
     // 足（茶色いブーツ）
     for (const s of [-1, 1]) { const shoe = sph(0.16, 0xc98a4a, 12); shoe.scale.set(1, 0.72, 1.45); place(shoe, s * 0.16, 0.07, -0.4); g.add(shoe); }
-    // 大きな頭（きのこ）
+    // 大きな頭（きのこ）。アートどおり傘を顔より大きく、目はシンプルな黒い縦長楕円に。
     const head = new THREE.Group();
-    const facePart = sph(0.46, skin, 20); facePart.scale.set(1.08, 0.92, 1); head.add(facePart);
-    head.add(eye(-0.18, -0.02, -0.42, { tall: 2.4, look: 1 }));
-    head.add(eye(0.18, -0.02, -0.42, { tall: 2.4, look: -1 }));
-    cheeks(head, 0xffb0b0, -0.14, -0.36, 0.29);
-    head.add(mouthArc(0.1, 0x8a4a4a, -0.2, -0.42, 0.03));
-    // きのこ傘（大きいドーム）＋赤い斑
-    const capMesh = dome(0.72, 0xfdfdfd); capMesh.scale.set(1.2, 0.86, 1.2); place(capMesh, 0, 0.24, 0); head.add(capMesh);
-    const capRim = tor(0.72 * 1.2, 0.06, 0xf3f3f3, 8); capRim.rotation.x = Math.PI / 2; place(capRim, 0, 0.24, 0); capRim.scale.set(1, 1, 0.7); head.add(capRim);
-    const spots = [[0, 0.62, -0.64], [-0.56, 0.46, -0.34], [0.56, 0.46, -0.34], [-0.5, 0.5, 0.34], [0.5, 0.5, 0.34]];
-    spots.forEach((p) => { const sp = sph(0.22, 0xe52521, 16); sp.scale.set(1.1, 0.66, 1.1); place(sp, p[0], p[1], p[2]); head.add(sp); });
+    const facePart = sph(0.44, skin, 20); facePart.scale.set(1.06, 0.9, 1); head.add(facePart);
+    // 黒いシンプルな縦長の目＋小さなハイライト
+    for (const s of [-1, 1]) {
+      const e = sph(0.085, 0x1c1a18, 14); e.scale.set(0.78, 1.95, 0.5); place(e, s * 0.165, -0.02, -0.41); head.add(e);
+      const sh = sph(0.026, 0xffffff, 6); place(sh, s * 0.145, 0.08, -0.47); head.add(sh);
+    }
+    cheeks(head, 0xffb0b0, -0.16, -0.35, 0.27);
+    // 小さく開いた笑顔の口
+    const mo = sph(0.075, 0x8a4a4a, 10); mo.scale.set(1.35, 0.95, 0.5); place(mo, 0, -0.24, -0.41); head.add(mo);
+    // きのこ傘（顔を覆うほど大きく・目の上まで下ろす）＋大きな赤い斑
+    const capMesh = dome(0.78, 0xfdfdfd); capMesh.scale.set(1.26, 0.92, 1.26); place(capMesh, 0, 0.18, 0); head.add(capMesh);
+    const capRim = tor(0.78 * 1.26, 0.07, 0xf3f3f3, 8); capRim.rotation.x = Math.PI / 2; place(capRim, 0, 0.18, 0); capRim.scale.set(1, 1, 0.78); head.add(capRim);
+    const spots = [[0, 0.64, -0.7], [-0.64, 0.46, -0.38], [0.64, 0.46, -0.38], [-0.56, 0.52, 0.42], [0.56, 0.52, 0.42], [0, 0.72, 0.55]];
+    spots.forEach((p) => { const sp = sph(0.27, 0xe52521, 18); sp.scale.set(1.12, 0.6, 1.12); place(sp, p[0], p[1], p[2]); head.add(sp); });
     head.position.set(0, 1.0, 0);
     g.add(head); g.userData.head = head;
     return g;
@@ -281,8 +334,12 @@ window.MK = window.MK || {};
       const arm = cyl(0.1, 0.13, 0.72, green, 12); arm.position.set(s * 0.32, 0.52, -0.37); arm.rotation.x = 1.21; arm.rotation.z = s * 0.16; g.add(arm);
       const hand = sph(0.14, green, 12); hand.position.set(s * 0.26, 0.38, -0.75); g.add(hand);
     }
-    // 脚＋大きなオレンジ靴
-    for (const s of [-1, 1]) { const leg = cyl(0.13, 0.15, 0.3, green, 12); leg.position.set(s * 0.2, 0.15, -0.3); leg.rotation.x = 1.2; g.add(leg); const shoeM = sph(0.22, shoe, 14); shoeM.scale.set(1, 0.72, 1.6); place(shoeM, s * 0.2, 0.05, -0.59); g.add(shoeM); }
+    // 脚＋大きなオレンジ靴（タンのソール付き）
+    for (const s of [-1, 1]) {
+      const leg = cyl(0.13, 0.15, 0.3, green, 12); leg.position.set(s * 0.2, 0.15, -0.3); leg.rotation.x = 1.2; g.add(leg);
+      const shoeM = sph(0.22, shoe, 14); shoeM.scale.set(1, 0.72, 1.6); place(shoeM, s * 0.2, 0.06, -0.59); g.add(shoeM);
+      const sole = sph(0.21, 0xe8d6b0, 12); sole.scale.set(1.02, 0.28, 1.62); place(sole, s * 0.2, -0.02, -0.59); g.add(sole);
+    }
 
     // 頭（丸い頭＋前に大きく突き出す鼻先＝ヨッシーらしさの肝）
     const head = new THREE.Group();
@@ -290,21 +347,25 @@ window.MK = window.MK || {};
     // スナウト（鼻先）：前方 -Z へ長く張り出すカプセル状
     const snout = sph(0.34, snoutCol, 18); snout.scale.set(1.18, 0.96, 1.55); place(snout, 0, -0.16, -0.6); head.add(snout);
     const snoutTip = sph(0.3, snoutCol, 16); snoutTip.scale.set(1.16, 0.94, 1.0); place(snoutTip, 0, -0.16, -0.95); head.add(snoutTip);
-    // 鼻の穴
-    for (const s of [-1, 1]) { const nl = sph(0.05, 0x2f7a25, 8); nl.scale.set(1, 1.2, 0.8); place(nl, s * 0.13, -0.04, -1.18); head.add(nl); }
+    // 鼻の穴（アートどおりスナウトの上面・前寄りに）
+    for (const s of [-1, 1]) { const nl = sph(0.05, 0x2f7a25, 8); nl.scale.set(1.15, 0.7, 1.0); place(nl, s * 0.13, 0.08, -1.02); head.add(nl); }
     // にっこり口（スナウト下面）
     { const ym = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 6, 18, Math.PI), mat(0x2f7a25)); ym.rotation.z = Math.PI; ym.position.set(0, -0.32, -0.86); head.add(ym); }
-    // 大きな白目（頭頂で近接した一対）＋黒目。下半分がスナウトに乗る卵形。
+    // 大きな白目（頭頂で近接した一対）＋青い虹彩＋黒目（アートの生き生きした目）
     for (const s of [-1, 1]) {
       const stalk = sph(0.22, green, 14); stalk.scale.set(0.92, 1.45, 0.92); place(stalk, s * 0.17, 0.4, -0.12); head.add(stalk);
       const wsock = sph(0.2, 0xffffff, 16); wsock.scale.set(0.95, 1.5, 0.92); place(wsock, s * 0.16, 0.5, -0.26); head.add(wsock);
-      const pup = sph(0.09, 0x20232a, 12); pup.scale.set(0.95, 1.45, 0.7); place(pup, s * 0.16, 0.46, -0.42); head.add(pup);
-      const shine = sph(0.03, 0xffffff, 8); place(shine, s * 0.16 - 0.04, 0.56, -0.45); head.add(shine);
+      const iris = sph(0.115, 0x2f6fd0, 14); iris.scale.set(0.95, 1.4, 0.55); place(iris, s * 0.16, 0.46, -0.38); head.add(iris);
+      const pup = sph(0.065, 0x16181c, 12); pup.scale.set(0.95, 1.4, 0.55); place(pup, s * 0.16, 0.44, -0.43); head.add(pup);
+      const shine = sph(0.032, 0xffffff, 8); place(shine, s * 0.16 - 0.045, 0.56, -0.45); head.add(shine);
     }
     // 頬の張り出し（白め）
     for (const s of [-1, 1]) { const cheek = sph(0.17, green, 14); place(cheek, s * 0.42, -0.1, -0.18); head.add(cheek); }
-    // 頭頂～背の赤いとさか（板を数枚）
-    for (let i = 0; i < 3; i++) { const cr = box(0.09, 0.26 - i * 0.04, 0.18, saddle); place(cr, 0, 0.62 - i * 0.02, 0.16 + i * 0.18); cr.rotation.x = 0.5; head.add(cr); }
+    // 後頭部〜うなじの赤いクレスト（丸い房が連なる＝アートのとさか）
+    for (let i = 0; i < 3; i++) {
+      const cr = sph(0.165 - i * 0.028, saddle, 14); cr.scale.set(0.6, 1.05, 0.85);
+      place(cr, 0, 0.54 - i * 0.18, 0.3 + i * 0.2); cr.rotation.x = 0.35 + i * 0.18; head.add(cr);
+    }
     head.position.set(0, 1.14, 0);
     g.add(head); g.userData.head = head;
     return g;
@@ -330,14 +391,18 @@ window.MK = window.MK || {};
     const skull = sph(0.5, fur, 20); skull.scale.set(1.02, 1.06, 1); head.add(skull);
     // 額の房（フリンジ）
     const fringe = sph(0.5, fur, 16); fringe.scale.set(1.05, 0.5, 1.0); place(fringe, 0, 0.34, -0.06); head.add(fringe);
+    // 頭頂の逆立つ毛房（DKの象徴的なツンと立つ前髪）
+    const tuft = cone(0.17, 0.4, fur, 8); place(tuft, 0.06, 0.6, -0.08); tuft.rotation.z = -0.4; tuft.rotation.x = -0.18; head.add(tuft);
+    const tuft2 = cone(0.1, 0.26, fur, 8); place(tuft2, -0.08, 0.58, -0.02); tuft2.rotation.z = 0.3; head.add(tuft2);
     // マズル（口元）：前方へ突き出す大きな面
-    const muzzle = sph(0.42, faceCol, 18); muzzle.scale.set(1.2, 0.92, 1.05); place(muzzle, 0, -0.16, -0.42); head.add(muzzle);
-    // 大きな鼻＋鼻の穴
-    const noseTop = sph(0.16, faceCol, 12); noseTop.scale.set(1.3, 0.7, 0.8); place(noseTop, 0, 0.06, -0.78); head.add(noseTop);
-    for (const s of [-1, 1]) { const n = sph(0.055, 0x241407, 8); place(n, s * 0.12, -0.02, -0.84); head.add(n); }
-    // ニカッと笑う口（横長＋上歯列）
-    { const grin = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.05, 6, 18, Math.PI), mat(0x2a1608)); grin.rotation.z = Math.PI; grin.position.set(0, -0.3, -0.66); grin.scale.set(1.1, 0.8, 1); head.add(grin); }
-    const teeth = box(0.34, 0.08, 0.06, 0xfffaf0); place(teeth, 0, -0.26, -0.72); head.add(teeth);
+    const muzzle = sph(0.44, faceCol, 18); muzzle.scale.set(1.22, 0.95, 1.05); place(muzzle, 0, -0.17, -0.42); head.add(muzzle);
+    // 大きな鼻＋大きめの鼻の穴（アートの存在感）
+    const noseTop = sph(0.17, faceCol, 12); noseTop.scale.set(1.35, 0.72, 0.8); place(noseTop, 0, 0.07, -0.8); head.add(noseTop);
+    for (const s of [-1, 1]) { const n = sph(0.07, 0x241407, 8); n.scale.set(1.3, 0.85, 0.6); place(n, s * 0.13, 0.0, -0.87); head.add(n); }
+    // 大きく開けたニカッと笑う口＋ずらり並ぶ上歯列（アートの豪快な笑顔）
+    const mouthO = sph(0.3, 0x2a1608, 16); mouthO.scale.set(1.4, 0.6, 0.5); place(mouthO, 0, -0.36, -0.6); head.add(mouthO);
+    for (let i = -2; i <= 2; i++) { const t = box(0.105, 0.1, 0.05, 0xfffaf0); place(t, i * 0.115, -0.27, -0.71); head.add(t); }
+    const lowLip = sph(0.2, faceCol, 12); lowLip.scale.set(1.7, 0.4, 0.6); place(lowLip, 0, -0.52, -0.58); head.add(lowLip);
     // 重い眉＋小さめの目
     const brow = box(0.66, 0.16, 0.2, fur); place(brow, 0, 0.18, -0.46); head.add(brow);
     head.add(eye(-0.17, 0.07, -0.46, { tall: 1.15, look: 1 }));
@@ -376,22 +441,35 @@ window.MK = window.MK || {};
     // トゲ付き首輪
     const collar = tor(0.46, 0.09, 0x222831, 8); collar.rotation.x = Math.PI / 2 - 0.1; place(collar, 0, 0.92, 0.02); g.add(collar);
     for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; const sp = cone(0.06, 0.18, 0xffffff, 6); place(sp, Math.cos(a) * 0.46, 0.92 + Math.sin(a) * 0.1, 0.02 + Math.sin(a) * 0.42); sp.rotation.x = Math.PI / 2 + Math.sin(a); g.add(sp); }
-    // 頭
+    // 頭（アートどおり：頭頂は緑、マズルはクリーム色）
     const head = new THREE.Group();
-    const skull = sph(0.54, skin, 20); head.add(skull);
-    const snout = sph(0.42, skin, 18); snout.scale.set(1.14, 0.8, 1.08); place(snout, 0, -0.2, -0.42); head.add(snout);
-    for (const s of [-1, 1]) { const n = sph(0.055, 0x6a7a10, 8); place(n, s * 0.13, -0.06, -0.78); head.add(n); }
-    // 牙（下あごから上向き）
-    for (const s of [-1, 1]) { const t = cone(0.065, 0.22, 0xffffff, 8); place(t, s * 0.19, -0.36, -0.55); head.add(t); }
-    // 角（外向きに反る）
-    for (const s of [-1, 1]) { const hn = cone(0.1, 0.34, horn, 10); place(hn, s * 0.4, 0.42, 0.0); hn.rotation.z = s * -0.55; hn.rotation.x = -0.3; head.add(hn); }
-    // 赤いたてがみ（後頭部の塊＋トゲ状の房）
-    const maneBack = sph(0.46, mane, 14); maneBack.scale.set(1.14, 1.04, 0.82); place(maneBack, 0, 0.34, 0.3); head.add(maneBack);
-    for (let i = 0; i < 7; i++) { const sp = cone(0.08, 0.34, mane, 6); place(sp, (i - 3) * 0.15, 0.54, 0.2); sp.rotation.x = 0.55; sp.rotation.z = (i - 3) * 0.06; head.add(sp); }
-    // 眉＋赤目
-    const brow = box(0.66, 0.13, 0.18, 0x8a2810); place(brow, 0, 0.27, -0.46); brow.rotation.z = 0; head.add(brow);
-    head.add(eye(-0.2, 0.14, -0.46, { iris: 0xd83a14, tall: 1.2, look: 1 }));
-    head.add(eye(0.2, 0.14, -0.46, { iris: 0xd83a14, tall: 1.2, look: -1 }));
+    const headGreen = 0x49a84a, muzzleCol = 0xf4e6c0;
+    const skull = sph(0.54, headGreen, 20); head.add(skull);
+    const snout = sph(0.43, muzzleCol, 18); snout.scale.set(1.14, 0.78, 1.05); place(snout, 0, -0.26, -0.44); head.add(snout);
+    // 鼻の穴（マズルの面に沿わせて小さく）
+    for (const s of [-1, 1]) { const n = sph(0.04, 0x6a5a30, 8); n.scale.set(1.2, 0.75, 0.5); place(n, s * 0.11, -0.1, -0.81); head.add(n); }
+    // ニヤリと結んだ大きな口の線＋マズル両端から上向きの牙
+    const grinL = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.035, 6, 18, Math.PI), mat(0x4a3210));
+    grinL.rotation.z = Math.PI; grinL.position.set(0, -0.36, -0.76); grinL.scale.set(1.15, 0.45, 1); head.add(grinL);
+    for (const s of [-1, 1]) {
+      const t = cone(0.09, 0.32, 0xffffff, 8); place(t, s * 0.36, -0.36, -0.6); t.rotation.z = -s * 0.12; head.add(t);
+      const t2 = cone(0.05, 0.16, 0xffffff, 8); place(t2, s * 0.13, -0.48, -0.7); head.add(t2);
+    }
+    // 角（外向きに反る・先端は飴色・大きく堂々と）
+    for (const s of [-1, 1]) {
+      const hn = cone(0.14, 0.46, horn, 10); place(hn, s * 0.44, 0.46, 0.0); hn.rotation.z = s * -0.6; hn.rotation.x = -0.3; head.add(hn);
+      const tip = cone(0.055, 0.15, 0xd9b074, 8); place(tip, s * 0.61, 0.63, -0.06); tip.rotation.z = s * -0.6; tip.rotation.x = -0.3; head.add(tip);
+    }
+    // 赤いたてがみ（後頭部の塊＋トゲ状の房を大きく）
+    const maneBack = sph(0.48, mane, 14); maneBack.scale.set(1.18, 1.08, 0.84); place(maneBack, 0, 0.34, 0.3); head.add(maneBack);
+    for (let i = 0; i < 7; i++) { const sp = cone(0.09, 0.4, mane, 6); place(sp, (i - 3) * 0.16, 0.56, 0.2); sp.rotation.x = 0.55; sp.rotation.z = (i - 3) * 0.07; head.add(sp); }
+    // 太く逆立つ赤い眉（目の真上に大きく＝アートの精悍な表情）
+    for (const s of [-1, 1]) {
+      const brow = sph(0.16, 0xe2401f, 12); brow.scale.set(1.7, 0.55, 0.7); place(brow, s * 0.23, 0.34, -0.46); brow.rotation.z = -s * 0.38; head.add(brow);
+      const browTip = cone(0.09, 0.22, 0xe2401f, 6); place(browTip, s * 0.49, 0.46, -0.38); browTip.rotation.z = -s * 1.15; head.add(browTip);
+    }
+    head.add(eye(-0.2, 0.17, -0.49, { iris: 0xd83a14, tall: 1.35, look: 1, size: 0.78 }));
+    head.add(eye(0.2, 0.17, -0.49, { iris: 0xd83a14, tall: 1.35, look: -1, size: 0.78 }));
     head.position.set(0, 1.36, 0);
     head.scale.setScalar(1.08);
     g.add(head); g.userData.head = head;
